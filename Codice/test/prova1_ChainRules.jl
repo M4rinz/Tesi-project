@@ -1,5 +1,5 @@
 """
-Intended to be used in a VS Code interactive session
+    Intended to be used in a VS Code interactive session
 """
 
 using LinearAlgebra, FiniteDifferences
@@ -48,15 +48,17 @@ print("The 1st argument is the matrix exponential.\n")
 
 K_back = construct_full_jacobian(x -> exp_pullback(x)[2])
 
+E = 0.001 * rand(n, n);
+print("|| K_back * vec(E) - vec(exp_pullback(E)) || / || vec(exp_pullback(E)) || = $(rel_err(K_back * vec(E), vec(exp_pullback(E)[2])))\n")
+
 # My finite difference approx
 my_fd_function = X -> (exp(A + √eps() * X) - exp(A)) / √eps()
 K_fd = construct_full_jacobian(my_fd_function)
 
 print("|| K_back' - K_fd || / || K_fd || = $(rel_err(K_fd, K_back'))\n")
-print("Being given by a reverse (adjoint) rule, K_back computes the adjoint of the Fréchet derivative\n")
-print("When vectorized, this becomes the K' (I need to check this formally but I'm quite sure)\n")
+print("Being given by a reverse (adjoint) rule, K_back computes the Fréchet derivative of the adjoint. When vectorized, this becomes the K'\n")
+print("The details are long to put in a print, but it's because L(A)^{\\top}[E] = L(A)[E']' \n")
 
-print("L(A)[E]^{\\top} = L(A')[E']")
 
 
 # compute the pushforward (i.e. the Fréchet derivative at A in a given direction) via frule
@@ -71,3 +73,4 @@ K_fd_good = FiniteDifferences.jacobian(central_fdm(5,1), exp, A)[1]
 print("||K forward - K_fd_good || / || K_fd_good || = $(rel_err(K_fd_good, K_forward))\n")
 print("Also K_forward is a good approximation\n")
 
+print("||K_back' - K_forward || / || K_forward || = $(rel_err(K_back', K_forward))\n")
