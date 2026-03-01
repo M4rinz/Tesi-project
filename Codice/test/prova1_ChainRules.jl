@@ -1,15 +1,17 @@
 """
-Intended to be used in a VS Code interactive session
+    Tests that the `frule` and `rrule` provided by the `matfun.jl`
+    in the `ChainRules` library indeed implement the vjp and jvp respectively.
+    This script is intended to be used in a VS Code interactive session
 """
 
 using LinearAlgebra, FiniteDifferences
 using ChainRules, ChainRulesCore
 
+include("MyHelper.jl")
+using .MyHelper
+
 # helper functions
 
-function rel_err(approx, exact)
-    norm(approx - exact) / norm(exact)
-end
 
 function construct_full_jacobian(linear_operator)
     """ 
@@ -32,6 +34,7 @@ function construct_full_jacobian(linear_operator)
     return K
 end
 
+# Actual code
 
 n = 3
 A = rand(n,n)
