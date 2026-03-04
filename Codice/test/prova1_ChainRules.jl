@@ -38,6 +38,7 @@ end
 
 n = 3
 A = rand(n,n)
+cpA = copy(A);
 
 @edit exp(A)
 
@@ -77,3 +78,10 @@ print("||K forward - K_fd_good || / || K_fd_good || = $(rel_err(K_fd_good, K_for
 print("Also K_forward is a good approximation\n")
 
 print("||K_back' - K_forward || / || K_forward || = $(rel_err(K_back', K_forward))\n")
+
+
+print("Wait a second! We called (multiple times) the `frule` of `LinearAlgebra.exp!`. Exclamation mark means it's mutating! Has A been mutated?\n")
+print("A ≈ cpA is $(A ≈ cpA)\n")
+print("So why hasn't A been mutated? The reason is that `LAPACK.gebal!` inside `exp!` does nothing to A\n")
+print("A slightly bigger example with a purposely crafted matrix (use the `gebal_example` function) reveals the catch\n")
+print("Ora non ho voglia di farlo e di starci dietro.\n")
