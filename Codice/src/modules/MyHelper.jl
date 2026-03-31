@@ -2,13 +2,12 @@ module MyHelper
 
 using LinearAlgebra, Random
 
+"""
+Returns the relative error between `approx` (the approximation)
+and `exact` (the exact answer), using the formula
+``norm(approx - exact) / norm(exact)``
+"""
 function rel_err(approx, exact)
-    """
-    Returns the relative error between `approx` (the approximation)
-    and `exact` (the exact answer), using the formula
-    ``norm(approx - exact) / norm(exact)``
-    """
-
     norm(approx - exact) / norm(exact)
 end
 
