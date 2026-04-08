@@ -6,13 +6,6 @@ Random.seed!(42)
 Revise.includet(joinpath(@__DIR__,"..","..","src","modules","MyHelper.jl"))
 using .MyHelper
 
-"""To test:
-    - how does `schur` (from GenericSchur) compare with the original one, 
-      when applied to usual Float64 matrices?
-    - Test on a random matrix: check rel_err(UTU', A)
-    - Is the real Schur form available? 
-
-""";
 
 ## Define parameters and useful stuff
 """
@@ -41,6 +34,17 @@ function exact_eigvals_laplacian(n::Integer; T::Type=BigFloat)::Vector{T}
     end
 
     return vals
+end
+
+function exact_eigvals_blkdiag(a, b; T::Type=BigFloat)::Vector{complex(T)}
+    n = length(a)
+    length(b) == n || error("a and b must have the same length.\n")
+    v = Vector{complex(T)}(undef, 2n)
+    for i=1:n
+        v[2i]   = a[i] - b[i]im;
+        v[2i-1] = a[i] + b[i]im;
+    end
+    return sort(v, by=abs2)
 end
 
 function test_schur(
@@ -80,8 +84,10 @@ function test_schur(
         λs_hat = sort(F.values, by=abs2)
     end
 
-    truths_approx = λs .≈ λs_hat
-    print("\tλₖ ≈ ̂λₖ  ∀k∈[n] is $(all(truths_approx))\n")
+    truths_approx     = λs .≈ λs_hat
+    truths_approx_eps = isapprox.(λs, λs_hat, rtol=eps(Tf))
+    print("\tλₖ ≈ ̂λₖ (half significant digits) ∀k∈[n] is $(all(truths_approx))\n")
+    print("\tλₖ ≈ ̂λₖ (up to machine precision) ∀k∈[n] is $(all(truths_approx_eps))\n")
     @printf("\tMaximum relative error in λs = %.6g\t(%1.2g times the reference value)\n", maximum(rel_err.(λs_hat, λs)), maximum(rel_err.(λs_hat, λs))/ref_val)
     print("\n")
     return F;
@@ -92,8 +98,8 @@ end
 n = 50;
 
 print("We test the Schur decomposition of the discretization of the Laplace operator: L = tridiag(-1,2,1) of size $n.\n"
-* "Being SPD, the eigenvalues are real and positive. The Schur form (be it real or complex) is diagonal."
-* " Moreover, there's a known exact formula for its eigenvalues.\n")
+* "Being SPD, the eigenvalues are real and positive. The Schur form (be it real or complex) is diagonal. "
+* "Moreover, there's a known exact formula for its eigenvalues.\n")
 
 # define matrices. Nomenclature: L_{type}_{full/SymTri}
 L_d_f = diagm(0 => 2*ones(n), 1 => -1*ones(n-1), -1 => -1*ones(n-1));       # double, full
@@ -186,19 +192,8 @@ for i=1:n
     Â[2i-1:2i, 2i-1:2i] .= [a[i] -b[i]; b[i] a[i]];
 end
 
-function exact_eigvals_blkdiag(a, b; T::Type=BigFloat)::Vector{complex(T)}
-    n = length(a)
-    length(b) == n || error("a and b must have the same length.\n")
-    v = Vector{complex(T)}(undef, 2n)
-    for i=1:n
-        v[2i]   = a[i] - b[i]im;
-        v[2i-1] = a[i] + b[i]im;
-    end
-    return sort(v, by=abs2)
-end
-
 # Let's begin by applying random unitary similarity transformations
-Q, _ = qr(rand(BigFloat, 2n,2n));
+Q, _ = qr(randn(BigFloat, 2n,2n));
 A = Q * Â * Q';
 
 #λs_blk_orig = exact_eigvals_blkdiag(a, b);
@@ -216,13 +211,13 @@ F = test_schur(A,
                has_real_eigs=false);
 
 
-## Fifth numerical test
+## Fifth numerical test: companion matrix of a polynomial with complex conjugate roots
 n = 20;
 
 print("""We test the companion matrix of a polynomial which we purposely craft:
-    - pick a₁,…,aₙ and b₁,…,bₙ 
+    - pick a₁,…,aₙ and b₁,…,bₙ (at random)
     - get the coefficients of the polynomial whose roots are aₖ ± ibₖ
-    - create the companion matrix
+    - create the companion matrix of such polynomial
 """)
 
 a = 1e-4rand(BigFloat, n);
@@ -237,6 +232,7 @@ v = coeffs(fromroots(λs_orig));
 V = λs_orig .^ (0:2n)';
 evaluations = V * v;
 all(evaluations .≈ zeros(2n)) || error("The evaluation of the polynomial on one of its roots is not (an approximate) zero.\n");
+print("It may be that the rootfinding algorithm is not so accurate.\n")
 
 # construct companion matrix
 C = zeros(eltype(v), 2n,2n);
@@ -246,3 +242,52 @@ C[:,end] .= -v[1:end-1];
 F = test_schur(C, 
                exact_eigvals_func=n -> exact_eigvals_blkdiag(a, b),
                has_real_eigs=false);
+
+
+## Sixth numerical test: companion matrix of a polynomial with real and complex roots
+n = 6;
+
+print("This test is similar to the previous one, but we impose that (hopefully) about half of the bₖs (chosen at random) are 0.\n")
+
+a = 1e-4rand(BigFloat, n);
+b = 1 .+ 1e-1rand(BigFloat, n) .|> x -> rand()>=0.5 ? x : 0;
+is_b_zero = b .≈ 0 
+print("$(sum(is_b_zero)) imaginary parts are zero. "
+ * "This should yield $(2*sum(is_b_zero)) real eigenvalues.\n")
+
+# construct eigenvalues
+λs_orig = exact_eigvals_blkdiag(a, b);
+
+v = coeffs(fromroots(λs_orig));
+
+# verify result
+V = λs_orig .^ (0:2n)';
+evaluations = V * v;
+# check disabled because most probably the rootfinding alg is not very accurate
+#all(evaluations .≈ zeros(2n)) || error("The evaluation of the polynomial on one of its roots is not (an approximate) zero.\n");
+#print("It may be that the rootfinding algorithm is not so accurate.\n")
+
+# construct companion matrix
+C = zeros(eltype(v), 2n,2n);
+C[2:end, 1:end-1] .= I(2*n-1);
+C[:,end] .= -v[1:end-1];
+
+F = test_schur(C, 
+               exact_eigvals_func=n -> exact_eigvals_blkdiag(a, b),
+               has_real_eigs=false);
+
+is_subdiag_zero = diag(F.T, -1) .≈ 0
+num_1x1_blocks, num_2x2_blocks = 0, 0
+i = 1
+while i <= length(is_subdiag_zero)
+    if is_subdiag_zero[i]
+        num_1x1_blocks += 1
+        i += 1
+    else
+        num_2x2_blocks += 1
+        i += 2
+    end
+end;
+@printf("Number of 1×1 blocks: %d\tNumber of 2×2 blocks: %d\n", num_1x1_blocks, num_2x2_blocks)
+
+num_1x1_blocks == 2*sum(is_b_zero) || error("The number of computed real eigenvalues doesn't match with how many there are.\n")

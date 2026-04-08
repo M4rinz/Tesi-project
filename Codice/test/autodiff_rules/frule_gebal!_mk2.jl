@@ -79,6 +79,6 @@ print("I was conscious of this. The issue here is that A has a specific structur
 print("(ilo, ihi, scale) for A = $((ilo, ihi, scale))\n")
 print("(ilo, ihi, scale) for A + E = $((ilo_ApE, ihi_ApE, scale_ApE))\n")
 
-print()
+print("\n")
 print("This makes differentiating through LAPACK.gebal! pretty hard conceptually, prima ancora che programmatically\n")
 print("And is another nail in the coffin of the automatic differentiation of the algorithm for the matrix exponential.\n")

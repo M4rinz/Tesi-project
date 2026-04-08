@@ -146,7 +146,7 @@ print("""Moral of the story: the computation is only as accurate as the least ac
 # Is there a difference in behaviour, in using `BigFloat`, or `big`?
 
 π_306 = setprecision(306) do 
-    π_306 = BigFloat(π) 
+    BigFloat(π) 
 end
 
 print("π_512 - π_306 = $(π_512 - π_306)\n")
