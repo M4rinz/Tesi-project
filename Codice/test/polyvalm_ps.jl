@@ -32,26 +32,33 @@ end
 γ = 2;
 A = γ*Diagonal(ones(3))
 β_vec = [1, 0, 5, 3];
-Y = horner(A, β_vec, 0) # should be 45 * I(3)
+Y = horner(A, β_vec, 0) # should be 45 * I(3), with γ=2
 
-Y[1,1] == dot(β_vec, 2 .^ (0:length(β_vec)-1)') || error(lazy"Il test con matrice diagonale non torna")
+Y[1,1] == dot(β_vec, γ .^ (0:length(β_vec)-1)') || error(lazy"Il test con matrice diagonale non torna")
 
-## first test
 Apows = [I(size(A,1)), A]
 Y_ps = polyvalm_ps!(Apows, s, β_vec);
 
-Y_ps == Y || error("Il risultato di `polyvalm_ps!` non coincide con quello di `horner`\n")
+Y_ps == Y || error(lazy"Il risultato di `polyvalm_ps!` non coincide con quello di `horner`\n")
 
 
 ## Check symbolically
-print("""A symbolic check is not possible, because of the type constraint in the
-function signature (which are there because of the `precision` stuff).
-""")
+using Symbolics
+@variables a b
+
+# same test as above, but with symbols
+M = Diagonal([a, b])
+Mpows = [I(size(M,1)), M];
+
+P = expand.(polyvalm_ps!(Mpows, 0, β_vec))
+exact_ans = dot(β_vec, a .^ (0:length(β_vec)-1)')
+
+isequal(exact_ans, P[1,1]) || error(lazy"Il test simbolico con matrice diagonale non torna.\n")
 
 
 ## First numerical check
-# We construct a "tame" matrix for whose the Taylor approx. of the matrix 
-# exponential works well, and compare our methods to evaluate polynomials
+print("We construct a \"tame\" matrix for whose the Taylor approx. of the matrix "
+ * "exponential works well, and compare our methods to evaluate polynomials.\n")
 
 n = 5;
 A  = rand(n, n);
@@ -64,21 +71,21 @@ tayl_coeffs = [1/factorial(big(k)) for k=0:m]
 Y_true = exp(A)
 
 Y_t = polyvalm_tay_exp(A, m, 0)
-@printf("|| Y_t - exp(A) || / || exp(A) || = %.4g", rel_err(Y_t, Y_true))
+@printf("|| Y_t - exp(A) || / || exp(A) || = %.4g\n", rel_err(Y_t, Y_true))
 print("Y_t ≈ exp(A) is $(Y_t ≈ Y_true)\n")
 
 Y_h = horner(A, tayl_coeffs, 0)
-@printf("|| Y_h - exp(A) || / || exp(A) || = %.4g", rel_err(Y_h, Y_true))
+@printf("|| Y_h - exp(A) || / || exp(A) || = %.4g\n", rel_err(Y_h, Y_true))
 print("Y_h ≈ exp(A) is $(Y_h ≈ Y_true)\n")
 
 Apows = [I(n), A];
 
 Y_ps = polyvalm_ps!(Apows, 0, tayl_coeffs);
-@printf("|| Y_ps - exp(A) || / || exp(A) || = %.4g", rel_err(Y_ps, Y_true))
+@printf("|| Y_ps - exp(A) || / || exp(A) || = %.4g\n", rel_err(Y_ps, Y_true))
 print("Y_ps ≈ exp(A) is $(Y_ps ≈ Y_true)\n")
 
 Y_ps_f = polyvalm_ps!(Apows, 0, tayl_coeffs, outputclass=eltype(A));
-@printf("|| Y_ps_f - exp(A) || / || exp(A) || = %.4g", rel_err(Y_ps_f, Y_true))
+@printf("|| Y_ps_f - exp(A) || / || exp(A) || = %.4g\n", rel_err(Y_ps_f, Y_true))
 print("Y_ps_f ≈ exp(A) is $(Y_ps_f ≈ Y_true)\n")
 
 """Note that the coefficient of the polynomial are cast to `outputclass` when 
@@ -136,7 +143,7 @@ Let us turn to `A`
 n = 50;
 v = rand(BigFloat, n);
 
-@printf("max(|v|) / min(|v|) = %.6g", maximum(abs.(v)) / minimum(abs.(v)))
+@printf("max(|v|) / min(|v|) = %.6g\n", maximum(abs.(v)) / minimum(abs.(v)))
 
 C = zeros(eltype(v), n,n);
 C[2:end, 1:end-1] .= I(n-1);
@@ -145,20 +152,20 @@ C[:, end] .= -v;
 Cpows = [I(n), C];
 Y_ps = polyvalm_ps!(Cpows, 0, [v..., 1]);
 Y_h  = horner(C, [v..., 1], 0);
-@printf("The exact result is Y = 0, as Hamilton-Cayley teaches us.\t eps(BigFloat) = %.4g", eps(BigFloat))
-@printf("|| Y_ps || = %.4g", norm(Y_ps))
-@printf("|| Y_h ||  = %.4g", norm(Y_h))
+@printf("The exact result is Y = 0, as Hamilton-Cayley teaches us.\t eps(BigFloat) = %.4g\n", eps(BigFloat))
+@printf("|| Y_ps || = %.4g\n", norm(Y_ps))
+@printf("|| Y_h ||  = %.4g\n", norm(Y_h))
 
 Y_ps_f = polyvalm_ps!([I(n), Float64.(C)], 0, [Float64.(v)..., 1], outputclass=Float64);
 Y_h_f = horner(Float64.(C), [Float64.(v)..., 1], 0);
-@printf("Now the algorithms are ran in double precision.\t eps(Float64) = %.4g", eps(Float64))
-@printf("|| Y_ps_f || = %.4g", norm(Y_ps_f))
-@printf("|| Y_h_f ||  = %.4g", norm(Y_h_f))
+@printf("Now the algorithms are ran in double precision.\t eps(Float64) = %.4g\n", eps(Float64))
+@printf("|| Y_ps_f || = %.4g\n", norm(Y_ps_f))
+@printf("|| Y_h_f ||  = %.4g\n", norm(Y_h_f))
 print("In double precision our algorithm doesn't look bad.\n")
 
 Y_ps_l = setprecision(53) do 
   Cpows_l = [I(n), BigFloat.(C)];
   Y_ps_l = polyvalm_ps!(Cpows_l, 0, [v..., 1]);
 end;
-@printf("|| Y_ps_l || = %.4g", norm(Y_ps_l))
+@printf("|| Y_ps_l || = %.4g\n", norm(Y_ps_l))
 print("More or less the same that we got from the algorithm in double precision\n")

@@ -3,6 +3,8 @@ module MyHelper
 using LinearAlgebra, Random
 
 """
+    rel_err(approx, exact)
+
 Returns the relative error between `approx` (the approximation)
 and `exact` (the exact answer), using the formula
 ``norm(approx - exact) / norm(exact)``
@@ -10,6 +12,21 @@ and `exact` (the exact answer), using the formula
 function rel_err(approx, exact)
     norm(approx - exact) / norm(exact)
 end
+
+"""
+    sym_err(A, B)
+
+returns `norm(A - B) / (1 + norm(A) + norm(B))`, a measure of error
+between ``A`` and ``B``, that is 
+- Well defined when the quantity taken as reference is ``0``
+- Symmetric in ``A`` and ``B``
+"""
+function sym_err(A, B)
+    norm(A - B) / (1 + norm(A) + norm(B))
+end
+
+export rel_err, sym_err
+
 
 # courtesy of ChatGPT (under my detailed instructions)
 """
@@ -94,9 +111,33 @@ function gebal_example(n;
     return A_unbalanced, A_bal
 end
 
-export rel_err, gebal_example
+export gebal_example
 
 
 
+
+
+
+
+
+
+"""
+    tayl_exp_horner(X, m, s)
+
+Computes ``T_m(2^{-s}X)``, the Taylor polynomial of degree `m`
+in `2^(-s)X`, using the Horner rule.
+"""
+function tayl_exp_horner(X, m, s)
+    n = LinearAlgebra.checksquare(X)
+    scaling = 2^s
+    Y = X / (scaling*m)
+    for j = 1:m-1
+        Y = (Y + I(n)) * (X / (scaling * (m - j)))
+    end
+    return Y + I(n)
+end
+
+
+export tayl_exp_horner
 
 end #module
