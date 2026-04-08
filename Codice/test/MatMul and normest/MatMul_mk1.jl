@@ -114,22 +114,28 @@ end
 
 d = 12;         # Even power of A
 
-function run_mk1_test(d)
-    X = rand(n);
+function run_mk1_test(d, t=1)
+    print("size(A) = $(size(A))\teltype(A) = $(eltype(A))\n")
+    X = t == 1 ? rand(n) : rand(n,t)
 
-    y_true = A^d * X;
-    y_pade = evalPowVecDiag_mk1(d, A, Apows_pade, X);
+    Y_true = A^d * X;
+    Y_pade = evalPowVecDiag_mk1(d, A, Apows_pade, X);
 
     print("Testing the two ways to apply A^$d on a random X (Padé version)\n")
-    @printf("|| y_pade - y_true || / || y_true || = %.4g", rel_err(y_pade, y_true))
-    print("y_pade ≈ y_true is $(y_pade ≈ y_true)\n")
+    @printf("|| Y_pade - Y_true || / || Y_true || = %.4g\n", rel_err(Y_pade, Y_true))
+    print("Y_pade ≈ Y_true is $(Y_pade ≈ Y_true)\n")
 
-    y_tayl = evalPowVecDiag_mk1(d, A, Apows_tayl, X, use_taylor=true);
+    Y_tayl = evalPowVecDiag_mk1(d, A, Apows_tayl, X, use_taylor=true);
 
     print("Testing the two ways to apply A^$d on a random X (Taylor version)\n")
-    @printf("|| y_tayl - y_true || / || y_true || = %.4g\n", rel_err(y_tayl, y_true))
-    print("y_tayl ≈ y_true is $(y_tayl ≈ y_true)\n\n")
+    @printf("|| Y_tayl - Y_true || / || Y_true || = %.4g\n", rel_err(Y_tayl, Y_true))
+    print("Y_tayl ≈ Y_true is $(Y_tayl ≈ Y_true)\n\n")
 end
 
 run_mk1_test(13)    # Odd power of A
 
+
+## Fourth test: the mk1 function, acting on a skinny matrix
+print("Same test as before, but A^d is applied to a skinny matrix, not a vector.\n")
+t = 3;
+run_mk1_test(12, t)

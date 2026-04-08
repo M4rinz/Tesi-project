@@ -92,6 +92,18 @@ function evalPowVecDiag_mk2(
             end 
             return X
         end
+        Adp_action = function (X::AbstractVecOrMat)
+            p = d
+            l = min(length(Apows), p+1)
+            while p > 0 
+                for _ = 1:div(p, l-1)
+                    X = Apows[l]' * X
+                end
+                p = mod(p, l-1)         
+                l = min(l-1, p+1)
+            end 
+            return X
+        end
     else
         Ad_action = function (X::AbstractVecOrMat)
             p = d
@@ -109,6 +121,22 @@ function evalPowVecDiag_mk2(
             end    
             return X
         end
+        Adp_action = function (X::AbstractVecOrMat)
+            p = d
+            l = length(Apows)
+            while p > 1 && l > 1
+                for _ = 1:div(p, 2*(l-1))
+                    X = Apows[l]' * X
+                end 
+                p = mod(p, 2*(l-1))         # d -= ⌊d/2(l-1)⌋ * 2(l-1)
+                l = min(l-1, div(p,2)+1)
+            end
+            if p == 1 
+                # extra multiplication by A', in case `d` was odd
+                X = A' * X
+            end    
+            return X
+        end
     end
 
     kwargs = (
@@ -116,14 +144,38 @@ function evalPowVecDiag_mk2(
         ishermitian = ishermitian(A),
         isposdef    = isposdef(A)
     )
-    return LinearMap{T}(Ad_action, n; kwargs...)
+    return LinearMap{T}(Ad_action, Adp_action, n; kwargs...)
 end
 
 export evalPowVecDiag_mk1, evalPowVecDiag_mk2
 
 
 """
+    normest1(d, A, Apows; kwargs...)
 
+Computes an estimate of the 1-norm of ``A^d``. If ``A`` is a real nonnegative 
+matrix, the estimate is exact, otherwise the elements in `Apows` are used.
+
+The implementation of the action of ``A^d`` is the same as the 
+EvalPowVecDiag function in [^hf19_mpexpm]. Precisely, a `LinearMap` object
+that implements the action is created, then the norm is estimated using 
+the `opnorm1est` function from `MatrixEquations.jl` (basically implementing 
+`normest1` from [^higham_normest1])
+
+# Keyword arguments
+- `use_taylor::Bool`: whether the chosen approximant is the Taylor or Padé one.
+                      In the former case, `Apows` is ``[I, A, \\dots, A^l]``,
+                      in the latter it's ``[I, A^2, \\dots, A^(2l)]``. Defaults to `false`.
+
+# References 
+- [^hf19_mpexpm]:
+    > N. J. Higham and M. Fasi, An Arbitrary Precision Scaling and Squaring Algorithm for the Matrix Exponential
+    > SiAM J. Matrix Anal. Appl., Vol. 40.4 (2019), pp.1233-1256
+    > doi: 10.1137/18M1228876
+- [^higham_normest1]:
+    > N. J. Higham and F. Tisseur, A block algorithm for matrix 1-norm estimation, with and application to 1-norm pseudospectra
+    > SIAM J. Matrix Anal. Appl., Vol 21.4 (2000), pp. 1185–1201.
+    > doi: 10.1137/S0895479899356080
 """
 function normest1(
         d::Integer,
@@ -137,7 +189,7 @@ function normest1(
 
     if A == abs.(A)
         e = ones(n)
-        for j = 1:d
+        for _ = 1:d
             e = A' * e
         end
         γ_d = norm(e, Inf)
