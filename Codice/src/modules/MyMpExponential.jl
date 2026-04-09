@@ -536,44 +536,27 @@ export alpha!
 
 ############ Calcolo (meglio: stima) di || A^d ||₁ ############
 
-"""
-    f = evalPowVecDiag(d, A, Apows; kwargs...)
-
-Returns a function (a closure) that computes the action of``A^d`` 
-using the elements of `Apows`. The returned function is a `LinearMap`
-
-## Keyword arguments
-- `use_taylor`: whether the version is the Taylor one or not.
-                In the former case, it is assumed that `Apows` contains
-                the consecutive powers from `0` to `length(Apows)-1`
-
-## Returns 
-- f::`LinearMap`: the action of ``A^d``, i.e. the function such that 
-                  `f(X) = A^d * X`.
-"""
+# Function that returns the action X -> AᵈX, using only elements in `Apows`
 function evalPowVecDiag(
         d::Integer,
-        # Vorrei evitare di dover passare A, se possibile…
-        A::AbstractMatrix, 
-        Apows::AbstractVector{<:AbstractMatrix};
-        use_taylor::Bool = false
-)
+        S::AandPowsStruct
+    )
 
-    length(Apows) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
+    length(S.Apows) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
     
     # determine the type of the matrices elements
-    T = promote_type(eltype.(Apows)...)
+    T = promote_type(eltype.(S.Apows)...)
     
     # oss: the MATLAB check is more convoluted but tantamounts to this
-    n = LinearAlgebra.checksquare(A)
+    n = LinearAlgebra.checksquare(S.A)
 
     if use_taylor
         Ad_action = function (X::AbstractVecOrMat)
             p = d
-            l = min(length(Apows), p+1)
+            l = min(length(S.Apows), p+1)
             while p > 0 
                 for _ = 1:div(p, l-1)
-                    X = Apows[l] * X
+                    X = S.Apows[l] * X
                 end
                 p = mod(p, l-1)         
                 l = min(l-1, p+1)
@@ -582,10 +565,10 @@ function evalPowVecDiag(
         end
         Adp_action = function (X::AbstractVecOrMat)
             p = d
-            l = min(length(Apows), p+1)
+            l = min(length(S.Apows), p+1)
             while p > 0 
                 for _ = 1:div(p, l-1)
-                    X = Apows[l]' * X
+                    X = S.Apows[l]' * X
                 end
                 p = mod(p, l-1)         
                 l = min(l-1, p+1)
@@ -595,63 +578,69 @@ function evalPowVecDiag(
     else
         Ad_action = function (X::AbstractVecOrMat)
             p = d
-            l = length(Apows)
+            l = length(S.Apows)
             while p > 1 && l > 1
                 for _ = 1:div(p, 2*(l-1))
-                    X = Apows[l] * X
+                    X = S.Apows[l] * X
                 end 
                 p = mod(p, 2*(l-1))         # d -= ⌊d/2(l-1)⌋ * 2(l-1)
                 l = min(l-1, div(p,2)+1)
             end
             if p == 1 
                 # extra multiplication by A, in case `d` was odd
-                X = A * X
+                X = S.A * X
             end    
             return X
         end
         Adp_action = function (X::AbstractVecOrMat)
             p = d
-            l = length(Apows)
+            l = length(S.Apows)
             while p > 1 && l > 1
                 for _ = 1:div(p, 2*(l-1))
-                    X = Apows[l]' * X
+                    X = (S.Apows[l])' * X
                 end 
                 p = mod(p, 2*(l-1))         # d -= ⌊d/2(l-1)⌋ * 2(l-1)
                 l = min(l-1, div(p,2)+1)
             end
             if p == 1 
                 # extra multiplication by A', in case `d` was odd
-                X = A' * X
+                X = (S.A)' * X
             end    
             return X
         end
     end
 
     kwargs = (
-        issymmetric = issymmetric(A),
-        ishermitian = ishermitian(A),
-        isposdef    = isposdef(A)
+        issymmetric = issymmetric(S.A),
+        ishermitian = ishermitian(S.A),
+        isposdef    = isposdef(S.A)
     )
     return LinearMap{T}(Ad_action, Adp_action, n; kwargs...)
 end
 
 
 """
-    normest1(d, A, Apows; kwargs...)
+    normest1(d, S)
 
 Computes an estimate of the 1-norm of ``A^d``. If ``A`` is a real nonnegative 
-matrix, the estimate is exact, otherwise the elements in `Apows` are used.
+matrix, the estimate is exact, otherwise the elements in `S.Apows` are used.
 
 The implementation of the action of ``A^d`` is the same as the 
 EvalPowVecDiag function in [^hf19_mpexpm]. Precisely, a `LinearMap` object
 that implements the action is created, then the norm is estimated using 
-the `opnorm1est` function from `MatrixEquations.jl` (basically implementing 
-`normest1` from [^higham_normest1])
+the `opnorm1est` function from `MatrixEquations.jl` (which in turn 
+basically implements `normest1` from [^higham_normest1]).
 
-# Keyword arguments
-- `use_taylor::Bool`: whether the chosen approximant is the Taylor or Padé one.
-                      In the former case, `Apows` is ``[I, A, \\dots, A^l]``,
-                      in the latter it's ``[I, A^2, \\dots, A^(2l)]``. Defaults to `false`.
+# Arguments
+- `d::Integer`: the power of `A`
+- `S::AandPowsStruct`: a `struct` with the fields `use_taylor`,
+                       `A` (the matrix) and `Apows` 
+    - `A::AbstractMatrix`: the matrix ``A``
+    - `use_taylor::Bool`: whether the chosen approximant is the Taylor one or not.                          
+    - `Apows::AbstractVector`:` a vector with the powers of ``A``. 
+                                It is assumed that `Apows` is ``[I, A, \\dots, A^l]`` 
+                                in the former case, and that it's ``[I, A^2, \\dots, A^(2l)]``
+                                in the latter case.
 
 # References 
 - [^hf19_mpexpm]:
@@ -665,22 +654,20 @@ the `opnorm1est` function from `MatrixEquations.jl` (basically implementing
 """
 function normest1(
         d::Integer,
-        A::AbstractMatrix,
-        Apows::AbstractVector{<:AbstractMatrix};
-        use_taylor::Bool = false
+        S::AandPowsStruct
     )
 
-    length(Apows) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
-    n = LinearAlgebra.checksquare(A)
+    length(S.Apows) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
+    n = LinearAlgebra.checksquare(S.A)
 
-    if A == abs.(A)
+    if S.A == abs.(S.A)
         e = ones(n)
         for _ = 1:d
-            e = A' * e
+            e = (S.A)' * e
         end
         γ_d = norm(e, Inf)
     else
-        Ad_action = evalPowVecDiag_mk2(d, A, Apows, use_taylor=use_taylor)
+        Ad_action = evalPowVecDiag_mk2(d, S)
         γ_d = MatrixEquations.opnorm1est(Ad_action)    
     end
 
