@@ -56,37 +56,36 @@ expm2by2_full!(B);      # Overwrites B ← exp(B)
 
 ## Second numerical check
 
-# questo esempio rompe la funzione: "the 2 × 2 blocks T[i,i] 
-# have distinct eigenvalues that are nonreal complex conjugates."
+a, b = rand(2);
+A = [a -b; b a]
 
-# a, b = rand(2);
-# A = [a -b; b a]
+expA_true = exp(a)*[cos(b) -sin(b); sin(b) cos(b)]; # true result
+expA = exp(A);                                      
 
-# expA_true = exp(a)*[cos(b) -sin(b); sin(b) cos(b)];
-# expA = exp(A);
+@printf("|| exp(A) - true_expA || / || true_expA || = %.6g\n", rel_err(expA, expA_true))
 
-# @printf("|| expA - exp(A) || / || exp(A) || = %.6g\n", rel_err(expA, expA_true))
-
-# Y = expm2by2_full(A);
-# @printf("|| Y - exp(A) || / || exp(A) || = %.6g\n", rel_err(Y, expA))
+Y = expm2by2_full(A);
+@printf("|| Y - true_expA || / || true_expA || = %.6g\n", rel_err(Y, expA_true))
 
 
-## Second numerical check: random 2x2 BigFloat matrix
+## Third numerical check: random 2x2 BigFloat matrix
 print("We now check the efficiency in arbitrary precision, "
  * "by running the analogous test as the previous, but with a random 2x2 BigFloat matrix.\n")
 
 B = rand(BigFloat, 2,2);
 
 Y = expm2by2_full(B);       # precompile
+print("\tStatic (aka non mutating) benchmark:\n")
 benchmark = @benchmark expm2by2_full($B);
 display(benchmark)
 print("\n")
 
 expm2by2_full!(copy(B));    # precompile
+
 benchmark_mut = @benchmark expm2by2_full!(B) setup=(B = copy($B));
+print("\tMutating version benchmark:\n")
 display(benchmark_mut)
 print("\n")
-
 benchmark_ratios(benchmark, benchmark_mut)
 
 expm2by2_full!(B);  # Overwrites B ← exp(B)
@@ -95,7 +94,7 @@ print("\tErrors:\n")
 @printf("|| expmB - Y || / (1 + || expmB || + || Y ||) = %.6g\n", sym_err(B, Y))
 
 
-## Third numerical check: how do the two formulas scale with precision?
+## Fourth numerical check: how do the two formulas scale with precision?
 print("We now run a more extensive benchmark on BigFloat matrices at different precision "
 * "to check how well they scale.\n")
 
@@ -183,7 +182,7 @@ plot(pl1, pl2, pl3;
      bottom_margin = 5Plots.mm)
 
 
-## Fourth numerical test: random 2x2 triangular Float64 matrix
+## Fifth numerical test: random 2x2 triangular Float64 matrix
 print("We now check whether the mutating version of `expm2by2_tri` "
  * "is more efficient than the original one, by testing on a random "
  * "triangular 2 by 2 matrix of Float64.\n"
@@ -212,7 +211,7 @@ expm2by2_full!(B);          # Overwrites B ← exp(B)
 @printf("|| expmB - Y || / (1 + || expmB || + || Y ||) = %.6g\n", sym_err(B, Y))
 
 
-## Fifth numerical check: random 2x2 triangular BigFloat matrix
+## Sixth numerical check: random 2x2 triangular BigFloat matrix
 print("We now check the efficiency in arbitrary precision, "
  * "by running the analogous test as the previous, "
  * "but with a random upper triangular 2x2 BigFloat matrix.\n")
