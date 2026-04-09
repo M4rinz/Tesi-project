@@ -1,10 +1,11 @@
 module MyMpExponential
 
 using LinearAlgebra
+using LinearMaps, MatrixEquations
 using Symbolics
 
 
-#### Funzioni per valutare polinomi di matrici ####
+############ Valutare polinomi di matrici ############
 
 # Paterson-Stockmeyer on a generic polynomial (`EvalPolyPS` in the article)
 """
@@ -163,7 +164,7 @@ export polyvalm_tay_exp, polyvalm_ps!
 
 
 
-#### Approssimanti dell'esponenziale (Taylor e Padé) ####
+############ Approssimanti dell'esponenziale (Taylor e Padé) ############
 
 # approximate expm using Taylor (`EvalPadeTayl` in the article)
 """
@@ -218,6 +219,23 @@ end
 
 # approximate expm using Padé (`EvalPadeDiag` in the article)
 """
+    expm_diagonal!(A, Apows, m, s; kwargs...)
+
+Approximates ``e^(2^{-s}A)`` using the diagonal Padé approximant of degree `m`.
+The approximant is evaluated using the Paterson-Stockmeyer scheme.
+
+# Arguments
+- `A::AbstractMatrix`: The matrix whose scaled version we want the exponential of
+- `Apows::AbstractVector`: A vector holding the powers of ``A^2``. At least 
+                           ``I`` and ``A^2`` must be present. *This vector is mutated
+                           by the function*
+- `m::Integer`: The degree of the diagonal approximant. *Note*: an optimal 
+                degree must be used.
+- `s::Real`: The scaling factor
+
+# Keyword arguments:
+- `cheap_r::Bool`: whether to use a smart formula for ``Q_m^{-1}P_m``. 
+                   Defaults to `true`.
 """
 function expm_diagonal!(
     A::AbstractMatrix,
@@ -264,7 +282,7 @@ export expm_taylor, expm_diagonal!
 
 
 
-#### Funzioni per il ricalcolo delle diagonali per lo squaring triangolare superiore ####
+########## Ricalcolo delle diagonali per lo squaring triangolare superiore ##########
 
 # Recompute diagonals of a general block triangular matrix (Overwrites Y)
 """
@@ -278,6 +296,7 @@ quantities computed using exact formulas, computed on the original elements
 
 *Note*: this function overwrites `Y`.
 """
+# Q: e se M e Y non avessero stesso tipo? (expm_diagonal! restituisce BigFloat)
 function recompute_diagonals!(
     M::AbstractMatrix{T}, 
     Y::AbstractMatrix{T}
@@ -308,12 +327,20 @@ function recompute_diagonals!(
             i += 1
         end
     end
-    return Y
+    #return Y
 end
 
 
-function sinch(x)
+function sinch(x::Real)
     x == 0 ? 1 : sinh(x)/x
+end
+
+function sinch(z::Complex)
+    if real(z) == 0 
+        z == 0 ? 1 : imag(sinh(z)) / imag(z)
+    else 
+        z == 0 ? 1 : sinh(z) / z
+    end
 end
 
 
@@ -321,30 +348,36 @@ end
     Y = expm2by2_full(B)
 
 Computes ``Y = e^B``, the exponential of a full ``2\\times 2`` 
-block `B`, using formula (2.2) from [alhi09n].
+block `B`, using formula (2.2) from [^alhi09n].
 
-[alhi09n]
-    > Higham, N. J. and Al-Mohy, A. H. A New Scaling and Squaring Algorithm for the Matrix Exponential
+[^alhi09n]
+    > N. J. Higham and A. H. Al-Mohy, A New Scaling and Squaring Algorithm for the Matrix Exponential
     > SIAM J. Matrix Anal. Appl., Vol 31.3 (2010), pp.970-989
-    > doi: 10.1137/09074721X
+    > [doi:10.1137/09074721X](https://doi.org/10.1137/09074721X)
 """
 function expm2by2_full(B)
     Y = similar(B)
     b11, b21, b12, b22 = B[:]
     b11mb22 = b11 - b22
-    δ = sqrt((b11mb22)^2 + 4*b12*b21)/2; # μ/2 in the formula
-    exp_apd2 = exp((b11+b22)/2);
-    coshδ  = cosh(δ);
-    sinchδ = sinch(δ);
-    Y[1,1] = exp_apd2 * (coshδ + (b11mb22)/2 * sinchδ);
-    Y[2,1] = exp_apd2 * b21 * sinchδ;
-    Y[1,2] = exp_apd2 * b12 * sinchδ;
+    μsq = (b11mb22)^2 + 4*b12*b21
+    if μsq < 0 
+        μsq = Complex(μsq)
+    end
+    δ = sqrt(μsq)/2     # μ/2 in the formula
+    exp_apd2 = exp((b11+b22)/2)
+    # oss: even if δ is a pure imaginary number, the result is real, 
+    #      as cosh and sinch are even functions. And also the computed 
+    #      result is guaranteed to be real, because of how the functions are implemented 
+    coshδ  = real(cosh(δ))
+    sinchδ = real(sinch(δ))
+    Y[1,1] = exp_apd2 * (coshδ + (b11mb22)/2 * sinchδ)
+    Y[2,1] = exp_apd2 * b21 * sinchδ
+    Y[1,2] = exp_apd2 * b12 * sinchδ
     # Q: perché non usare `-(b11mb22)/2` e risparmiare un conto?
     #    Problemi di cancellazione numerica? 
-    Y[2,2] = exp_apd2 * (coshδ + (b22-b11)/2 * sinchδ);    
+    Y[2,2] = exp_apd2 * (coshδ + (b22-b11)/2 * sinchδ)   
     return Y
 end
-
 
 function expm2by2_full!(B)
     b11, b21, b12, b22 = B[:]
@@ -366,14 +399,14 @@ end
     expm2by2_tri(T)
 
 Computes ``Y = e^T``, the exponential of a upper triangular ``2\\times 2``
-block `T`, using formula (10.42) from [Higham].
+block `T`, using formula (10.42) from [^Higham].
 
-[Higham]
+[^Higham]
     > Higham, N. J. Functions of Matrices, SIAM, 2008
-    > doi: https://doi.org/10.1137/1.9780898717778
+    > [doi:10.1137/1.9780898717778](https://doi.org/10.1137/1.9780898717778)
 """
 function expm2by2_tri(M::AbstractMatrix{T}) where {T}
-    Y = zeros(size(M)...)
+    Y = zeros(T, size(M)...)
     M₁, M₂ = diag(M)
 
     Y[1,1] = exp(M₁)
@@ -394,7 +427,6 @@ function expm2by2_tri(M::AbstractMatrix{T}) where {T}
     end
     return Y
 end
-
 
 function expm2by2_tri!(M::AbstractMatrix{T}) where {T}
     M₁, M₂ = diag(M)
@@ -423,11 +455,296 @@ export expm2by2_tri, expm2by2_tri!
 
 
 
+############ Upper bound all'errore in avanti ############
+
+"""
+"""
+function scalar_error_tayl()
+
+end
+
+
+"""
+"""
+function scalar_error_pade()
+
+end
+
+
+"""
+"""
+function alpha!(
+        # Q: quale struttura dati usare per alpha_vec?
+        alpha_vec::AbstractVector, 
+        s, k, m
+    )
+    d = div(1 + sqrt(4*(m+k) + 5), 2)   # sarebbe d^{[k/m]}
+
+    if alpha_vec[d+1] == 0 
+        if alpha_vec[d] == 0 
+            # uffff tutti i parametri di normest!!!!
+            # oss: il codice MATLAB originale usa `A` e `Apows`
+            #      in doppia precisione. 
+            alpha_vec[d] = normest1(d, A, Apows, use_taylor=use_taylor)^(1/j)
+        end
+        # Proviamo a evitare il calcolo di ‖A^(j+1)‖
+        low  = findfirst(!iszero, alpha_vec) # lowest index of a nonzero α
+        high = findlast(!iszero, alpha_vec)  # highest index of a nonzero α
+        bin_counter = false
+        found_upper_bound = false
+        while low < high
+            # oss: dettagli sulla ratio dietro questo `if` sul quaderno
+            # oss: a me torna se (e solo se) ‖ A^d ‖ > 1. Però questo controllo non c'è
+            if low + high == d + 1
+                if alpha_vec[d] > alpha_vec[low]*alpha_vec[high]
+                    found_upper_bound = true
+                    break
+                end
+            end
+            if bin_counter
+                low += 1
+            else 
+                high -= 1
+            end
+            bin_counter = !bin_counter
+        end
+        if found_upper_bound
+            return alpha_vec[d] / 2^s
+        else 
+            alpha_vec[d+1] == 0 || error("Uhm qualcosa non torna qua…\n")
+            alpha_vec[d+1] = normest1(d+1, A, Apows, use_taylor=use_taylor)
+        end
+    end
+    # oss: at one point, alpha_vec[d+1] was 0, then it has been computed.
+    #      When this happened, also alpha_vec[d] had been computed.
+    α_min = maximum(alpha_vec[d:d+1])   
+    α_min /= 2^s
+end
+
+
+function alpha!(
+        alpha_dict::Dict,
+        s, k, m
+    )
+
+end
+
+
+export alpha!
+
+
+
+############ Calcolo (meglio: stima) di || A^d ||₁ ############
+
+"""
+    f = evalPowVecDiag(d, A, Apows; kwargs...)
+
+Returns a function (a closure) that computes the action of``A^d`` 
+using the elements of `Apows`. The returned function is a `LinearMap`
+
+## Keyword arguments
+- `use_taylor`: whether the version is the Taylor one or not.
+                In the former case, it is assumed that `Apows` contains
+                the consecutive powers from `0` to `length(Apows)-1`
+
+## Returns 
+- f::`LinearMap`: the action of ``A^d``, i.e. the function such that 
+                  `f(X) = A^d * X`.
+"""
+function evalPowVecDiag(
+        d::Integer,
+        # Vorrei evitare di dover passare A, se possibile…
+        A::AbstractMatrix, 
+        Apows::AbstractVector{<:AbstractMatrix};
+        use_taylor::Bool = false
+)
+
+    length(Apows) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
+    
+    # determine the type of the matrices elements
+    T = promote_type(eltype.(Apows)...)
+    
+    # oss: the MATLAB check is more convoluted but tantamounts to this
+    n = LinearAlgebra.checksquare(A)
+
+    if use_taylor
+        Ad_action = function (X::AbstractVecOrMat)
+            p = d
+            l = min(length(Apows), p+1)
+            while p > 0 
+                for _ = 1:div(p, l-1)
+                    X = Apows[l] * X
+                end
+                p = mod(p, l-1)         
+                l = min(l-1, p+1)
+            end 
+            return X
+        end
+        Adp_action = function (X::AbstractVecOrMat)
+            p = d
+            l = min(length(Apows), p+1)
+            while p > 0 
+                for _ = 1:div(p, l-1)
+                    X = Apows[l]' * X
+                end
+                p = mod(p, l-1)         
+                l = min(l-1, p+1)
+            end 
+            return X
+        end
+    else
+        Ad_action = function (X::AbstractVecOrMat)
+            p = d
+            l = length(Apows)
+            while p > 1 && l > 1
+                for _ = 1:div(p, 2*(l-1))
+                    X = Apows[l] * X
+                end 
+                p = mod(p, 2*(l-1))         # d -= ⌊d/2(l-1)⌋ * 2(l-1)
+                l = min(l-1, div(p,2)+1)
+            end
+            if p == 1 
+                # extra multiplication by A, in case `d` was odd
+                X = A * X
+            end    
+            return X
+        end
+        Adp_action = function (X::AbstractVecOrMat)
+            p = d
+            l = length(Apows)
+            while p > 1 && l > 1
+                for _ = 1:div(p, 2*(l-1))
+                    X = Apows[l]' * X
+                end 
+                p = mod(p, 2*(l-1))         # d -= ⌊d/2(l-1)⌋ * 2(l-1)
+                l = min(l-1, div(p,2)+1)
+            end
+            if p == 1 
+                # extra multiplication by A', in case `d` was odd
+                X = A' * X
+            end    
+            return X
+        end
+    end
+
+    kwargs = (
+        issymmetric = issymmetric(A),
+        ishermitian = ishermitian(A),
+        isposdef    = isposdef(A)
+    )
+    return LinearMap{T}(Ad_action, Adp_action, n; kwargs...)
+end
+
+
+"""
+    normest1(d, A, Apows; kwargs...)
+
+Computes an estimate of the 1-norm of ``A^d``. If ``A`` is a real nonnegative 
+matrix, the estimate is exact, otherwise the elements in `Apows` are used.
+
+The implementation of the action of ``A^d`` is the same as the 
+EvalPowVecDiag function in [^hf19_mpexpm]. Precisely, a `LinearMap` object
+that implements the action is created, then the norm is estimated using 
+the `opnorm1est` function from `MatrixEquations.jl` (basically implementing 
+`normest1` from [^higham_normest1])
+
+# Keyword arguments
+- `use_taylor::Bool`: whether the chosen approximant is the Taylor or Padé one.
+                      In the former case, `Apows` is ``[I, A, \\dots, A^l]``,
+                      in the latter it's ``[I, A^2, \\dots, A^(2l)]``. Defaults to `false`.
+
+# References 
+- [^hf19_mpexpm]:
+    > N. J. Higham and M. Fasi, An Arbitrary Precision Scaling and Squaring Algorithm for the Matrix Exponential
+    > SiAM J. Matrix Anal. Appl., Vol. 40.4 (2019), pp.1233-1256
+    > [doi:10.1137/18M1228876](https://doi.org/10.1137/18M1228876)
+- [^higham_normest1]:
+    > N. J. Higham and F. Tisseur, A block algorithm for matrix 1-norm estimation, with and application to 1-norm pseudospectra
+    > SIAM J. Matrix Anal. Appl., Vol 21.4 (2000), pp. 1185–1201.
+    > [doi:10.1137/S0895479899356080](https://doi.org/10.1137/S0895479899356080)
+"""
+function normest1(
+        d::Integer,
+        A::AbstractMatrix,
+        Apows::AbstractVector{<:AbstractMatrix};
+        use_taylor::Bool = false
+    )
+
+    length(Apows) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
+    n = LinearAlgebra.checksquare(A)
+
+    if A == abs.(A)
+        e = ones(n)
+        for _ = 1:d
+            e = A' * e
+        end
+        γ_d = norm(e, Inf)
+    else
+        Ad_action = evalPowVecDiag_mk2(d, A, Apows, use_taylor=use_taylor)
+        γ_d = MatrixEquations.opnorm1est(Ad_action)    
+    end
+
+    return γ_d
+end
+
+
+export EvalPowVecDiag, normest1
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### Gradi ottimi delle approssimanti ####
+
+function opt_degs_tayl(max_deg::Integer=500)
+    # degs[i] = ⌊(i+2)²/4⌋
+    degs = [1,    2,    4,    6,    9,   12,   16,   20,   25,
+            30,   36,   42,   49,   56,   64,   72,   81,   90,  100,
+            110,  121,  132,  144,  156,  169,  182,  196,  210,  225,
+            240,  256,  272,  289,  306,  324,  342,  361,  380,  400,
+            420,  441,  462,  484,  506,  529,  552,  576,  600,  625,
+            650,  676,  702,  729,  756,  784,  812,  841,  870,  900,
+            930,  961,  992, 1024, 1056, 1089, 1122, 1156, 1190, 1225,
+            1260, 1296, 1332, 1369, 1406, 1444, 1482, 1521, 1560, 1600,
+            1640, 1681, 1722, 1764, 1806, 1849, 1892, 1936, 1980, 2025,
+            2070, 2116, 2162, 2209, 2256, 2304, 2352, 2401, 2450, 2500]
+    degs[degs .< max_deg]   # return degrees less than the provided one
+end
+
+function opt_degs_pade(max_deg::Integer=500)
+    # degs[i] = 2⋅⌈(i-1)/4⌉⋅(i-1-2⌊(i-2)/4⌋) + 1
+    degs = [1,    2,    3,    5,    7,    9,   13,   17,   21,
+            25,   31,   37,   43,   49,   57,   65,   73,   81,   91,
+            101,  111,  121,  133,  145,  157,  169,  183,  197,  211,
+            225,  241,  257,  273,  289,  307,  325,  343,  361,  381,
+            401,  421,  441,  463,  485,  507,  529,  553,  577,  601,
+            625,  651,  677,  703,  729,  757,  785,  813,  841,  871,
+            901,  931,  961,  993, 1025, 1057, 1089, 1123, 1157, 1191,
+            1225, 1261, 1297, 1333, 1369, 1407, 1445, 1483, 1521, 1561,
+            1601, 1641, 1681, 1723, 1765, 1807, 1849, 1893, 1937, 1981,
+            2025, 2071, 2117, 2163, 2209, 2257, 2305, 2353, 2401, 2451,
+            2501]
+    degs[degs .< max_deg]
+end
+
+
+export opt_degs_pade, opt_degs_tayl
 
 
 
