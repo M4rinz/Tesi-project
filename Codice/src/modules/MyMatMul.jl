@@ -171,11 +171,11 @@ the `opnorm1est` function from `MatrixEquations.jl` (basically implementing
 - [^hf19_mpexpm]:
     > N. J. Higham and M. Fasi, An Arbitrary Precision Scaling and Squaring Algorithm for the Matrix Exponential
     > SiAM J. Matrix Anal. Appl., Vol. 40.4 (2019), pp.1233-1256
-    > doi: 10.1137/18M1228876
+    > [doi:10.1137/18M1228876](https://doi.org/10.1137/18M1228876)
 - [^higham_normest1]:
     > N. J. Higham and F. Tisseur, A block algorithm for matrix 1-norm estimation, with and application to 1-norm pseudospectra
     > SIAM J. Matrix Anal. Appl., Vol 21.4 (2000), pp. 1185–1201.
-    > doi: 10.1137/S0895479899356080
+    > [doi:10.1137/S0895479899356080](https://doi.org/10.1137/S0895479899356080)
 """
 function normest1(
         d::Integer,

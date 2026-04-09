@@ -179,7 +179,7 @@ Fc = schur(complex(A));
 ## Fourth numerical test: destroying a block diagonal matrix
 n = 20;
 
-print("""We test a random matrix of size 2n, with=$n, constructed in the following way:
+print("""We test a random matrix of size 2n, with n=$n, constructed in the following way:
     - pick a₁,…,aₙ and b₁,…,bₙ
     - costruct Â = blkdiag([a₁ -b₁; b₁ a₁],…,[aₙ -bₙ; bₙ aₙ])
     - destroy the block diagonal structure of ̂A with a similarity transformation, producing A = MÂM⁻¹

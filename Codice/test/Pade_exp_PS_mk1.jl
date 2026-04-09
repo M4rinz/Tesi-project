@@ -73,7 +73,7 @@ print("Y_ps ≈ Y_h (up to machine precision) is $(isapprox(Y_ps, Y_h, rtol=eps(
 
 
 ## Second numerical check
-print("We construct a \"tame\" matrix for whose the Padé approx. of the matrix "
+print("We construct a \"tame\" matrix for whom the Padé approx. of the matrix "
  * "exponential works well, and compare our methods to evaluate rational functions (basically)\n")
 
 A  = rand(n, n);
