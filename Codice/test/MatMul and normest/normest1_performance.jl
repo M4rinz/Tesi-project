@@ -5,8 +5,7 @@ using Revise
 
 Revise.includet(joinpath(@__DIR__,"..","..","src","modules","MyMpExponential.jl"))
 Revise.includet(joinpath(@__DIR__,"..","..","src","modules","MyHelper.jl"))
-Revise.includet(joinpath(@__DIR__,"..","..","src","modules","MyMatMul.jl"))
-using .MyMpExponential, .MyHelper, .MyMatMul
+using .MyMpExponential, .MyHelper
 
 Random.seed!(42)
 
@@ -27,3 +26,13 @@ print("Still TODO!\t(is it important though)?")
 print("Still TODO!\t(is it important though)?")
 
 # idea: does the accuracy start to dwindle, as `d` increases?
+
+
+## Third benchmark
+# idea: `normest1` seems to work also for BigFloat matrices. 
+#       Does it make a difference in terms of performance?
+
+print("Still TODO!\t(is it important though)?")
+
+# idea: how cheaper is the `Float64` version? What if we have to 
+#       convert all matrices?
