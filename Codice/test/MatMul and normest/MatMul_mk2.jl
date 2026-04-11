@@ -30,8 +30,7 @@ print("length(Apows_pade) = $(length(Apows_pade))\n")
 @printf("|| y_pade - y_true || / || y_true || = %.4g\n", rel_err(y_pade, y_true))
 print("y_pade ≈ y_true is $(y_pade ≈ y_true)\n")
 
-print("\n")
-print("Let's add some elements to Apows_pade\n\n")
+print("\nLet's add some elements to Apows_pade\n\n")
 
 push!(Apows_pade, A^4);
 push!(Apows_pade, A^6);
