@@ -4,6 +4,10 @@ using LinearAlgebra
 using LinearMaps, MatrixEquations
 using Symbolics
 
+include("MyStructs.jl")
+using .MyStructs
+export AandPowsStruct
+
 
 ############ Valutare polinomi di matrici ############
 
@@ -476,16 +480,16 @@ end
 function alpha!(
         # Q: quale struttura dati usare per alpha_vec?
         alpha_vec::AbstractVector, 
+        S::AandPowsStruct,
         s, k, m
     )
     d = div(1 + sqrt(4*(m+k) + 5), 2)   # sarebbe d^{[k/m]}
 
     if alpha_vec[d+1] == 0 
         if alpha_vec[d] == 0 
-            # uffff tutti i parametri di normest!!!!
             # oss: il codice MATLAB originale usa `A` e `Apows`
             #      in doppia precisione. 
-            alpha_vec[d] = normest1(d, A, Apows, use_taylor=use_taylor)^(1/j)
+            alpha_vec[d] = normest1(d, S)^(1/j)
         end
         # Proviamo a evitare il calcolo di ‖A^(j+1)‖
         low  = findfirst(!iszero, alpha_vec) # lowest index of a nonzero α
@@ -512,7 +516,7 @@ function alpha!(
             return alpha_vec[d] / 2^s
         else 
             alpha_vec[d+1] == 0 || error("Uhm qualcosa non torna qua…\n")
-            alpha_vec[d+1] = normest1(d+1, A, Apows, use_taylor=use_taylor)
+            alpha_vec[d+1] = normest1(d+1, S)
         end
     end
     # oss: at one point, alpha_vec[d+1] was 0, then it has been computed.
@@ -524,6 +528,7 @@ end
 
 function alpha!(
         alpha_dict::Dict,
+        S::AandPowsStruct,
         s, k, m
     )
 
@@ -542,21 +547,21 @@ function evalPowVecDiag(
         S::AandPowsStruct
     )
 
-    length(S.Apows) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
+    #length(S.Apows) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
     
     # determine the type of the matrices elements
-    T = promote_type(eltype.(S.Apows)...)
+    T = promote_type(eltype.(S.powers)...)
     
     # oss: the MATLAB check is more convoluted but tantamounts to this
     n = LinearAlgebra.checksquare(S.A)
 
-    if use_taylor
+    if S.use_taylor
         Ad_action = function (X::AbstractVecOrMat)
             p = d
-            l = min(length(S.Apows), p+1)
+            l = min(length(S.powers), p+1)
             while p > 0 
                 for _ = 1:div(p, l-1)
-                    X = S.Apows[l] * X
+                    X = S.powers[l] * X
                 end
                 p = mod(p, l-1)         
                 l = min(l-1, p+1)
@@ -565,10 +570,10 @@ function evalPowVecDiag(
         end
         Adp_action = function (X::AbstractVecOrMat)
             p = d
-            l = min(length(S.Apows), p+1)
+            l = min(length(S.powers), p+1)
             while p > 0 
                 for _ = 1:div(p, l-1)
-                    X = S.Apows[l]' * X
+                    X = S.powers[l]' * X
                 end
                 p = mod(p, l-1)         
                 l = min(l-1, p+1)
@@ -578,10 +583,10 @@ function evalPowVecDiag(
     else
         Ad_action = function (X::AbstractVecOrMat)
             p = d
-            l = length(S.Apows)
+            l = length(S.powers)
             while p > 1 && l > 1
                 for _ = 1:div(p, 2*(l-1))
-                    X = S.Apows[l] * X
+                    X = S.powers[l] * X
                 end 
                 p = mod(p, 2*(l-1))         # d -= ⌊d/2(l-1)⌋ * 2(l-1)
                 l = min(l-1, div(p,2)+1)
@@ -594,10 +599,10 @@ function evalPowVecDiag(
         end
         Adp_action = function (X::AbstractVecOrMat)
             p = d
-            l = length(S.Apows)
+            l = length(S.powers)
             while p > 1 && l > 1
                 for _ = 1:div(p, 2*(l-1))
-                    X = (S.Apows[l])' * X
+                    X = (S.powers[l])' * X
                 end 
                 p = mod(p, 2*(l-1))         # d -= ⌊d/2(l-1)⌋ * 2(l-1)
                 l = min(l-1, div(p,2)+1)
@@ -657,7 +662,7 @@ function normest1(
         S::AandPowsStruct
     )
 
-    length(S.Apows) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
+    #length(S.powers) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
     n = LinearAlgebra.checksquare(S.A)
 
     if S.A == abs.(S.A)
@@ -675,7 +680,7 @@ function normest1(
 end
 
 
-export EvalPowVecDiag, normest1
+export evalPowVecDiag, normest1
 
 
 
