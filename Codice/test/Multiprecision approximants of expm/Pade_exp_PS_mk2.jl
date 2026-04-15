@@ -1,8 +1,8 @@
 using LinearAlgebra, Random, Printf
 using Revise
 
-Revise.includet(joinpath(@__DIR__,"..","src","modules","MyMpExponential.jl"))
-Revise.includet(joinpath(@__DIR__,"..","src","modules","MyHelper.jl"))
+Revise.includet(joinpath(@__DIR__,"..","..","src","modules","MyMpExponential.jl"))
+Revise.includet(joinpath(@__DIR__,"..","..","src","modules","MyHelper.jl"))
 using .MyMpExponential, .MyHelper
 
 Random.seed!(42)
@@ -57,6 +57,9 @@ print("We check our `expm_diagonal!` against what is obtained with the Horner ev
 n = 5;
 A = rand(BigFloat, n, n);
 
+S_pade = AandPowsStruct(A, false);
+S_tayl = AandPowsStruct(A, true);
+
 m = big(m_pade_arr[7])
 pade_num_coeffs = [binomial(m,j)*factorial(2m-j)/factorial(2m) for j=0:m];
 pade_den_coeffs = (-1).^(0:m) .* pade_num_coeffs;
@@ -64,12 +67,12 @@ Pₘ  = horner(A, pade_num_coeffs, 0);
 Qₘ  = horner(A, pade_den_coeffs, 0);
 Y_h = Qₘ \ Pₘ;
 
-Apows = [I(n), A^2];
-Y_ps = expm_diagonal!(A, Apows, m, 0);
+_    = expm_diagonal!(S_tayl, m, 0);    # Just to check if the error is caught
+Y_ps = expm_diagonal!(S_pade, m, 0);
 @printf("|| Y_ps - Y_h || / || Y_h || = %.4g\n", rel_err(Y_ps, Y_h))
 print("Y_ps ≈ Y_h is $(Y_ps ≈ Y_h)\n")
 print("Y_ps ≈ Y_h (up to machine precision) is $(isapprox(Y_ps, Y_h, rtol=eps(BigFloat)))\n")
-
+print("S.powers contains $(length(S.powers)) matrices.\n")
 
 
 ## Second numerical check
@@ -79,6 +82,8 @@ print("We construct a \"tame\" matrix for whom the Padé approx. of the matrix "
 A  = rand(n, n);
 A  = (A + A')/2;
 A -= (tr(A)/n) * I(n)   # shift 
+
+S = AandPowsStruct(A, false);
 
 Y_true = exp(Float64.(A));
 
@@ -91,8 +96,7 @@ Y_h = Qₘ \ Pₘ;
 @printf("|| Y_h - exp(A) || / || exp(A) || = %.4g\n", rel_err(Y_h, Y_true))
 print("Y_h ≈ exp(A) is $(Y_h ≈ Y_true)\n")
 
-Apows = [I(n), A^2];
-Y_ps = expm_diagonal!(A, Apows, m, 0);
+Y_ps = expm_diagonal!(S, m, 0);
 @printf("|| Y_ps - exp(A) || / || exp(A) || = %.4g\n", rel_err(Y_ps, Y_true))
 print("Y_ps ≈ exp(A) is $(Y_ps ≈ Y_true)\n")
 
