@@ -39,8 +39,9 @@ print("The symbolic check is incompatible with the new signature of `expm_taylor
 
 
 ## First numerical check
-print("We check our scheme `expm_taylor` against the Horner evaluation scheme "
- * "(for the same Taylor polynomial of course), using a small random matrix.\n")
+print("We check our scheme `eval_pade!` (which in turn calls `expm_taylor` internally) "
+* "against the Horner evaluation scheme (for the same Taylor polynomial of course), "
+ * "using a small random matrix.\n")
 
 m = m_array[6]  # i.e. m = 16
 n = 5;
@@ -49,7 +50,7 @@ S = AandPowsStruct(A, true);
 print("n = $n. m = $m. eltype(A) = $(eltype(A))\n")
 
 Ytrue = tayl_exp_horner(A, m, s)    # Evaluate Tₘ(2^(-s)A) using the Horner scheme
-Y     = expm_taylor(S, m, s);
+Y     = eval_pade!(S, m, s);
 
 @printf("|| Y - Y_true || / || Y_true || = %.6g\n", rel_err(Y,Ytrue))
 @printf("|| exp(A) - Y || / || exp(A) || = %.6g,\t (m = %2.f)\n", rel_err(Y,exp(A)), m)
@@ -62,7 +63,7 @@ print("n = $n. m=$m. eltype(B) = $(eltype(B))\n")
 
 # take Taylor poly computed with Horner in higher precision as reference
 Y_ref = setprecision(2*precision(eltype(B))) do 
-    tayl_exp_horner(B, m, s)
+    tayl_exp_horner(B, m, s)    # this function is in MyHelper
 end
 
 Y_horner = tayl_exp_horner(B, m, s)
@@ -70,7 +71,8 @@ Y_horner = tayl_exp_horner(B, m, s)
 @printf("And indeed 2^(1-precision(BigFloat)) = eps(BigFloat) = %.4g\n", eps(BigFloat))
 print("We're within a factor ≤ 10 from the unit roundoff. E ci mancherebbe altro! Nothing here surprises us.\n")
 
-Y = expm_taylor(S, m, s)   # Paterson-Stockmeyer in standard BigFloat precision
+Y = eval_pade!(S, m, s)   # Paterson-Stockmeyer in standard BigFloat precision.
+                          # calls `expm_taylor(S, m, s)`
 @printf("|| Y - Y_ref || / || Y_ref || = %.6g\n", rel_err(Y, Y_ref) )
 @printf("|| Y - Y_ref || / (1 + || Y || + || Y_ref ||) = %.6g\n", sym_err(Y, Y_ref) )
 # Domanda 2: con cosa va confrontato? eps(BigFloat)? 2^(-precision(BigFloat))? 
@@ -95,7 +97,7 @@ end
 Y_horner = tayl_exp_horner(B, m, s)
 @printf("|| Y_ref - Y_horner || / || Y_ref || = %.6g\n", rel_err(Y_horner, Y_ref))
 
-Y = expm_taylor(S, m, s)
+Y = eval_pade!(S, m, s)
 @printf("|| Y - Y_ref || / || Y_ref || = %.6g\n", rel_err(Y, Y_ref))
 @printf("|| Y - Y_ref || / (1 + || Y || + || Y_ref ||) = %.6g\n", sym_err(Y, Y_ref))
 print("Y ≈ Y_ref up to machine precision = $(isapprox(Y, Y_ref, rtol=eps(BigFloat)))\n")
@@ -117,7 +119,7 @@ Y_ref = F.Z * exp.(Diagonal(F.T)) * F.Z';
 Y_horner = tayl_exp_horner(B, m, 0);
 @printf("|| Y_ref - Y_horner || / || Y_ref || = %.6g\n", rel_err(Y_horner, Y_ref))
 
-Y = expm_taylor(S, m, 0); # no scaling
+Y = eval_pade!(S, m, 0); # no scaling
 @printf("|| Y - Y_ref || / || Y_ref || = %.6g\n", rel_err(Y, Y_ref))
 @printf("|| Y - Y_ref || / (1 + || Y || + || Y_ref ||) = %.6g\n", sym_err(Y, Y_ref))
 print("Y ≈ Y_ref up to machine precision = $(isapprox(Y, Y_ref, rtol=eps(BigFloat)))\n")
@@ -125,5 +127,6 @@ print("\n")
 print("Keep in mind that this is not the full algorithm. "
  * "It may be that Taylor is just bad on this problem.\n")
 
+print("What we really care about here (but we've tested multiple times):\n")
 @printf("|| Y - Y_horner || / || Y_horner || = %.6g\n", rel_err(Y, Y_horner))
 

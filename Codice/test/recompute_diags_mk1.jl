@@ -28,9 +28,9 @@ A -= (tr(A)/n) * I(n);
 F = schur(A);
 T = F.T;
 
-Tpows = [I(n), T^2];
+ST = AandPowsStruct(T, false);
 # oss: Y is BigFloat (fault: the coefficients of pₘ and qₘ)
-Y = expm_diagonal!(T, Tpows, 13, 0);    
+Y = eval_pade!(ST, 13, 0);    # approximate exp(T) ≈ r_13(T)
 Y_old = copy(Y);
 
 # overwrites Y, putting the exponentials of the diagonal blocks in their respective places
@@ -39,7 +39,7 @@ recompute_diagonals!(big.(T), Y);
 @printf("|| Y - Y_recomputed || = %.6g\n", norm(Y_old - Y))
 @printf("|| Y - Y_recomputed || / (1 + || Y || + || Y_recomputed ||) = %.6g\n", sym_err(Y, Y_old))
 
-Y_true = exp(A);
+Y_true = exp(T);
 
 @printf("|| Y - exp(T) || / || exp(T) || = %.6g\n", rel_err(Y_old, Y_true))
 @printf("|| Y_recomputed - exp(T) || / || exp(T) || = %.6g\n", rel_err(Y, Y_true))
@@ -76,8 +76,8 @@ for i = 1:n
     end
 end
 
-Tpows = [I(2n), T^2];
-Y = expm_diagonal!(T, Tpows, 13, 0);
+ST = AandPowsStruct(T, false);
+Y = eval_pade!(ST, 13, 0);
 Y_old = copy(Y);
 
 # overwrites Y, putting the exponentials of the diagonal blocks in their respective places
@@ -88,5 +88,5 @@ recompute_diagonals!(T, Y);
 
 @printf("|| Y - exp(T) || / || exp(T) || = %.6g\n", rel_err(Y_old, Y_true))
 @printf("|| Y_recomputed - exp(T) || / || exp(T) || = %.6g\n", rel_err(Y, Y_true))
-
+print("The Y_recomputed is way more accurate.\n")
 

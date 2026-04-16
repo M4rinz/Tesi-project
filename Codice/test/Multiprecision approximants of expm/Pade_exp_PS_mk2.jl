@@ -51,14 +51,15 @@ print("The Symbolic check is experiencing some issues (and is not particularly r
 
 
 ## First numerical check
-print("We check our `expm_diagonal!` against what is obtained with the Horner evaluation scheme "
+print("We check our `expm_pade!` (which in turn calls `expm_diagonal!` internally) "
+ * "against what is obtained with the Horner evaluation scheme "
  * "(for the same Padé approximant of course), using a small random BigFloat matrix\n")
 
 n = 5;
-A = rand(BigFloat, n, n);
+A = rand(BigFloat, n,n);
 
 S_pade = AandPowsStruct(A, false);
-S_tayl = AandPowsStruct(A, true);
+#S_tayl = AandPowsStruct(A, true);
 
 m = big(m_pade_arr[7])
 pade_num_coeffs = [binomial(m,j)*factorial(2m-j)/factorial(2m) for j=0:m];
@@ -67,12 +68,12 @@ Pₘ  = horner(A, pade_num_coeffs, 0);
 Qₘ  = horner(A, pade_den_coeffs, 0);
 Y_h = Qₘ \ Pₘ;
 
-_    = expm_diagonal!(S_tayl, m, 0);    # Just to check if the error is caught
-Y_ps = expm_diagonal!(S_pade, m, 0);
+#_    = expm_diagonal!(S_tayl, m, 0);    # Just to check if the error is caught
+Y_ps = eval_pade!(S_pade, m, 0);
 @printf("|| Y_ps - Y_h || / || Y_h || = %.4g\n", rel_err(Y_ps, Y_h))
 print("Y_ps ≈ Y_h is $(Y_ps ≈ Y_h)\n")
 print("Y_ps ≈ Y_h (up to machine precision) is $(isapprox(Y_ps, Y_h, rtol=eps(BigFloat)))\n")
-print("S.powers contains $(length(S.powers)) matrices.\n")
+print("S.powers contains $(length(S_pade.powers)) matrices.\n")
 
 
 ## Second numerical check
@@ -96,7 +97,7 @@ Y_h = Qₘ \ Pₘ;
 @printf("|| Y_h - exp(A) || / || exp(A) || = %.4g\n", rel_err(Y_h, Y_true))
 print("Y_h ≈ exp(A) is $(Y_h ≈ Y_true)\n")
 
-Y_ps = expm_diagonal!(S, m, 0);
+Y_ps = eval_pade!(S, m, 0);
 @printf("|| Y_ps - exp(A) || / || exp(A) || = %.4g\n", rel_err(Y_ps, Y_true))
 print("Y_ps ≈ exp(A) is $(Y_ps ≈ Y_true)\n")
 

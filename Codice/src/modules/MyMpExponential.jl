@@ -8,6 +8,8 @@ include("MyStructs.jl")
 using .MyStructs
 export AandPowsStruct
 
+####### costanti, parametri #######
+const p_factor = 1.1    # fattore di aumento della precisione dei BigFloats
 
 ############ Valutare polinomi di matrici ############
 
@@ -40,7 +42,7 @@ function polyvalm_ps!(
     ν = ceil(typeof(m), √m)    # the "batch size"
 
     if ν == 0
-        Y = β_vec[1] * Apows[1]
+        Y = outputclass(β_vec[1]) * I(n) 
         return Y
     end
 
@@ -92,7 +94,7 @@ function polyvalm_ps!(
         for j = m-1:-1:ν*r
             if j == ν*r
                 B += outputclass(β_vec[ν*r + 1]) * I(n)
-            else 
+            else
                 B += outputclass(β_vec[j+1]) * mpowers[m - ν*r - (m-j) + 1]
             end
         end
@@ -140,8 +142,6 @@ function polyvalm_tay_exp(
 
     scaling = 2^s
 
-    #Apows = [A^k for k=0:ν] #WIP. This should be in scope for this function.
-
     Y = Apows[ν+1] / (scaling * m)
     for j = ν-1:-1:1
         Y = (Y + Apows[j+1]) / (scaling * (m - ν + j))
@@ -160,7 +160,6 @@ function polyvalm_tay_exp(
     end
     
     Y = Y + I(n)
-    # return Y    
 end
 
 
@@ -170,85 +169,37 @@ export polyvalm_tay_exp, polyvalm_ps!
 
 ############ Approssimanti dell'esponenziale (Taylor e Padé) ############
 
-# approximate expm using Taylor (`EvalPadeTayl` in the article)
-"""
-    expm_taylor(A, Apows, m, s)
-
-Evaluates ``T_m(2^{-s}A)``, the Taylor polynomial of degree `m` on `2^(-s)A`,
-using the Paterson-Stockmeyer scheme.
-
-*OSS*: `Apows` holds powers of ``A``. It should be supplied with all 
-       the required powers, but currently the function computes it 
-       if one is not supplied. **Supplying a nonempty `Apows` without 
-       the necessary powers of ``A`` will break 
-
-*OSS*: the degree `m` must be one of the "optimal ones" (see article [HF19_mpexpm]), 
-i.e. obtained by the formula `floor((i+2)^2 / 4)` for some ``i\\ge 0``. 
-Otherwise, the result will be incorrect
-"""
+# approximate expm using Taylor (`EvalPadeTayl` in the article, `expm_taylor` in MATLAB)
 function expm_taylor(
-    A::AbstractMatrix,
-    # WIP: type specification is disabled 
-    #      to allow the computation of `Apows` inside
-    Apows,#::AbstractVector{<:AbstractMatrix},
+    S::AandPowsStruct,
     m::Integer,
     s::Real
 )
-    # oss: we just check that we pass something,
-    #      not that we pass the right thing (i.e. [I,A,…,Aᴺ])
-    if isnothing(Apows) || isempty(Apows)
-        # WIP: la funzione prende `Apows` in input
-        # Q: il calcolo di `Apows` qui non c'è. Dove viene fatto,
-        #    nel codice originale? Perché le potenze di A ci sono tutte??
-        ν = ceil(typeof(m), √m)     # the "batch size" of P.-S.
-        # think: assegnamo in-place? Importa a qualcuno?
-        Apows = [A^k for k=0:ν]     # WIP. This should be in scope for this function.
+    S.use_taylor || error(lazy"`expm_taylor` is intended to be used with diagonal Padé approximants.")
+
+    # oss: il calcolo delle potenze di A viene fatto in `scalar_error_tayl!`
+    #      Non mi sono ancora convinto che le potenze ci siano tutte
+    ν = ceil(typeof(m), √m)     # the "batch size" of P.-S.
+    if length(S.powers) < ν+1
+        Apows = [S.A^k for k=0:ν]    
+    else 
+        Apows = S.powers
     end
-    try
-        return polyvalm_tay_exp(Apows, m, s)
-    catch e
-       if isa(e, BoundsError)
-           msg = "Providing a nonempty `Apows` without the necessary powers gives error.\n" *
-                 "Are you sure you initialized `Apows` with powers from 0 to $ν?\n"
-           println(e)
-           print(msg)
-       else
-           print("Error caught!\n")
-           print(e)
-       end
-    end
-    return
+    
+    return polyvalm_tay_exp(Apows, m, s)
 end
 
 
-# approximate expm using Padé (`EvalPadeDiag` in the article)
-"""
-    expm_diagonal!(A, Apows, m, s; kwargs...)
-
-Approximates ``e^(2^{-s}A)`` using the diagonal Padé approximant of degree `m`.
-The approximant is evaluated using the Paterson-Stockmeyer scheme.
-
-# Arguments
-- `A::AbstractMatrix`: The matrix whose scaled version we want the exponential of
-- `Apows::AbstractVector`: A vector holding the powers of ``A^2``. At least 
-                           ``I`` and ``A^2`` must be present. *This vector is mutated
-                           by the function*
-- `m::Integer`: The degree of the diagonal approximant. *Note*: an optimal 
-                degree must be used.
-- `s::Real`: The scaling factor
-
-# Keyword arguments:
-- `cheap_r::Bool`: whether to use a smart formula for ``Q_m^{-1}P_m``. 
-                   Defaults to `true`.
-"""
+# approximate expm using Padé (`EvalPadeDiag` in the article, `expm_diagonal` in MATLAB)
 function expm_diagonal!(
-    A::AbstractMatrix,
-    Apows::AbstractVector{<:AbstractMatrix},
+    S::AandPowsStruct,
     m::Integer,
     s::Real;
     cheap_r::Bool=true
 )
-    n = LinearAlgebra.checksquare(A)
+    S.use_taylor && error(lazy"`expm_diagonal!` is intended to be used with diagonal Padé approximants.")
+
+    n = LinearAlgebra.checksquare(S.A)
 
     # Compute coefficients of the Padé approximants using the formulas
     c_num, c_den = setprecision(floor(Int64, 2*precision(BigFloat))) do 
@@ -263,26 +214,81 @@ function expm_diagonal!(
     end
 
     # compute even and odd parts, using even/odd coefficients
-    Uₑ = polyvalm_ps!(Apows, s, c_num[1:2:end])
+    Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end])
     if m >= 1 
-        Uₒ = polyvalm_ps!(Apows, s, c_num[2:2:end])
-        Uₒ = (A / 2^s) * Uₒ
+        Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end])
+        Uₒ = (S.A / 2^s) * Uₒ
     else 
-        Uₒ = zeros(eltype(A), size(A))
+        Uₒ = zeros(eltype(S.A), size(S.A))
     end
 
     if cheap_r
         Qₘ = Uₑ - Uₒ
         return Qₘ \ (2*Uₒ) + I(n)
     else 
-        Pₘ = polyvalm_ps!(Apows, s, c_num)
-        Qₘ = polyvalm_ps!(Apows, s, c_den)
+        Pₘ = polyvalm_ps!(S.powers, s, c_num)
+        Qₘ = polyvalm_ps!(S.powers, s, c_den)
         return Qₘ \ Pₘ
     end
 end
 
 
-export expm_taylor, expm_diagonal!
+# compute approx exp(2^(-s)A) ≈ rm(2^(-s)A) (`evalPade` in the article, `eval_pade` in MATLAB)
+"""
+    eval_pade!(S, m, s; kwargs...)
+
+Approximates ``e^(2^{-s}A)`` using the Padé approximant of degree `m`.
+The approximant is either the Taylor polynomial ``T_m`` or the diagonal Padé approximant
+``r_m``, depending on the value of `S.use_taylor`.
+The approximant is evaluated using the Paterson-Stockmeyer (an ad-hoc version for the Taylor approximant).
+
+# Arguments
+- `S::AandPowsStruct`: A struct with the fields `use_taylor`, `A` and `powers`
+    - `A::AbstractMatrix`: The matrix whose scaled version we want the exponential of
+    - `powers::AbstractVector`: A vector holding the powers of ``A`` if `S.use_taylor` is true, 
+                                or ``A^2`` otherwise. See observation 1 below. 
+    - `use_taylor::Bool`: whether the chosen approximant is the Taylor one or not.
+- `m::Integer`: The degree of the Padé approximant. *Note*: an optimal 
+                degree must be used. See observation 2 below.
+- `s::Real`: The scaling factor.
+
+**OSS 1**: For the diagonal Padé version, at least ``I`` and ``A^2`` must be present. Then
+       the missing powers will be inserted in `S.powers`. 
+       Instead, for the Taylor version, it is assumed that all the required powers 
+       are be inside `S.powers` (or at least they should). This is because when the 
+       error bound is evaluated by [`scalar_error_tayl!`](@ref), 
+       the missing powers are inserted in `S.powers`. 
+       Since I'm not fully convinced yet (and in order to use this function also not in 
+       pair with [`scalar_error_tayl!`](@ref)), they're recomputed if `S.powers`
+       is not long enough.
+
+**OSS 2**: the degree `m` of the Taylor approximant must be one of the "optimal ones" (see article [HF19_mpexpm]), 
+           i.e. obtained by the formula `floor((i+2)^2 / 4)` for some ``i\\ge 0``. Otherwise, the result will be incorrect.
+
+# Keyword arguments:
+- `cheap_r::Bool`: whether to use a smart formula for ``Q_m^{-1}P_m``. 
+                   Defaults to `true`. This argument is ignored if `S.use_taylor` is true.
+
+# References 
+> [^hf19_mpexpm] N. J. Higham and M. Fasi, An Arbitrary Precision Scaling and Squaring Algorithm for the Matrix Exponential
+> SIAM J. Matrix Anal. Appl., Vol. 40.4 (2019), pp.1233-1256.
+> [doi: 10.1137/18M1228876](https://doi.org/10.1137/18M1228876)
+"""
+function eval_pade!(
+    S::AandPowsStruct,
+    m::Integer,
+    s::Real;
+    cheap_r::Bool=true
+)
+    if S.use_taylor
+        expm_taylor(S, m, s)
+    else 
+        expm_diagonal!(S, m, s, cheap_r=cheap_r)
+    end
+end
+
+
+export eval_pade!
 
 
 
@@ -341,6 +347,7 @@ end
 
 function sinch(z::Complex)
     if real(z) == 0 
+        # oss: we return a real result!
         z == 0 ? 1 : imag(sinh(z)) / imag(z)
     else 
         z == 0 ? 1 : sinh(z) / z
@@ -354,10 +361,9 @@ end
 Computes ``Y = e^B``, the exponential of a full ``2\\times 2`` 
 block `B`, using formula (2.2) from [^alhi09n].
 
-[^alhi09n]
-    > N. J. Higham and A. H. Al-Mohy, A New Scaling and Squaring Algorithm for the Matrix Exponential
-    > SIAM J. Matrix Anal. Appl., Vol 31.3 (2010), pp.970-989
-    > [doi:10.1137/09074721X](https://doi.org/10.1137/09074721X)
+> [^alhi09n] N. J. Higham and A. H. Al-Mohy, A New Scaling and Squaring Algorithm for the Matrix Exponential
+> SIAM J. Matrix Anal. Appl., Vol 31.3 (2010), pp.970-989
+> [doi: 10.1137/09074721X](https://doi.org/10.1137/09074721X)
 """
 function expm2by2_full(B)
     Y = similar(B)
@@ -405,9 +411,8 @@ end
 Computes ``Y = e^T``, the exponential of a upper triangular ``2\\times 2``
 block `T`, using formula (10.42) from [^Higham].
 
-[^Higham]
-    > Higham, N. J. Functions of Matrices, SIAM, 2008
-    > [doi:10.1137/1.9780898717778](https://doi.org/10.1137/1.9780898717778)
+> [^Higham] Higham, N. J. Functions of Matrices, SIAM, 2008
+> [doi:10.1137/1.9780898717778](https://doi.org/10.1137/1.9780898717778)
 """
 function expm2by2_tri(M::AbstractMatrix{T}) where {T}
     Y = zeros(T, size(M)...)
@@ -461,28 +466,142 @@ export expm2by2_tri, expm2by2_tri!
 
 ############ Upper bound all'errore in avanti ############
 
-"""
-"""
-function scalar_error_tayl()
 
+function scalar_error_tayl!(
+    S::AandPowsStruct,
+    x,
+    m::Integer,
+    s::Real,
+    extra_precision::Bool
+)
+    ν = ceil(typeof(m), √m)     # the "batch size" of P.-S.
+    for i = length(S.powers)+1:ν+1
+        push!(S.powers, S.powers[i-1] * S.A)    # Add 
+    end
+
+    old_prec = precision(BigFloat)
+    if extra_precision
+        setprecision(BigFloat, old_prec*p_factor)
+    end
+
+    xb = big(x) # Q: stessa domanda di `scalar_error_pade!`
+    mb = big(m)
+    tₘ = sum(xb.^(0:mb) ./ factorial.(0:mb))  # oss: il codice originale precalcola questi fattoriali
+    δ  = abs(tₘ - exp(xb))  # error bound |tₘ(α) - exp(α)|
+    κ_A = 1
+
+    setprecision(BigFloat, old_prec)
+
+    # oss: qui ci sarebbe un `if` per smettere di calcolare l'approx di exp(2^(-s)A)
+    # quando diventa inutile (i.e. aggiungendo termini non cambia più nulla)
+    # Essenzialmente: quando rel_err(ψ, ψ_old) < √ϵ, allora smettiamo di calcolare 
+    # (per sempre); di aggiornare ψ, e teniamo la ψ corrente
+
+    lm1 = length(S.powers) - 1
+    # alternatives: 2.0.^(-s .* (0:lm1)); un ciclo for a mano (sembrano equivalenti in performance)
+    numerators = [2.0^(-s*k) for k=0:lm1]
+    factorials_double = factorial.(0:lm1) # oss: il MATLAB casta a `double` quelli già calcolati
+    coeffs = numerators ./ factorials_double
+    approx = sum(coeffs .* S.powers)    # oss: il MATLAB usa la doppia precisione qui
+    ψ = opnorm(approx, 1)   # oss: si potrebbe usare lo stimatore. Però forse gli 
+                            #      andrebbe data una LinearMap fatta a modo
+
+    return δ, ψ, κ_A
 end
 
 
-"""
-"""
-function scalar_error_pade()
+function scalar_error_pade!(
+    S::AandPowsStruct,
+    x,
+    m::Integer,
+    s::Real,
+    extra_precision::Bool
+)
+    old_prec = precision(BigFloat)
+    if extra_precision
+        setprecision(BigFloat, old_prec*p_factor)
+    end
 
+    mb = big(m)
+    xb = big(x) # Q: a che serve questa roba? Non dobremmo rivalutare `x` (sarebbe α)?
+                #    Alla fine, la funzione viene chiamata `scalar_error_pade!(S, alpha!(…), …)`
+                #    Ma poi, veramente vogliamo valutare norme in alta precisione?
+    ranges = 0:mb
+    
+    c_num = (factorial(mb)/factorial(2mb)) ./
+            (factorial.(mb .- ranges) .* factorial.(ranges)) .*
+            factorial.(2mb .- ranges)
+    c_num[1] = big(1.)
+    c_den = ((-1).^ranges) .* c_num    
+
+    #alternatives: xx = [xb^k for k=0:mb]; xx = cumprod([1, xb*ones(mb)...]);
+    xx = similar(c_num)
+    xx[1] = one(xb)
+    for k = 2:m+1
+        xx[k] = xb * xx[k-1]
+    end
+
+    # oss: the original MATLAB casts `c_num` into double but we shouldn't need 
+    #      to, because we cast it in the `polyvalm_ps!` function
+    Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end], outputclass=Float64)
+    if m >= 1 
+        Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end], outputclass=Float64)
+        Uₒ = (S.A / 2^s) * Uₒ
+    else 
+        Uₒ = zeros(eltype(Uₑ), size(S.A))
+    end
+
+    Qₘ = Uₑ - Uₒ
+
+    # faccio diverso rispetto al MATLAB, e più tipo com'è nell'articolo
+    F = lu(Qₘ) # Q: nel MATLAB originale ci sarebbe `inv(double(Qₘ))`. Il `double` è ridondante, giusto?
+    opinv = InverseMap(F)
+
+    η = opnorm1est(opinv)   # ‖ qₘ(2^(-s)A)^(-1) ‖₁ ≡ opnorm(inv(Qₘ), 1)
+    # Q: gli autori ripristinano la precisione qui!
+    # think: Torquatizza questi dot products? per dimensioni "medie" sum(a .* b) è più veloce...
+    #        Ma dipenderà anche dalla macchina?        
+    δ   = η * abs(exp(xb) * dot(c_den, xx) - dot(c_num, xx))
+    ψ   = opnorm1est(2 * opinv * Uₒ + I(n))   # ‖ exp(2^(-s)A) ‖ = ‖ rₘ(2^(-s)A) ‖₁ ≈ ‖ exp(2^(-s)A) ‖₁
+    κ_A = η * opnorm1est(Qₘ) # oss: nel MATLAB originale, compaiono norme. Nell'articolo, 
+                            #      tutte le norme sono stimate. Che fare?
+
+    setprecision(BigFloat, old_prec)
+
+    return δ, ψ, κ_A
 end
+
+
+
+# `eval_pade_error` nel codice originale, `evalBound` nell'articolo
+"""
+"""
+function eval_error(
+    S::AandPowsStruct,
+    x,
+    m::Integer,
+    s::Real,
+    extra_precision::Bool
+)
+    if S.use_taylor
+        scalar_error_tayl!(S, x, m, s, extra_precision)
+    else 
+        scalar_error_pade!(S, x, m, s, extra_precision)
+    end
+end
+
+
+export eval_error
 
 
 """
 """
 function alpha!(
-        # Q: quale struttura dati usare per alpha_vec?
-        alpha_vec::AbstractVector, 
-        S::AandPowsStruct,
-        s, k, m
-    )
+    # Q: quale struttura dati è meglio usare per alpha_vec?
+    alpha_vec::AbstractVector, 
+    S::AandPowsStruct,
+    s, k, m
+)
     d = div(1 + sqrt(4*(m+k) + 5), 2)   # sarebbe d^{[k/m]}
 
     if alpha_vec[d+1] == 0 
@@ -516,6 +635,7 @@ function alpha!(
             return alpha_vec[d] / 2^s
         else 
             alpha_vec[d+1] == 0 || error("Uhm qualcosa non torna qua…\n")
+            # oss: come prima, in realtà andrebbe fatto in doppia precisione
             alpha_vec[d+1] = normest1(d+1, S)
         end
     end
@@ -527,10 +647,10 @@ end
 
 
 function alpha!(
-        alpha_dict::Dict,
-        S::AandPowsStruct,
-        s, k, m
-    )
+    alpha_dict::Dict,
+    S::AandPowsStruct,
+    s, k, m
+)
 
 end
 
@@ -542,11 +662,7 @@ export alpha!
 ############ Calcolo (meglio: stima) di || A^d ||₁ ############
 
 # Function that returns the action X -> AᵈX, using only elements in `Apows`
-function evalPowVecDiag(
-        d::Integer,
-        S::AandPowsStruct
-    )
-
+function evalPowVecDiag(d::Integer, S::AandPowsStruct)
     #length(S.Apows) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
     
     # determine the type of the matrices elements
@@ -628,7 +744,7 @@ end
     normest1(d, S)
 
 Computes an estimate of the 1-norm of ``A^d``. If ``A`` is a real nonnegative 
-matrix, the estimate is exact, otherwise the elements in `S.Apows` are used.
+matrix, the estimate is exact, otherwise the elements in `S.powers` are used.
 
 The implementation of the action of ``A^d`` is the same as the 
 EvalPowVecDiag function in [^hf19_mpexpm]. Precisely, a `LinearMap` object
@@ -638,30 +754,25 @@ basically implements `normest1` from [^higham_normest1]).
 
 # Arguments
 - `d::Integer`: the power of `A`
-- `S::AandPowsStruct`: a `struct` with the fields `use_taylor`,
-                       `A` (the matrix) and `Apows` 
+- `S::AandPowsStruct`: a struct with the fields `use_taylor`,
+                       `A` (the matrix) and `powers` 
     - `A::AbstractMatrix`: the matrix ``A``
     - `use_taylor::Bool`: whether the chosen approximant is the Taylor one or not.                          
-    - `Apows::AbstractVector`:` a vector with the powers of ``A``. 
-                                It is assumed that `Apows` is ``[I, A, \\dots, A^l]`` 
-                                in the former case, and that it's ``[I, A^2, \\dots, A^(2l)]``
-                                in the latter case.
+    - `powers::AbstractVector`: a vector with the powers of ``A``. 
+                               It is assumed that `powers` is ``[I, A, \\dots, A^l]`` 
+                               in the former case, and that it's ``[I, A^2, \\dots, A^(2l)]``
+                               in the latter case.
 
 # References 
-- [^hf19_mpexpm]:
-    > N. J. Higham and M. Fasi, An Arbitrary Precision Scaling and Squaring Algorithm for the Matrix Exponential
-    > SiAM J. Matrix Anal. Appl., Vol. 40.4 (2019), pp.1233-1256
-    > [doi:10.1137/18M1228876](https://doi.org/10.1137/18M1228876)
-- [^higham_normest1]:
-    > N. J. Higham and F. Tisseur, A block algorithm for matrix 1-norm estimation, with and application to 1-norm pseudospectra
-    > SIAM J. Matrix Anal. Appl., Vol 21.4 (2000), pp. 1185–1201.
-    > [doi:10.1137/S0895479899356080](https://doi.org/10.1137/S0895479899356080)
-"""
-function normest1(
-        d::Integer,
-        S::AandPowsStruct
-    )
+> [^hf19_mpexpm] N. J. Higham and M. Fasi, An Arbitrary Precision Scaling and Squaring Algorithm for the Matrix Exponential
+> SIAM J. Matrix Anal. Appl., Vol. 40.4 (2019), pp.1233-1256.
+> [doi: 10.1137/18M1228876](https://doi.org/10.1137/18M1228876)
 
+> [^higham_normest1] N. J. Higham and F. Tisseur, A block algorithm for matrix 1-norm estimation, with and application to 1-norm pseudospectra
+> SIAM J. Matrix Anal. Appl., Vol 21.4 (2000), pp. 1185–1201.
+> [doi: 10.1137/S0895479899356080](https://doi.org/10.1137/S0895479899356080)
+"""
+function normest1(d::Integer, S::AandPowsStruct)
     #length(S.powers) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
     n = LinearAlgebra.checksquare(S.A)
 
@@ -672,7 +783,7 @@ function normest1(
         end
         γ_d = norm(e, Inf)
     else
-        Ad_action = evalPowVecDiag_mk2(d, S)
+        Ad_action = evalPowVecDiag(d, S)
         γ_d = MatrixEquations.opnorm1est(Ad_action)    
     end
 
@@ -737,6 +848,12 @@ end
 
 
 export opt_degs_pade, opt_degs_tayl
+
+
+
+
+
+
 
 
 
