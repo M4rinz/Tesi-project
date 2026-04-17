@@ -6,7 +6,7 @@ using Symbolics
 
 include("MyStructs.jl")
 using .MyStructs
-export AandPowsStruct
+export AandPowsStruct, Factorials
 
 ####### costanti, parametri #######
 const p_factor = 1.1    # fattore di aumento della precisione dei BigFloats
@@ -19,8 +19,6 @@ const p_factor = 1.1    # fattore di aumento della precisione dei BigFloats
 function polyvalm_ps!(
         Apows::AbstractVector{<:AbstractMatrix},
         s::Real,
-        # think: shall we assume that the coefficient are computed 
-        #        in high precision?
         β_vec::AbstractVector;
         outputclass::Union{Type,Nothing}=nothing     # in the MATLAB, that's A's type after some transformations
 ) 
@@ -138,7 +136,7 @@ function polyvalm_tay_exp(
 
     ν = ceil(typeof(m), √m)    # the "batch size"
     ν == 0 && throw(DomainError(lazy"Polynomial degree m is $(m). A value greater than 1 is expected"))
-    r = floor(m/ν)  # the "degree" of the P.-S. polynomial
+    r = floor(typeof(m), m/ν)  # the "degree" of the P.-S. polynomial
 
     scaling = 2^s
 
@@ -306,34 +304,30 @@ quantities computed using exact formulas, computed on the original elements
 
 *Note*: this function overwrites `Y`.
 """
-# Q: e se M e Y non avessero stesso tipo? (expm_diagonal! restituisce BigFloat)
 function recompute_diagonals!(
-    M::AbstractMatrix{T}, 
-    Y::AbstractMatrix{T}
-) where {T}
-    n = LinearAlgebra.checksquare(M)
+    T::AbstractMatrix, 
+    Y::AbstractMatrix
+) 
+    n = LinearAlgebra.checksquare(T)
     i = 1
     while i <= n
         # invariant: [i,i] is the top-left corner of a block 
         # (be it 1x1, 2x2, or two successive 1x1s (aka triangular 2x2))
-        if (i+1 == n) || (i <= n-2 && M[i+2,i+1] == 0)
+        if (i+1 == n) || (i <= n-2 && T[i+2,i+1] == 0)
             # we're in a 2x2 block, eventually triangular: 
-            # in such a block, T[i+2,i+1] is always 0
+            # in such a block, T[i+2,i+1] is always 0    
             
-            # oss: the authors check for exact equality, while 
-            #      I relax it a little bit. Is it ok? Is it good practice?
-            # oss: maybe I should check for it to be ≈ 0 w.r.t. the diagonal elements...
-            condition = norm(M[i+1,i]) <= √eps(T)*min(norm(M[i,i]), norm(M[i+1,i+1]))
-            if condition    # the block is triangular
-                Y[i:i+1,i:i+1] = expm2by2_tri(M[i:i+1,i:i+1])
-                # oss: elements T[i+1,i] is set to 0 after this. Is it ok?
-            else                # the block is full 
-                Y[i:i+1,i:i+1] = expm2by2_full(M[i:i+1,i:i+1])
+            # oss: we assume that the Schur algorithm does deflation right, 
+            #      thus we don't check for approximate zeros.
+            if T[i+1,i] == 0   # the block is triangular
+                Y[i:i+1,i:i+1] = expm2by2_tri(T[i:i+1,i:i+1])
+            else               # the block is full 
+                Y[i:i+1,i:i+1] = expm2by2_full(T[i:i+1,i:i+1])
             end
             i += 2      # exit this block and actually go to the next one
         else 
             # we're in a 1x1 block followed by a 2x2 full block (or at the boundary)
-            Y[i,i] = exp(M[i,i])
+            Y[i,i] = exp(T[i,i])
             i += 1
         end
     end
@@ -380,28 +374,31 @@ function expm2by2_full(B)
     #      result is guaranteed to be real, because of how the functions are implemented 
     coshδ  = real(cosh(δ))
     sinchδ = real(sinch(δ))
+
     Y[1,1] = exp_apd2 * (coshδ + (b11mb22)/2 * sinchδ)
     Y[2,1] = exp_apd2 * b21 * sinchδ
     Y[1,2] = exp_apd2 * b12 * sinchδ
-    # Q: perché non usare `-(b11mb22)/2` e risparmiare un conto?
-    #    Problemi di cancellazione numerica? 
-    Y[2,2] = exp_apd2 * (coshδ + (b22-b11)/2 * sinchδ)   
+    Y[2,2] = exp_apd2 * (coshδ + (-b11mb22)/2 * sinchδ)   
     return Y
 end
 
 function expm2by2_full!(B)
     b11, b21, b12, b22 = B[:]
     b11mb22 = b11 - b22;
-    δ = sqrt((b11mb22)^2 + 4b12*b21)/2; # μ/2 in the formula
+    μsq = (b11mb22)^2 + 4b12*b21;
+    if μsq < 0
+        μsq = Complex(μsq)
+    end
+    δ = sqrt(μsq)/2; # μ/2 in the formula
+
     exp_apd2 = exp((b11+b22)/2);
     coshδ  = cosh(δ);
     sinchδ = sinch(δ);
+
     B[1,1] = exp_apd2 * (coshδ + (b11mb22)/2 * sinchδ);
     B[2,1] = exp_apd2 * b21 * sinchδ;
     B[1,2] = exp_apd2 * b12 * sinchδ;
-    # Q: perché non usare `-(b11mb22)/2` e risparmiare un conto?
-    #    Problemi di cancellazione numerica? 
-    B[2,2] = exp_apd2 * (coshδ + (b22-b11)/2 * sinchδ);  
+    B[2,2] = exp_apd2 * (coshδ + (-b11mb22)/2 * sinchδ);  
 end
 
 
@@ -523,9 +520,7 @@ function scalar_error_pade!(
     end
 
     mb = big(m)
-    xb = big(x) # Q: a che serve questa roba? Non dobremmo rivalutare `x` (sarebbe α)?
-                #    Alla fine, la funzione viene chiamata `scalar_error_pade!(S, alpha!(…), …)`
-                #    Ma poi, veramente vogliamo valutare norme in alta precisione?
+    xb = big(x) # si potrebbe direttamente rivalutare x. Meglio di no
     ranges = 0:mb
     
     c_num = (factorial(mb)/factorial(2mb)) ./
@@ -541,8 +536,7 @@ function scalar_error_pade!(
         xx[k] = xb * xx[k-1]
     end
 
-    # oss: the original MATLAB casts `c_num` into double but we shouldn't need 
-    #      to, because we cast it in the `polyvalm_ps!` function
+    # think: meglio convertire tutti i c_num ora, piuttosto che lasciarlo fare alla funzione?
     Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end], outputclass=Float64)
     if m >= 1 
         Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end], outputclass=Float64)
@@ -553,8 +547,7 @@ function scalar_error_pade!(
 
     Qₘ = Uₑ - Uₒ
 
-    # faccio diverso rispetto al MATLAB, e più tipo com'è nell'articolo
-    F = lu(Qₘ) # Q: nel MATLAB originale ci sarebbe `inv(double(Qₘ))`. Il `double` è ridondante, giusto?
+    F = lu(Qₘ) 
     opinv = InverseMap(F)
 
     η = opnorm1est(opinv)   # ‖ qₘ(2^(-s)A)^(-1) ‖₁ ≡ opnorm(inv(Qₘ), 1)
@@ -597,29 +590,29 @@ export eval_error
 """
 """
 function alpha!(
-    # Q: quale struttura dati è meglio usare per alpha_vec?
     alpha_vec::AbstractVector, 
     S::AandPowsStruct,
     s, k, m
 )
-    d = div(1 + sqrt(4*(m+k) + 5), 2)   # sarebbe d^{[k/m]}
+    d = fld(1 + sqrt(4*(m+k) + 5), 2)   # sarebbe d^{[k/m]}
+    d = Int64(d)
 
     if alpha_vec[d+1] == 0 
         if alpha_vec[d] == 0 
             # oss: il codice MATLAB originale usa `A` e `Apows`
             #      in doppia precisione. 
-            alpha_vec[d] = normest1(d, S)^(1/j)
+            alpha_vec[d] = normest1(d, S)^(1/d)
         end
-        # Proviamo a evitare il calcolo di ‖A^(j+1)‖
+        # Proviamo a evitare il calcolo di ‖A^(d+1)‖
         low  = findfirst(!iszero, alpha_vec) # lowest index of a nonzero α
         high = findlast(!iszero, alpha_vec)  # highest index of a nonzero α
         bin_counter = false
         found_upper_bound = false
         while low < high
-            # oss: dettagli sulla ratio dietro questo `if` sul quaderno
-            # oss: a me torna se (e solo se) ‖ A^d ‖ > 1. Però questo controllo non c'è
             if low + high == d + 1
-                if alpha_vec[d] > alpha_vec[low]*alpha_vec[high]
+                dp1od = (d+1)/d     # com'è sul MATLAB originale non mi torna
+                if (alpha_vec[d])^dp1od > alpha_vec[low]*alpha_vec[high]
+                    #print("Upper bound found!\n")
                     found_upper_bound = true
                     break
                 end
@@ -636,7 +629,7 @@ function alpha!(
         else 
             alpha_vec[d+1] == 0 || error("Uhm qualcosa non torna qua…\n")
             # oss: come prima, in realtà andrebbe fatto in doppia precisione
-            alpha_vec[d+1] = normest1(d+1, S)
+            alpha_vec[d+1] = normest1(d+1, S)^(1/(d+1))
         end
     end
     # oss: at one point, alpha_vec[d+1] was 0, then it has been computed.
@@ -676,7 +669,7 @@ function evalPowVecDiag(d::Integer, S::AandPowsStruct)
             p = d
             l = min(length(S.powers), p+1)
             while p > 0 
-                for _ = 1:div(p, l-1)
+                for _ = 1:fld(p, l-1)
                     X = S.powers[l] * X
                 end
                 p = mod(p, l-1)         
@@ -688,7 +681,7 @@ function evalPowVecDiag(d::Integer, S::AandPowsStruct)
             p = d
             l = min(length(S.powers), p+1)
             while p > 0 
-                for _ = 1:div(p, l-1)
+                for _ = 1:fld(p, l-1)
                     X = S.powers[l]' * X
                 end
                 p = mod(p, l-1)         
@@ -701,11 +694,11 @@ function evalPowVecDiag(d::Integer, S::AandPowsStruct)
             p = d
             l = length(S.powers)
             while p > 1 && l > 1
-                for _ = 1:div(p, 2*(l-1))
+                for _ = 1:fld(p, 2*(l-1))
                     X = S.powers[l] * X
                 end 
                 p = mod(p, 2*(l-1))         # d -= ⌊d/2(l-1)⌋ * 2(l-1)
-                l = min(l-1, div(p,2)+1)
+                l = min(l-1, fld(p,2)+1)
             end
             if p == 1 
                 # extra multiplication by A, in case `d` was odd
@@ -717,11 +710,11 @@ function evalPowVecDiag(d::Integer, S::AandPowsStruct)
             p = d
             l = length(S.powers)
             while p > 1 && l > 1
-                for _ = 1:div(p, 2*(l-1))
+                for _ = 1:fld(p, 2*(l-1))
                     X = (S.powers[l])' * X
                 end 
                 p = mod(p, 2*(l-1))         # d -= ⌊d/2(l-1)⌋ * 2(l-1)
-                l = min(l-1, div(p,2)+1)
+                l = min(l-1, fld(p,2)+1)
             end
             if p == 1 
                 # extra multiplication by A', in case `d` was odd
@@ -773,7 +766,7 @@ basically implements `normest1` from [^higham_normest1]).
 > [doi: 10.1137/S0895479899356080](https://doi.org/10.1137/S0895479899356080)
 """
 function normest1(d::Integer, S::AandPowsStruct)
-    #length(S.powers) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
+    length(S.powers) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
     n = LinearAlgebra.checksquare(S.A)
 
     if S.A == abs.(S.A)

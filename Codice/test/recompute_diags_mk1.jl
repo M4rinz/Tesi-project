@@ -34,7 +34,7 @@ Y = eval_pade!(ST, 13, 0);    # approximate exp(T) ≈ r_13(T)
 Y_old = copy(Y);
 
 # overwrites Y, putting the exponentials of the diagonal blocks in their respective places
-recompute_diagonals!(big.(T), Y);   
+recompute_diagonals!(T, Y);   
 
 @printf("|| Y - Y_recomputed || = %.6g\n", norm(Y_old - Y))
 @printf("|| Y - Y_recomputed || / (1 + || Y || + || Y_recomputed ||) = %.6g\n", sym_err(Y, Y_old))

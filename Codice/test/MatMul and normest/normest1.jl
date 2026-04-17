@@ -19,8 +19,8 @@ function opnorm_test(d, S)
     method = S.use_taylor ? "Taylor" : "Padé"
     print("Chosen approximant: " * method * ".\tlength(Apows) = $(length(S.powers))\n\n")
     
-    γ_d_true    = opnorm(A^d, 1)
-    γ_d_approx  = normest1(d, S)
+    γ_d_true   = opnorm(A^d, 1)
+    γ_d_approx = normest1(d, S)
 
     @printf("|| γ - ̂γ || / || γ || = %.6g\n", rel_err(γ_d_approx, γ_d_true))
     @printf("Precisely: γ = %6.9g,\t ̂γ = %6.9g\n", γ_d_true, γ_d_approx)
