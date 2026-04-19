@@ -18,11 +18,11 @@ struct AandPowsStruct
         _ = LinearAlgebra.checksquare(A)
         if use_taylor
             for i in eachindex(Apows)
-                Apows[i] == A^(i-1) || error(lazy"The $(i)-th power in Apows is not A^$(i-1).")
+                Apows[i] == A^(i-1) || throw(ArgumentError(lazy"The $(i)-th power in Apows is not A^$(i-1)."))
             end
         else
             for i in eachindex(Apows)
-                Apows[i] == A^(2*(i-1)) || error(lazy"The $(i)-th power in Apows is not A^$(2*(i-1)).")
+                Apows[i] == A^(2*(i-1)) || throw(ArgumentError(lazy"The $(i)-th power in Apows is not A^$(2*(i-1))."))
             end
         end
         new(A, Apows, use_taylor)
@@ -37,42 +37,50 @@ AandPowsStruct(
     A::AbstractMatrix, 
     b::Bool
 ) = begin 
-        n = LinearAlgebra.checksquare(A)
-        if b
-            Apows = [I(n), A]
-        else
-            Apows = [I(n), A^2]
-        end
-        AandPowsStruct(A, Apows, b)
+    n = LinearAlgebra.checksquare(A)
+    if b
+        Apows = [I(n), A]
+    else
+        Apows = [I(n), A^2]
     end
+    AandPowsStruct(A, Apows, b)
+end
 
 # in case just zero or one matrix was provided in Apows
-AandPowsStruct(
-    A::AbstractMatrix, 
-    Apows::AbstractVector,
-    b::Bool
-) = begin 
-        print("Outer constructor called!\n")
-        if length(Apows) < 2
-            AandPowsStruct(A, b)    # discard the provided list if too short
-        else 
-            AandPowsStruct(A, Apows, b)
-        end
-    end
+# AandPowsStruct(
+#     A::AbstractMatrix, 
+#     Apows::AbstractVector{T},
+#     b::Bool
+# ) where {T} = begin 
+#     #print("Outer constructor called!\n")
+#     if T <: AbstractMatrix || isempty(Apows)
+#         if length(Apows) < 2
+#             AandPowsStruct(A, b)    # discard the provided list if too short
+#         else
+#             AandPowsStruct(A, Apows, b)
+#         end
+#     else 
+#         throw(ArgumentError("AandPowsStruct expects Apows to be a vector of matrices."))
+#     end
+# end
 
 # in case the flag was not provided
 AandPowsStruct(
     A::AbstractMatrix, 
-    Apows::AbstractVector
-) = begin 
+    Apows::AbstractVector{T}
+) where {T} = begin 
+    if T <: AbstractMatrix || isempty(Apows)
         if Apows[2] == A
             AandPowsStruct(A, Apows, true)
         elseif Apows[2] == A^2
             AandPowsStruct(A, Apows, false)
         else 
-            error(lazy"Apows[2] should either be A or A²")
+            throw(ArgumentError(lazy"Apows[2] should either be A or A²"))
         end
+    else 
+        throw(ArgumentError("AandPowsStruct expects Apows to be a vector of matrices."))
     end
+end
 
 
 export AandPowsStruct
@@ -82,52 +90,52 @@ export AandPowsStruct
 ############ Struct per contenere i fattoriali ############
 
 # struct to hold the computed factorials (aim: cache computed results)
-struct Factorials
+struct FactorialsStruct
     f_vec::Vector{BigInt}
-    Factorials(n) = 
+    FactorialsStruct(n::Integer) = 
         begin
+            n < 0 && throw(DomainError(lazy"FactorialsStruct expects n to be positive"))
             v = [factorial(big(k)) for k=0:n]
             new(v)
         end
-    Factorials() = new([big(1)])
+    FactorialsStruct() = new([big(1)])
 end
 
 
-function (f::Factorials)(
-    n::Real; 
+function (f::FactorialsStruct)(
+    n::Integer; 
     return_type::DataType=BigInt
 )
-    try
-        return_type(f.f_vec[n+1])
-    catch BoundsError
-        l = length(f.f_vec)
-            # n! is computed, together with the missing factorials
-        #alternative: nuovi_f = [factorial(big(k)) for k=l:n] 
-        nuovi_f = l:n .|> big .|> factorial 
+    n < 0 && throw(DomainError(lazy"FactorialsStruct call expects n to be positive"))
+    l = length(f.f_vec)
+    if n+1 > l
+        nuovi_f = l:n .|> big .|> factorial
         append!(f.f_vec, nuovi_f)
-        return return_type(f.f_vec[end])
     end
+    return return_type(f.f_vec[n+1])
 end
 
 
-function (f::Factorials)(
-    r::AbstractRange; 
+function (f::FactorialsStruct)(
+    r::AbstractRange{<:Integer}; 
     return_type::DataType=BigInt
 )
-    try
-        fst, _..., lst = r
-        return_type.(f.f_vec[fst+1:lst+1])
-    catch BoundsError
-        fst, _..., lst = r
-        l = length(f.f_vec)
-        #alternative: nuovi_f = [factorial(big(k)) for k=l:lst]
-        nuovi_f = l:lst .|> big .|> factorial
+    fst, lst = first(r), last(r)
+    stp = step(r)
+
+    (fst < 0 || lst < 0) && throw(DomainError(lazy"FactorialsStruct call expect ranges that span positive integers"))
+    isempty(r) && return return_type[]
+    
+    l = length(f.f_vec)
+    mx = max(fst, lst)
+    if mx+1 > l
+        nuovi_f = l:mx .|> big .|> factorial
         append!(f.f_vec, nuovi_f)
-        return return_type.(f.f_vec[fst+1:lst+1])
     end
+    return return_type.(f.f_vec[fst+1:stp:lst+1])
 end
 
-export Factorials
+export FactorialsStruct
 
 
 
