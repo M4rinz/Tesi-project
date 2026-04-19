@@ -213,7 +213,7 @@ function expm_diagonal!(
 
     # compute even and odd parts, using even/odd coefficients
     Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end])
-    if m >= 1 
+    if m ≥ 1 
         Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end])
         Uₒ = (S.A / 2^s) * Uₒ
     else 
@@ -310,10 +310,10 @@ function recompute_diagonals!(
 ) 
     n = LinearAlgebra.checksquare(T)
     i = 1
-    while i <= n
+    while i ≤ n
         # invariant: [i,i] is the top-left corner of a block 
         # (be it 1x1, 2x2, or two successive 1x1s (aka triangular 2x2))
-        if (i+1 == n) || (i <= n-2 && T[i+2,i+1] == 0)
+        if (i+1 == n) || (i ≤ n-2 && T[i+2,i+1] == 0)
             # we're in a 2x2 block, eventually triangular: 
             # in such a block, T[i+2,i+1] is always 0    
             
@@ -463,7 +463,7 @@ export expm2by2_tri, expm2by2_tri!
 
 ############ Upper bound all'errore in avanti ############
 
-
+# `scalar_error_taylor` nel codice originale, `evalBoundTayl` nell'articolo
 function scalar_error_tayl!(
     S::AandPowsStruct,
     x,
@@ -474,17 +474,17 @@ function scalar_error_tayl!(
 )
     ν = ceil(typeof(m), √m)     # the "batch size" of P.-S.
     for i = length(S.powers)+1:ν+1
-        push!(S.powers, S.powers[i-1] * S.A)    # Add 
+        push!(S.powers, S.powers[i-1] * S.A)    # Add powers
     end
 
     old_prec = precision(BigFloat)
     if extra_precision
-        setprecision(BigFloat, old_prec*p_factor)
+        setprecision(BigFloat, floor(Int64, old_prec*p_factor))
     end
 
     xb = big(x) # Q: stessa domanda di `scalar_error_pade!`
     mb = big(m)
-    tₘ = sum(xb.^(0:mb) ./ factorials(0:mb))  # oss: il codice originale precalcola questi fattoriali
+    tₘ = sum(xb.^(0:mb) ./ factorials(0:mb))  
     δ  = abs(tₘ - exp(xb))  # error bound |tₘ(α) - exp(α)|
     κ_A = 1
 
@@ -508,6 +508,7 @@ function scalar_error_tayl!(
 end
 
 
+# `scalar_error_diagonal` nel codice originale, `evalBoundDiag` nell'articolo
 function scalar_error_pade!(
     S::AandPowsStruct,
     x,
@@ -541,7 +542,7 @@ function scalar_error_pade!(
 
     # think: meglio convertire tutti i c_num ora, piuttosto che lasciarlo fare alla funzione?
     Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end], outputclass=Float64)
-    if m >= 1 
+    if m ≥ 1 
         Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end], outputclass=Float64)
         Uₒ = (convert(Matrix{Float64}, S.A) / 2^s) * Uₒ
     else 
@@ -598,13 +599,14 @@ function alpha!(
     S::AandPowsStruct,
     s, k, m
 )
+    eltype(S.A) == BigFloat && @warn "Please don't use this function with arbitrary precision data"
+
     d = fld(1 + sqrt(4*(m+k) + 5), 2)   # sarebbe d^{[k/m]}
     d = Int64(d)
+    #print("d = $d\n")
 
     if alpha_vec[d+1] == 0 
         if alpha_vec[d] == 0 
-            # oss: il codice MATLAB originale usa `A` e `Apows`
-            #      in doppia precisione. 
             alpha_vec[d] = normest1(d, S)^(1/d)
         end
         # Proviamo a evitare il calcolo di ‖A^(d+1)‖
@@ -616,7 +618,7 @@ function alpha!(
             if low + high == d + 1
                 dp1od = (d+1)/d     # com'è sul MATLAB originale non mi torna
                 if (alpha_vec[d])^dp1od > alpha_vec[low]*alpha_vec[high]
-                    #print("Upper bound found!\n")
+                    #print("Upper bound found! low = $(low), high=$(high)\n")
                     found_upper_bound = true
                     break
                 end
@@ -631,9 +633,9 @@ function alpha!(
         if found_upper_bound
             return alpha_vec[d] / 2^s
         else 
+            #print("Upper bound not found...\n")
             alpha_vec[d+1] == 0 || error("Uhm qualcosa non torna qua…\n")
-            # oss: come prima, in realtà andrebbe fatto in doppia precisione
-            alpha_vec[d+1] = normest1(d+1, S)^(1/(d+1))
+            alpha_vec[d+1] .= normest1(d+1, S)^(1/(d+1))
         end
     end
     # oss: at one point, alpha_vec[d+1] was 0, then it has been computed.
@@ -772,6 +774,7 @@ basically implements `normest1` from [^higham_normest1]).
 function normest1(d::Integer, S::AandPowsStruct)
     length(S.powers) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
     n = LinearAlgebra.checksquare(S.A)
+    eltype(S.A) == BigFloat && throw(ArgumentError(lazy"normest1 is not made for matrices with BigFloat elements"))
 
     if S.A == abs.(S.A)
         e = ones(n)
@@ -810,7 +813,7 @@ export evalPowVecDiag, normest1
 
 
 
-#### Gradi ottimi delle approssimanti ####
+############ Gradi ottimi delle approssimanti ############
 
 function opt_degs_tayl(max_deg::Integer=500)
     # degs[i] = ⌊(i+2)²/4⌋
@@ -858,18 +861,25 @@ export opt_degs_pade, opt_degs_tayl
 
 
 
-function exp_mp(A::AbstractMatrix{T};
-                precision::Union{AbstractFloat,Integer} = eps(T)    
-    ) where {T<:Real}
+function exp_mp(
+    A::AbstractMatrix{T};
+    #precision::Union{AbstractFloat,Integer} = eps(T),  
+    precision::Integer = precision(T, base=10),     # n° of decimal digits to keep 
+    epsilon::AbstractFloat = eps(T),                # tolerance
+    maxscaling::Integer = 100,
+    maxdegree::Integer = 100,
+    #algorithm::
+    #approximant::
+) where {T<:Real}
 
-    print("Precision = $(precision)\n")
-    print("eps(eltype(A)) = $(eps(eltype(A)))\n")
+    #print("Precision = $(precision)\n")
+    #print("eps(eltype(A)) = $(eps(eltype(A)))\n")
 
-    if precision isa AbstractFloat
-        print("Floating point!\n")
-    else
-        print("Intero!\n")
-    end
+    #if precision isa AbstractFloat
+    #    print("Floating point!\n")
+    #else
+    #    print("Intero!\n")
+    #end
 
 
 
