@@ -3,10 +3,10 @@ using ChainRules, ChainRulesCore
 using Random
 
 # Include my modules
-include(joinpath(@__DIR__,"..","src","modules","MyHelper.jl"))
+include(joinpath(@__DIR__,"..","..","..","src","modules","MyHelper.jl"))
 using .MyHelper
 
-include(joinpath(@__DIR__,"..","src","modules","MyBaseExponential.jl"))
+include(joinpath(@__DIR__,"..","..","..","src","modules","MyBaseExponential.jl"))
 using .MyBaseExponential
 
 

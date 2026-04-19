@@ -3,7 +3,7 @@ using Random, Revise, Printf
 
 Random.seed!(42)
 
-Revise.includet(joinpath(@__DIR__,"..","..","src","modules","MyHelper.jl"))
+Revise.includet(joinpath(@__DIR__,"..","..","..","src","modules","MyHelper.jl"))
 using .MyHelper
 
 

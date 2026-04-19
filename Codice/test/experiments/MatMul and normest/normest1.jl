@@ -1,9 +1,9 @@
 ## Imports
 using LinearAlgebra, Random, Printf
-using Revise
+using Revise, Test
 
-Revise.includet(joinpath(@__DIR__,"..","..","src","modules","MyMpExponential.jl"))
-Revise.includet(joinpath(@__DIR__,"..","..","src","modules","MyHelper.jl"))
+Revise.includet(joinpath(@__DIR__,"..","..","..","src","modules","MyMpExponential.jl"))
+Revise.includet(joinpath(@__DIR__,"..","..","..","src","modules","MyHelper.jl"))
 using .MyMpExponential, .MyHelper
 
 Random.seed!(42)
@@ -14,8 +14,8 @@ Random.seed!(42)
 function opnorm_test(d, S)
     n = LinearAlgebra.checksquare(A)
     T = eltype(A)
-    print("Testing the computation of the 1-norm of A.")
-    print("\tsize(A) = $n,\t eltype(A)=$T\n")
+    print("Testing the computation of the 1-norm of A.\n")
+    print("size(A) = $n,\t eltype(A)=$T,\t A == |A| is $(S.A == abs.(S.A))\n")
     method = S.use_taylor ? "Taylor" : "Padé"
     print("Chosen approximant: " * method * ".\tlength(Apows) = $(length(S.powers))\n\n")
     
@@ -41,12 +41,24 @@ opnorm_test(d, AandPowsStruct(A, false))   # Padé
 opnorm_test(d, AandPowsStruct(A, true))    # Taylor
 
 
-## Second test
+## Second test 
+print("We \"force\" the appearence of a matrix with negative elements. "
+ * "Other than that, nothing changes w.r.t. previous test.\n")
+
+n = 5;
+A = randn(n,n);
+d = 3;
+
+opnorm_test(d, AandPowsStruct(A, false))    # Padé
+opnorm_test(d, AandPowsStruct(A, true))     # Taylor
+
+
+## Third test
 print("Similar to previous test, but the matrix power `d` and the size `n` "
  * "are slightly higher.\n")
 
 n = 20;
-A = rand(n,n);
+A = randn(n,n);
 d = 7; 
 
 A_struct_pade = AandPowsStruct(A, [I(n), A^2, A^4], false);
@@ -56,7 +68,7 @@ opnorm_test(d, A_struct_pade)   # Padé
 opnorm_test(d, A_struct_tayl)   # Taylor
 
 
-## Third test
+## Fourth test
 print("We now check the accuracy of the computation of the 1-norm "
  * "of a small power of a matrix with BigFloat elements.\n")
 
@@ -68,16 +80,15 @@ opnorm_test(d, AandPowsStruct(A, false))   # Padé
 opnorm_test(d, AandPowsStruct(A, true))    # Taylor
 
 
-## Fourth test
-print("Similar to previous test. In fact, analogous to test n°2, "
- * "but with a BigFloat matrix.\n")
+## Fifth test
+print("We \"force\" the appearence of a matrix with negative elements. "
+ * "Other than that, nothing changes w.r.t. previous test.\n")
 
-n = 20;
-A = rand(BigFloat, n,n);
-d = 9; 
+n = 5;
+A = randn(BigFloat, n,n);
+d = 3;
 
-A_struct_pade = AandPowsStruct(A, [I(n), A^2, A^4], false);
-A_struct_tayl = AandPowsStruct(A, [I(n), A, A^2], true)
+@test_throws MethodError opnorm_test(d, AandPowsStruct(A, false))   # Padé
 
-opnorm_test(d, A_struct_pade)   # Padé
-opnorm_test(d, A_struct_tayl)   # Taylor
+print("It throws a MethodError because `MatrixEquations.opnorm1est` "
+ * "only accepts matrices of `Float32` and `Float64`.\n")

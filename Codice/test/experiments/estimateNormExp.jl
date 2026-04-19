@@ -4,8 +4,8 @@ using LinearMaps, MatrixEquations
 using BenchmarkTools
 using Revise
 
-Revise.includet(joinpath(@__DIR__,"..","src","modules","MyMpExponential.jl"))
-Revise.includet(joinpath(@__DIR__,"..","src","modules","MyHelper.jl"))
+Revise.includet(joinpath(@__DIR__,"..","..","src","modules","MyMpExponential.jl"))
+Revise.includet(joinpath(@__DIR__,"..","..","src","modules","MyHelper.jl"))
 using .MyHelper, .MyMpExponential
 
 Random.seed!(42)
