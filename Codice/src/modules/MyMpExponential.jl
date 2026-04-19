@@ -6,7 +6,7 @@ using Symbolics
 
 include("MyStructs.jl")
 using .MyStructs
-export AandPowsStruct, Factorials
+export AandPowsStruct, FactorialsStruct
 
 ####### costanti, parametri #######
 const p_factor = 1.1    # fattore di aumento della precisione dei BigFloats
@@ -469,7 +469,8 @@ function scalar_error_tayl!(
     x,
     m::Integer,
     s::Real,
-    extra_precision::Bool
+    extra_precision::Bool,
+    factorials::FactorialsStruct
 )
     ν = ceil(typeof(m), √m)     # the "batch size" of P.-S.
     for i = length(S.powers)+1:ν+1
@@ -483,7 +484,7 @@ function scalar_error_tayl!(
 
     xb = big(x) # Q: stessa domanda di `scalar_error_pade!`
     mb = big(m)
-    tₘ = sum(xb.^(0:mb) ./ factorial.(0:mb))  # oss: il codice originale precalcola questi fattoriali
+    tₘ = sum(xb.^(0:mb) ./ factorials(0:mb))  # oss: il codice originale precalcola questi fattoriali
     δ  = abs(tₘ - exp(xb))  # error bound |tₘ(α) - exp(α)|
     κ_A = 1
 
@@ -497,7 +498,7 @@ function scalar_error_tayl!(
     lm1 = length(S.powers) - 1
     # alternatives: 2.0.^(-s .* (0:lm1)); un ciclo for a mano (sembrano equivalenti in performance)
     numerators = [2.0^(-s*k) for k=0:lm1]
-    factorials_double = factorial.(0:lm1) # oss: il MATLAB casta a `double` quelli già calcolati
+    factorials_double = factorials(0:lm1, return_type=Float64) # oss: il MATLAB casta a `double` quelli già calcolati
     coeffs = numerators ./ factorials_double
     approx = sum(coeffs .* S.powers)    # oss: il MATLAB usa la doppia precisione qui
     ψ = opnorm(approx, 1)   # oss: si potrebbe usare lo stimatore. Però forse gli 
@@ -514,6 +515,8 @@ function scalar_error_pade!(
     s::Real,
     extra_precision::Bool
 )
+    n = LinearAlgebra.checksquare(S.A)
+    
     old_prec = precision(BigFloat)
     if extra_precision
         setprecision(BigFloat, old_prec*p_factor)
@@ -540,7 +543,7 @@ function scalar_error_pade!(
     Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end], outputclass=Float64)
     if m >= 1 
         Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end], outputclass=Float64)
-        Uₒ = (S.A / 2^s) * Uₒ
+        Uₒ = (convert(Matrix{Float64}, S.A) / 2^s) * Uₒ
     else 
         Uₒ = zeros(eltype(Uₑ), size(S.A))
     end
@@ -552,12 +555,11 @@ function scalar_error_pade!(
 
     η = opnorm1est(opinv)   # ‖ qₘ(2^(-s)A)^(-1) ‖₁ ≡ opnorm(inv(Qₘ), 1)
     # Q: gli autori ripristinano la precisione qui!
-    # think: Torquatizza questi dot products? per dimensioni "medie" sum(a .* b) è più veloce...
-    #        Ma dipenderà anche dalla macchina?        
+       
     δ   = η * abs(exp(xb) * dot(c_den, xx) - dot(c_num, xx))
     ψ   = opnorm1est(2 * opinv * Uₒ + I(n))   # ‖ exp(2^(-s)A) ‖ = ‖ rₘ(2^(-s)A) ‖₁ ≈ ‖ exp(2^(-s)A) ‖₁
-    κ_A = η * opnorm1est(Qₘ) # oss: nel MATLAB originale, compaiono norme. Nell'articolo, 
-                            #      tutte le norme sono stimate. Che fare?
+    κ_A = η * opnorm1est(LinearMap(Qₘ)) # oss: nel MATLAB originale, compaiono norme. Nell'articolo, 
+                                        #      tutte le norme sono stimate. Che fare?
 
     setprecision(BigFloat, old_prec)
 
@@ -574,10 +576,12 @@ function eval_error(
     x,
     m::Integer,
     s::Real,
-    extra_precision::Bool
+    extra_precision::Bool,
+    factorials::Union{FactorialsStruct,Nothing}=nothing
 )
     if S.use_taylor
-        scalar_error_tayl!(S, x, m, s, extra_precision)
+        isnothing(factorials) && throw(ArgumentError("`factorials` is required when `S.use_taylor` is true."))
+        scalar_error_tayl!(S, x, m, s, extra_precision, factorials)
     else 
         scalar_error_pade!(S, x, m, s, extra_precision)
     end
