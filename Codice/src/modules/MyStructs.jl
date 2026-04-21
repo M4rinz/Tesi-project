@@ -15,92 +15,18 @@ A struct to hold the data used by the `exp_mp` internal functions.
 - `use_taylor::Bool`: Whether the struct is used by Taylor-related functions or not 
 
 # Notes 
-The internal constructor checks that `A` is square, that `powers` and `use_taylor`
+Besides the type specifications of the struct's record, there is no check. 
+In particular, it's not checked that `A` is square, that `powers` and `use_taylor`
 are consistent, that the matrices in `powers` are the right ones. 
-**This comes with a lot of overhead**
-
-There are a lot of external constructors that allow the creation of the struct 
-even when some arguments are missing.
+**This saves a lot of overhead, but the responsibility for a correct use is on the 
+implementation**
 """
 struct AandPowsStruct
     A::AbstractMatrix
     powers::AbstractVector{<:AbstractMatrix}
     use_taylor::Bool
-
-    AandPowsStruct(
-        A::AbstractMatrix,
-        Apows::AbstractVector{<:AbstractMatrix},
-        use_taylor::Bool
-    ) = begin
-        _ = LinearAlgebra.checksquare(A)
-        if use_taylor
-            for i in eachindex(Apows)
-                Apows[i] == A^(i-1) || throw(ArgumentError(lazy"The $(i)-th power in Apows is not A^$(i-1)."))
-            end
-        else
-            for i in eachindex(Apows)
-                Apows[i] == A^(2*(i-1)) || throw(ArgumentError(lazy"The $(i)-th power in Apows is not A^$(2*(i-1))."))
-            end
-        end
-        new(A, Apows, use_taylor)
-    end
 end
 
-
- ## external constructors
-
-# in case Apows is not provided
-AandPowsStruct(
-    A::AbstractMatrix, 
-    b::Bool
-) = begin 
-    n = LinearAlgebra.checksquare(A)
-    if b
-        Apows = [I(n), A]
-    else
-        Apows = [I(n), A^2]
-    end
-    AandPowsStruct(A, Apows, b)
-end
-
-# in case just zero or one matrix was provided in Apows
-# AandPowsStruct(
-#     A::AbstractMatrix, 
-#     Apows::AbstractVector{T},
-#     b::Bool
-# ) where {T} = begin 
-#     #print("Outer constructor called!\n")
-#     if T <: AbstractMatrix || isempty(Apows)
-#         if length(Apows) < 2
-#             AandPowsStruct(A, b)    # discard the provided list if too short
-#         else
-#             AandPowsStruct(A, Apows, b)
-#         end
-#     else 
-#         throw(ArgumentError("AandPowsStruct expects Apows to be a vector of matrices."))
-#     end
-# end
-
-# in case the flag was not provided
-AandPowsStruct(
-    A::AbstractMatrix, 
-    Apows::AbstractVector{T}
-) where {T} = begin 
-    if T <: AbstractMatrix || isempty(Apows)
-        if Apows[2] == A
-            AandPowsStruct(A, Apows, true)
-        elseif Apows[2] == A^2
-            AandPowsStruct(A, Apows, false)
-        else 
-            throw(ArgumentError(lazy"Apows[2] should either be A or A²"))
-        end
-    else 
-        throw(ArgumentError("AandPowsStruct expects Apows to be a vector of matrices."))
-    end
-end
-
-
-export AandPowsStruct
 
 
 

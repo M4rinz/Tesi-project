@@ -954,15 +954,6 @@ function exp_mp(
     algorithm ∈ VALID_ALGS || 
         throw(ArgumentError("Invalid algorithm: $algorithm. Valid options are $(VALID_ALGS)"))
         
-        
-    if approximant === :taylor
-        use_taylor = true
-        # altro?
-    else 
-        use_taylor = false
-        # altro?
-    end
-
     use_abs_err_flag = Val{use_abs_err}
     ζ = epsilon^(-1/8)  # normqinv_bound
 
@@ -1044,13 +1035,17 @@ function exp_mp(
         m = degrees[currcost]
 
         s = 0 
-
-        if use_taylor
+        if approximant === :taylor
+            use_taylor = true
+            Apows = [I(n), A]
             factorials = FactorialsStruct(m)
         else 
+            use_taylor = false
+            Apows = [I(n), A^2]
             factorials = nothing
         end
-        XandP = AandPowsStruct(X, use_taylor=use_taylor)
+
+        XandP = AandPowsStruct(X, Apows, use_taylor=use_taylor)
 
         found_degree = false 
         ψ = typemax(real(T))     # tempnormexpm1
