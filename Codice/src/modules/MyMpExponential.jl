@@ -384,25 +384,6 @@ function expm2by2_full(B)
     return Y
 end
 
-function expm2by2_full!(B)
-    b11, b21, b12, b22 = B[:]
-    b11mb22 = b11 - b22;
-    μsq = (b11mb22)^2 + 4b12*b21;
-    if μsq < 0
-        μsq = Complex(μsq)
-    end
-    δ = sqrt(μsq)/2; # μ/2 in the formula
-
-    exp_apd2 = exp((b11+b22)/2);
-    coshδ  = cosh(δ);
-    sinchδ = sinch(δ);
-
-    B[1,1] = exp_apd2 * (coshδ + (b11mb22)/2 * sinchδ);
-    B[2,1] = exp_apd2 * b21 * sinchδ;
-    B[1,2] = exp_apd2 * b12 * sinchδ;
-    B[2,2] = exp_apd2 * (coshδ + (-b11mb22)/2 * sinchδ);  
-end
-
 
 """
     expm2by2_tri(T)
@@ -436,30 +417,9 @@ function expm2by2_tri(M::AbstractMatrix{T}) where {T}
     return Y
 end
 
-function expm2by2_tri!(M::AbstractMatrix{T}) where {T}
-    M₁, M₂ = diag(M)
-
-    M[1,1] = exp(M₁)
-    M[2,2] = exp(M₂)
-
-    M₁ += M₂        # M₁ ← M[1,1] + M[2,2]
-    M₂ -= M[1,1]    # M₂ ← M[2,2] - M[1,1]
-
-    exp_arg   = M₁ / 2
-    sinch_arg = M₂ / 2
-
-    if max(exp_arg, abs(sinch_arg)) < log(floatmax(T)) # guard against overflow
-        M[1,2] *= exp(exp_arg) * sinch(sinch_arg)
-    else
-        # Numerical cancellation if M[1,1] ≈ M[2,2]
-        # We use divided differences in this case
-        M[1,2] *= (M[2,2] - M[1,1]) / M₂
-    end
-end
 
 
-export recompute_diagonals!, expm2by2_full, expm2by2_full! 
-export expm2by2_tri, expm2by2_tri!
+export recompute_diagonals!, expm2by2_full, expm2by2_tri
 
 
 
