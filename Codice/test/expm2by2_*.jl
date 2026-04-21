@@ -1,3 +1,6 @@
+"""Questo benchmark è sbagliato (le funzioni non esistono più)
+Ma è sempre un utile esempio.
+"""
 ## Imports
 using LinearAlgebra, Random, Printf
 using BenchmarkTools
