@@ -4,7 +4,24 @@ using LinearAlgebra
 
 ############ Struct per contenere la matrice e le sue potenze ############
 
+"""
+    AandPowsStruct(A, Apows, use_taylor)
 
+A struct to hold the data used by the `exp_mp` internal functions.
+
+# Fields 
+- `A::AbstractMatrix`: The base matrix
+- `powers::AbstractVector{<:AbstractMatrix}`: The powers of `A` or `A^2` (depending on `use_taylor`)
+- `use_taylor::Bool`: Whether the struct is used by Taylor-related functions or not 
+
+# Notes 
+The internal constructor checks that `A` is square, that `powers` and `use_taylor`
+are consistent, that the matrices in `powers` are the right ones. 
+**This comes with a lot of overhead**
+
+There are a lot of external constructors that allow the creation of the struct 
+even when some arguments are missing.
+"""
 struct AandPowsStruct
     A::AbstractMatrix
     powers::AbstractVector{<:AbstractMatrix}

@@ -1,15 +1,22 @@
 module MyMpExponential
 
 using LinearAlgebra
+using GenericSchur
 using LinearMaps, MatrixEquations
 using Symbolics
+using Printf
 
 include("MyStructs.jl")
 using .MyStructs
 export AandPowsStruct, FactorialsStruct
 
+
 ####### costanti, parametri #######
 const p_factor = 1.1    # fattore di aumento della precisione dei BigFloats
+const VALID_APPRX = (:taylor, :pade, :diagonal)
+const VALID_ALGS  = (:transfree, :realschur, :complexschur)
+const ASSRT_STRNG = """Taylor is being used but epsilon^(-1/8) ≤ 1. 
+Maybe you're being too lenient with the tolerance on the error bound (i.e. epsilon is too big)?"""
 
 ############ Valutare polinomi di matrici ############
 
@@ -461,7 +468,7 @@ export expm2by2_tri, expm2by2_tri!
 
 
 
-############ Upper bound all'errore in avanti ############
+############ Valutazione dell' upper bound all'errore in avanti ############
 
 # `scalar_error_taylor` nel codice originale, `evalBoundTayl` nell'articolo
 function scalar_error_tayl!(
@@ -572,7 +579,7 @@ end
 # `eval_pade_error` nel codice originale, `evalBound` nell'articolo
 """
 """
-function eval_error(
+function eval_error!(
     S::AandPowsStruct,
     x,
     m::Integer,
@@ -589,15 +596,16 @@ function eval_error(
 end
 
 
-export eval_error
+export eval_error!
 
 
-"""
-"""
-function alpha!(
+
+############ Calcolo di α_min ############
+
+function _alpha!(
     alpha_vec::AbstractVector, 
     S::AandPowsStruct,
-    s, k, m
+    k, m, s
 )
     eltype(S.A) == BigFloat && @warn "Please don't use this function with arbitrary precision data"
 
@@ -635,7 +643,7 @@ function alpha!(
         else 
             #print("Upper bound not found...\n")
             alpha_vec[d+1] == 0 || error("Uhm qualcosa non torna qua…\n")
-            alpha_vec[d+1] .= normest1(d+1, S)^(1/(d+1))
+            alpha_vec[d+1] = normest1(d+1, S)^(1/(d+1))
         end
     end
     # oss: at one point, alpha_vec[d+1] was 0, then it has been computed.
@@ -645,12 +653,27 @@ function alpha!(
 end
 
 
-function alpha!(
+function _alpha!(
     alpha_dict::Dict,
     S::AandPowsStruct,
-    s, k, m
+    k, m, s
 )
 
+end
+
+
+function alpha! end 
+
+function alpha!(
+    alpha_vec::AbstractVector, 
+    S::AandPowsStruct,
+    m, s
+)
+    if S.use_taylor
+        _alpha!(alpha_vec, S, m, 0, s)
+    else 
+        _alpha!(alpha_vec, S, m, m, s)
+    end
 end
 
 
@@ -795,25 +818,9 @@ export evalPowVecDiag, normest1
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ############ Gradi ottimi delle approssimanti ############
+
+# TODO: refactor these functions. Use a more Julian logic 
 
 function opt_degs_tayl(max_deg::Integer=500)
     # degs[i] = ⌊(i+2)²/4⌋
@@ -846,43 +853,317 @@ function opt_degs_pade(max_deg::Integer=500)
     degs[degs .< max_deg]
 end
 
+function opt_degs(max_deg::Integer=500, approximant::Symbol=:pade)
+    approximant ∈ VALID_APPRX || 
+            throw(ArgumentError("Invalid approximant: $approximant. Valid options are $(VALID_APPROXIMANTS)"))
+    if approximant == :taylor
+        opt_degs_tayl(max_deg)
+    else 
+        opt_degs_pade(max_deg)
+    end
+end
 
-export opt_degs_pade, opt_degs_tayl
-
-
-
-
-
-
-
-
-
-
-
+export opt_degs
 
 
+
+####################################################################
+########### helper functions non descritte nell'articolo ###########
+####################################################################
+
+############ controllo che A sia in forma di Schur ############
+
+function isschur end
+
+function isschur(
+    A::AbstractMatrix{T},
+    _atol::Real = eps(real(zero(T)))
+) where {T<:Complex}
+    istriu(A)
+end
+
+function isschur(
+    A::AbstractMatrix{T}, 
+    atol::Real = eps(T)
+) where {T<:Real}
+    n = LinearAlgebra.checksquare(A)
+    istriu(A) && return true 
+
+    # check 2×2 block structure 
+    i = 2
+    while i ≤ n
+        # invariant: [i-1,i-1] is the top-left corner of a block (1x1 or 2x2)
+        if abs(A[i,i-1]) > atol
+            # must be a 2×2 block (skip next index)
+            if i < n && A[i+1,i] != 0   #abs(A[i+1,i] > atol)
+                # there's not a zero below the bottom-right element 
+                return false  
+            end
+
+            # check that the eigenvalues are complex conjugate 
+            a, c, b, d = A[i-1:i,i-1:i][:]  # A[i-1:i,i-1:i] = [a b; c d]
+            
+            Δ = (a-d)^2 + 4*b*c
+            if Δ ≥ - atol
+                # the eigenvalues are complex conjugate ⟺ Δ < 0
+                return false 
+            end
+
+            i += 2
+        else
+            i += 1
+        end
+    end
+
+    return true
+end
+
+# 
+@inline update_epsilon(ϵ, factor, ::Val{false}) = ϵ * factor
+@inline update_epsilon(ϵ, factor, ::Val{true})  = ϵ
+
+
+
+
+
+
+
+
+"""
+    exp_mp(A, kwargs...)
+
+
+"""
 function exp_mp(
     A::AbstractMatrix{T};
     #precision::Union{AbstractFloat,Integer} = eps(T),  
-    precision::Integer = precision(T, base=10),     # n° of decimal digits to keep 
-    epsilon::AbstractFloat = eps(T),                # tolerance
+    precision::Integer = precision(T),  # decimal digit in the MATLAB
+    epsilon::AbstractFloat = eps(T),    # tolerance on the error bound
     maxscaling::Integer = 100,
     maxdegree::Integer = 100,
-    #algorithm::
-    #approximant::
-) where {T<:Real}
+    algorithm::Symbol = :transfree,     # schur?
+    approximant::Symbol = :diagonal,    # chosen approximant
+    use_abs_err::Bool = false           # as stopping crit. in the main while loop
+) where {T<:Number}
 
-    #print("Precision = $(precision)\n")
-    #print("eps(eltype(A)) = $(eps(eltype(A)))\n")
+    n = LinearAlgebra.checksquare(A)
 
-    #if precision isa AbstractFloat
-    #    print("Floating point!\n")
-    #else
-    #    print("Intero!\n")
-    #end
+    #TODO: better verification of the validity of the arguments
+    approximant ∈ VALID_APPRX || 
+        throw(ArgumentError("Invalid approximant: $approximant. Valid options are $(VALID_APPROXIMANTS)"))
+    algorithm ∈ VALID_ALGS || 
+        throw(ArgumentError("Invalid algorithm: $algorithm. Valid options are $(VALID_ALGS)"))
+        
+        
+    if approximant === :taylor
+        use_taylor = true
+        # altro?
+    else 
+        use_taylor = false
+        # altro?
+    end
+
+    use_abs_err_flag = Val{use_abs_err}
+    ζ = epsilon^(-1/8)  # normqinv_bound
+
+    # WIP: make it a dictionary?
+    alpha_vec = zeros(maxdegree)
+    alpha_vec[1] = opnorm(A, 1)
+
+    # precision (digits in MATLAB), ...
+    old_prec = precision(BigFloat)
+    setprecision(BigFloat, precision)
+    #A = big.(A) # sarà la cosa giusta da fare?
 
 
+    # Schur form stuff
+    compute_schur = false
+    cmplx_schur   = true
+    recompute_diag_blocks = true
 
+    if algorithm === :transfree
+        if ishermitian(A)
+            d, V = eigen(A)     # GenericSchur provides eigendecomposition in arbitrary precision
+            return V * diagm(exp.(d)) / V
+        end
+        X = copy(A)
+        if isschur(A) 
+            recompute_diag_blocks = true
+        else 
+            recompute_diag_blocks = false 
+        end
+    elseif algorithm === :realschur
+        if isschur(A)
+            X = copy(A)
+        else 
+            compute_schur = true 
+            cmplx_schur   = false 
+        end
+    else 
+        if istriu(A)    # A is already in (complex) Schur form
+            X = copy(A)
+        else 
+            compute_schur = true
+            cmplx_schur   = true
+        end
+    end
+
+    if compute_schur
+        F = schur(A)
+        if cmplx_schur
+            F = Schur{Complex}(F)
+        end
+        X, Q, _ = F
+    end
+
+
+    # shift the input matrix
+    μ = tr(X) / n
+    useshift = true
+    if abs(μ) > 10
+        X .-= μ*I(n)
+        if real(μ) ≥ 0 
+            positive_shift = true 
+        else 
+            positive_shift = false 
+        end
+    else
+        useshift = false
+        μ = 0
+    end
+
+    if isdiag(X)
+        Y = diagm(exp.(diag(A)))
+        s, m = 0, 0
+        degrees = [0]
+    else 
+        degrees = opt_degs(maxdegree, approximant)
+        maxdegree = degrees[end]    # max degree `m`
+        currcost = 3                # costo (in matmuls) corrente per 
+                                    # valutare l'approssimante
+        m = degrees[currcost]
+
+        s = 0 
+
+        if use_taylor
+            factorials = FactorialsStruct(m)
+        else 
+            factorials = nothing
+        end
+        XandP = AandPowsStruct(X, use_taylor=use_taylor)
+
+        found_degree = false 
+        ψ = typemax(real(T))     # tempnormexpm1
+        compute_ψ = true         # compute_normexpm
+        extra_precision = true
+
+        # think: pensa meglio a cosa fa questa porzione di codice.
+        #        imo: scala X, calcola tutte le potenze di A che gli consentiamo
+        if alpha_vec[1] > 1e7   # if opnorm(A, 1) > 1e7
+            extra_precision = false 
+            if use_taylor
+                α = alpha!(alpha_vec, XandP, maxdegree, s)
+                δ, ψ, _ = eval_error!(XandP, α, maxdegree, s, extra_precision, factorials)
+                while (δ > epsilon * ψ || !isfinite(ψ)) && s ≤ maxscaling
+                    s += 1
+                    X /= 2
+                    compute_ψ = true
+
+                    δ, ψ, _ = eval_error!(XandP, α, maxdegree, s, extra_precision, factorials)
+                end
+            end
+        end
+
+        α = alpha!(alpha_vec, XandP, m, s)
+        δ, ψ, κ_A = eval_error!(XandP, α, m, s, extra_precision, factorials)
+        epsilon = update_epsilon(epsilon, ψ, use_abs_err_flag)
+        κ_A_old = κ_A
+
+        while !isfinite(ψ)
+            @printf("ψ = %.6g", ψ)
+            currcost += 1
+            s += 1
+            compute_ψ = true 
+            m = degrees[currcost]
+            α = alpha!(alpha_vec, XandP, m, s)
+            δ, ψ, κ_A = eval_error!(XandP, α, m, s, extra_precision, factorials)
+        end
+
+        δ_old = typemax(real(T))
+        ψ_old = 1
+        
+        ## main loop
+        while !found_degree && m < maxdegree && s < maxscaling
+            if δ ≤ epsilon && κ_A < ζ
+                found_degree = true 
+            elseif κ_A ≥ ζ || (δ_old > 1 && abs(δ_old) > abs(δ)^2)
+                assertion = κ_A ≥ ζ && use_taylor   # se si usa Taylor, κ_A ≥ ζ dovrebbe essere sempre falsa
+                !assertion || throw(AssertionError(ASSRT_STRNG))
+                X /= 2
+                s += 1
+                compute_ψ = true
+            else 
+                currcost += 1 
+                m = degrees[currcost]
+            end
+            δ_old = δ
+            ψ_old = ψ
+            α = alpha!(alpha_vec, XandP, m, s)
+            δ, ψ, κ_A = eval_error!(XandP, α, m, s, extra_precision, factorials)
+            epsilon = update_epsilon(epsilon, ψ, use_abs_err_flag)
+        end
+
+        # Il grado adesso è fisso. Se non ne è stato trovato uno buono, 
+        # non ci resta che scalare fino a che il bound sull'errore non è < epsilon 
+        if !found_degree
+            α = alpha!(alpha_vec, XandP, maxdegree, s)
+            δ, ψ, κ_A = eval_error!(XandP, α, maxdegree, s, extra_precision, factorials)
+            epsilon = update_epsilon(epsilon, ψ, use_abs_err_flag)
+            while δ ≥ epsilon && s < maxscaling 
+                X /= 2
+                s += 1 
+                compute_ψ = true 
+                α = alpha!(alpha_vec, XandP, maxdegree, s)
+                δ, ψ, κ_A = eval_error!(XandP, α, maxdegree, s, extra_precision, factorials)
+                epsilon = update_epsilon(epsilon, ψ, use_abs_err_flag)
+            end
+        end
+
+        ## Calcolo dell'esponenziale di matrice 
+        X /= 2^s    # scaling 
+        Y = eval_pade!(XandP, m, s) # Y = rₘ(2^(-s)X)
+        if recompute_diag_blocks
+            recompute_diagonals!(X, Y)  # overwrites Y
+        end
+        if useshift && !positive_shift
+            scal = 2^(-s)*μ
+            Y *= exp(scal)      # Y = e^(μ/(2^s))rₘ(2^(-s)X) (see [exptayotf18])
+            X += scal * I(n)    # X = 2^(-s)A 
+        end
+
+
+        ## Squaring 
+        for _ = 1:s
+            Y = Y * Y 
+            if recompute_diag_blocks
+                X *= 2      # X = 2^(-s+t)A
+                recompute_diagonals!(X, Y)
+            end 
+        end
+
+    end # if isdiag(X)
+
+    if compute_schur 
+        Y = Q * Y * Q'
+    end
+    if isreal(A)
+        Y = real(Y)
+    end
+    if useshift && positive_shift 
+        Y *= exp(μ)
+    end
+
+    setprecision(BigFloat, old_prec)
 end
 
 export exp_mp

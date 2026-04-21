@@ -26,10 +26,10 @@ function run_tayl_err_test(A, m, s=0)
     factorials = FactorialsStruct()
     alpha_vec = zeros(m)
     alpha_vec[1] = opnorm(A, 1)
-    k = 0
-    α = alpha!(alpha_vec, S, s, k, m)
+    #k = 0
+    α = alpha!(alpha_vec, S, m, s) # it was k, m, s
 
-    δ, ψ, _ = eval_error(S, α, m, 0, true, factorials)
+    δ, ψ, _ = eval_error!(S, α, m, 0, true, factorials)
 
     @printf("‖ Y_tayl - exp(A) ‖₁ = %.4g,\tδ = |Tₘ(α) - exp(α)| = %.4g\n", true_err, δ)
     true_err ≤ δ || @warn "δ should be an upper bound...\n"
@@ -46,7 +46,7 @@ m = 6;
 A = 0.1rand(n,n);
 A -= (tr(A)/n) * I(n);
 
-m_tayl = opt_degs_tayl(21)
+m_tayl = opt_degs(21, :taylor)
 for m in m_tayl[3:end]
     print("m = $m\n")
     run_tayl_err_test(A, m, 0)
