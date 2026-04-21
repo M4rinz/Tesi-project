@@ -27,8 +27,7 @@ struct AandPowsStruct
     use_taylor::Bool
 end
 
-
-
+export AandPowsStruct
 
 ############ Struct per contenere i fattoriali ############
 

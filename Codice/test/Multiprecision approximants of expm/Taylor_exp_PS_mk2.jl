@@ -46,7 +46,7 @@ print("We check our scheme `eval_pade!` (which in turn calls `expm_taylor` inter
 m = m_array[6]  # i.e. m = 16
 n = 5;
 A = rand(n,n)
-S = AandPowsStruct(A, true);
+S = AandPowsStruct(A, [I(n), A], true);
 print("n = $n. m = $m. eltype(A) = $(eltype(A))\n")
 
 Ytrue = tayl_exp_horner(A, m, s)    # Evaluate Tₘ(2^(-s)A) using the Horner scheme
@@ -87,7 +87,7 @@ print("\n")
 ## Third numerical check
 n = 50;
 B = rand(BigFloat, n, n);
-S = AandPowsStruct(B, true);
+S = AandPowsStruct(B, [I(n), B], true);
 print("n = $n. m = $m. eltype(B) = $(eltype(B))\n")
 
 Y_ref = setprecision(2*precision(eltype(B))) do 
@@ -108,7 +108,7 @@ n = 20
 B = rand(BigFloat, n, n);
 B = (B + B')/2;
 B -= (tr(B)/n) * I(n);
-S = AandPowsStruct(B, true);
+S = AandPowsStruct(B, [I(n), B], true);
 print("n = $n. m = $m. eltype(B) = $(eltype(B))\n")
 
 # Use diagonalization as reference solution 

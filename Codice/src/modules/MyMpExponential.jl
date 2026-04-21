@@ -52,10 +52,6 @@ function polyvalm_ps!(
     end
 
     r = fld(m, ν)              # the "degree" of the P.-S. polynomial
-    # think: use a struct with a Vector (dictionary) and a length attribute, 
-    #        for `Apows`? Maybe a 3-dim array?
-    # think: is it actually an invariant, that powers beyond the `length` are not computed?
-    #        (in the MATLAB, there's a variable to keep track of the length)
     for i = length(Apows)+1:ν+1
         if isodd(i)
             i_half = div(i - 1, 2) + 1
@@ -66,7 +62,6 @@ function polyvalm_ps!(
             push!(Apows, Apows[2] * Apows[i-1])
         end
     end
-    # Apows.length = max(Apows.length, ν+1), if one wants to overdo
 
     # promotion creates a copy. Can we avoid the use of this copy?
     # oss: the original MATLAB code creates a copy as well. 
@@ -74,7 +69,7 @@ function polyvalm_ps!(
     #      in the `for` loop are flops and not BigFlops
     mpowers = copy(Apows)   
     for i = 1:ν+1
-        @. mpowers[i] /= 2^(2*big(s)*(i-1))
+        mpowers[i] /= 2^(2*big(s)*(i-1))
     end
     # convert creates an alias, if Apows already contains matrices of `outputclass`.
     # Thus, the original accuracy of A would be preserved
@@ -486,7 +481,8 @@ function scalar_error_tayl!(
 
     old_prec = precision(BigFloat)
     if extra_precision
-        setprecision(BigFloat, floor(Int64, old_prec*p_factor))
+        new_prec = floor(Int64, old_prec * p_factor)
+        setprecision(BigFloat, new_prec)
     end
 
     xb = big(x) # Q: stessa domanda di `scalar_error_pade!`
@@ -524,10 +520,12 @@ function scalar_error_pade!(
     extra_precision::Bool
 )
     n = LinearAlgebra.checksquare(S.A)
+    T = eltype(S.A)
     
     old_prec = precision(BigFloat)
     if extra_precision
-        setprecision(BigFloat, old_prec*p_factor)
+        new_prec = floor(Int64, old_prec * p_factor)
+        setprecision(BigFloat, new_prec)
     end
 
     mb = big(m)
@@ -548,10 +546,11 @@ function scalar_error_pade!(
     end
 
     # think: meglio convertire tutti i c_num ora, piuttosto che lasciarlo fare alla funzione?
-    Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end], outputclass=Float64)
+    out_T = T <: Real ? Float64 : ComplexF64
+    Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end], outputclass=out_T)
     if m ≥ 1 
-        Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end], outputclass=Float64)
-        Uₒ = (convert(Matrix{Float64}, S.A) / 2^s) * Uₒ
+        Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end], outputclass=out_T)
+        Uₒ = (convert(Matrix{out_T}, S.A) / 2^s) * Uₒ
     else 
         Uₒ = zeros(eltype(Uₑ), size(S.A))
     end
@@ -919,7 +918,7 @@ function isschur(
 end
 
 # 
-@inline update_epsilon(ϵ, factor, ::Val{false}) = ϵ * factor
+@inline update_epsilon(ϵ, factor, ::Val{false}) = ϵ * factor   
 @inline update_epsilon(ϵ, factor, ::Val{true})  = ϵ
 
 
@@ -936,16 +935,14 @@ end
 """
 function exp_mp(
     A::AbstractMatrix{T};
-    #precision::Union{AbstractFloat,Integer} = eps(T),  
-    precision::Integer = precision(T),  # decimal digit in the MATLAB
-    epsilon::AbstractFloat = eps(T),    # tolerance on the error bound
+    working_precision::Integer = precision(real(T)),  # decimal digit in the MATLAB
+    epsilon::AbstractFloat = eps(real(T)),    # tolerance on the error bound
     maxscaling::Integer = 100,
     maxdegree::Integer = 100,
     algorithm::Symbol = :transfree,     # schur?
     approximant::Symbol = :diagonal,    # chosen approximant
     use_abs_err::Bool = false           # as stopping crit. in the main while loop
 ) where {T<:Number}
-
     n = LinearAlgebra.checksquare(A)
 
     #TODO: better verification of the validity of the arguments
@@ -954,7 +951,7 @@ function exp_mp(
     algorithm ∈ VALID_ALGS || 
         throw(ArgumentError("Invalid algorithm: $algorithm. Valid options are $(VALID_ALGS)"))
         
-    use_abs_err_flag = Val{use_abs_err}
+    use_abs_err_flag = Val(use_abs_err)
     ζ = epsilon^(-1/8)  # normqinv_bound
 
     # WIP: make it a dictionary?
@@ -963,7 +960,9 @@ function exp_mp(
 
     # precision (digits in MATLAB), ...
     old_prec = precision(BigFloat)
-    setprecision(BigFloat, precision)
+    if real(T) != BigFloat    # oss: l'ho messa io perché... se T == Float64?
+        setprecision(BigFloat, working_precision)   
+    end
     #A = big.(A) # sarà la cosa giusta da fare?
 
 
@@ -1010,7 +1009,7 @@ function exp_mp(
 
     # shift the input matrix
     μ = tr(X) / n
-    useshift = true
+    useshift = true # secondo me si può togliere questa variabile
     if abs(μ) > 10
         X .-= μ*I(n)
         if real(μ) ≥ 0 
@@ -1033,8 +1032,8 @@ function exp_mp(
         currcost = 3                # costo (in matmuls) corrente per 
                                     # valutare l'approssimante
         m = degrees[currcost]
-
         s = 0 
+
         if approximant === :taylor
             use_taylor = true
             Apows = [I(n), A]
@@ -1044,13 +1043,11 @@ function exp_mp(
             Apows = [I(n), A^2]
             factorials = nothing
         end
-
-        XandP = AandPowsStruct(X, Apows, use_taylor=use_taylor)
+        XandP = AandPowsStruct(X, Apows, use_taylor)
 
         found_degree = false 
         ψ = typemax(real(T))     # tempnormexpm1
         compute_ψ = true         # compute_normexpm
-        extra_precision = true
 
         # think: pensa meglio a cosa fa questa porzione di codice.
         #        imo: scala X, calcola tutte le potenze di A che gli consentiamo
@@ -1068,11 +1065,12 @@ function exp_mp(
                 end
             end
         end
+        extra_precision = true
 
         α = alpha!(alpha_vec, XandP, m, s)
         δ, ψ, κ_A = eval_error!(XandP, α, m, s, extra_precision, factorials)
-        epsilon = update_epsilon(epsilon, ψ, use_abs_err_flag)
-        κ_A_old = κ_A
+        curr_ϵ = update_epsilon(epsilon, ψ, use_abs_err_flag)
+        #κ_A_old = κ_A
 
         while !isfinite(ψ)
             @printf("ψ = %.6g", ψ)
@@ -1089,7 +1087,7 @@ function exp_mp(
         
         ## main loop
         while !found_degree && m < maxdegree && s < maxscaling
-            if δ ≤ epsilon && κ_A < ζ
+            if δ ≤ curr_ϵ && κ_A < ζ
                 found_degree = true 
             elseif κ_A ≥ ζ || (δ_old > 1 && abs(δ_old) > abs(δ)^2)
                 assertion = κ_A ≥ ζ && use_taylor   # se si usa Taylor, κ_A ≥ ζ dovrebbe essere sempre falsa
@@ -1105,22 +1103,27 @@ function exp_mp(
             ψ_old = ψ
             α = alpha!(alpha_vec, XandP, m, s)
             δ, ψ, κ_A = eval_error!(XandP, α, m, s, extra_precision, factorials)
-            epsilon = update_epsilon(epsilon, ψ, use_abs_err_flag)
+            curr_ϵ = update_epsilon(epsilon, ψ, use_abs_err_flag)
         end
+        print("At the end of the main loop:\n")
+        print("\tm = $m, s = $s, found_degree = $(found_degree)\n")
+        @printf("\tδ = %.6g, ψ = %.6g, κ_A = %.6g\n", δ, ψ, κ_A)
+        @printf("\tepsilon = %.6g, current epsilon = %.6g\n", epsilon, curr_ϵ)
+        print("\tlength(XandP) = $(length(XandP.powers))\n")
 
         # Il grado adesso è fisso. Se non ne è stato trovato uno buono, 
         # non ci resta che scalare fino a che il bound sull'errore non è < epsilon 
         if !found_degree
             α = alpha!(alpha_vec, XandP, maxdegree, s)
             δ, ψ, κ_A = eval_error!(XandP, α, maxdegree, s, extra_precision, factorials)
-            epsilon = update_epsilon(epsilon, ψ, use_abs_err_flag)
-            while δ ≥ epsilon && s < maxscaling 
+            curr_ϵ = update_epsilon(epsilon, ψ, use_abs_err_flag)
+            while δ ≥ curr_ϵ && s < maxscaling 
                 X /= 2
                 s += 1 
                 compute_ψ = true 
                 α = alpha!(alpha_vec, XandP, maxdegree, s)
                 δ, ψ, κ_A = eval_error!(XandP, α, maxdegree, s, extra_precision, factorials)
-                epsilon = update_epsilon(epsilon, ψ, use_abs_err_flag)
+                curr_ϵ = update_epsilon(epsilon, ψ, use_abs_err_flag)
             end
         end
 
@@ -1131,11 +1134,10 @@ function exp_mp(
             recompute_diagonals!(X, Y)  # overwrites Y
         end
         if useshift && !positive_shift
-            scal = 2^(-s)*μ
+            scal = 2.0^(-s)*μ
             Y *= exp(scal)      # Y = e^(μ/(2^s))rₘ(2^(-s)X) (see [exptayotf18])
             X += scal * I(n)    # X = 2^(-s)A 
         end
-
 
         ## Squaring 
         for _ = 1:s
@@ -1159,6 +1161,8 @@ function exp_mp(
     end
 
     setprecision(BigFloat, old_prec)
+
+    return Y   
 end
 
 export exp_mp
