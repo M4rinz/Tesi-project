@@ -141,18 +141,4 @@ end
 export tayl_exp_horner
 
 
-function hadamard(n::Int)
-    ispow2(n) || throw(ArgumentError("n must be a power of 2"))
-
-    H = ones(Int, 1, 1)
-    while size(H,1) < n
-        H = [ H   H;
-              H  -H ]
-    end
-    return H
-end
-
-
-export hadamard
-
 end #module
