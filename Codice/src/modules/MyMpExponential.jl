@@ -434,7 +434,9 @@ function scalar_error_tayl!(
     m::Integer,
     s::Real,
     extra_precision::Bool,
-    factorials::FactorialsStruct
+    factorials::FactorialsStruct,
+    ψ,
+    compute_ψ::Bool = true
 )
     ν = ceil(typeof(m), √m)     # the "batch size" of P.-S.
     for i = length(S.powers)+1:ν+1
@@ -459,17 +461,24 @@ function scalar_error_tayl!(
     # quando diventa inutile (i.e. aggiungendo termini non cambia più nulla)
     # Essenzialmente: quando rel_err(ψ, ψ_old) < √ϵ, allora smettiamo di calcolare 
     # (per sempre); di aggiornare ψ, e teniamo la ψ corrente
-
-    lm1 = length(S.powers) - 1
-    # alternatives: 2.0.^(-s .* (0:lm1)); un ciclo for a mano (sembrano equivalenti in performance)
-    numerators = [2.0^(-s*k) for k=0:lm1]
-    factorials_double = factorials(0:lm1, return_type=Float64) # oss: il MATLAB casta a `double` quelli già calcolati
-    coeffs = numerators ./ factorials_double
-    approx = sum(coeffs .* S.powers)    # oss: il MATLAB usa la doppia precisione qui
-    ψ = opnorm(approx, 1)   # oss: si potrebbe usare lo stimatore. Però forse gli 
-                            #      andrebbe data una LinearMap fatta a modo
-
-    return δ, ψ, κ_A
+    if compute_ψ
+        lm1 = length(S.powers) - 1
+        # alternatives: 2.0.^(-s .* (0:lm1)); un ciclo for a mano (sembrano equivalenti in performance)
+        numerators = [2.0^(-s*k) for k=0:lm1]
+        factorials_double = factorials(0:lm1, return_type=Float64) # oss: il MATLAB casta a `double` quelli già calcolati
+        coeffs = numerators ./ factorials_double
+        approx = sum(coeffs .* S.powers)    # oss: il MATLAB usa la doppia precisione qui
+        ψ_new = opnorm(approx, 1)   # oss: si potrebbe usare lo stimatore. Però forse gli 
+                                    #      andrebbe data una LinearMap fatta a modo
+        if ψ_new ≈ ψ
+            compute_ψ = false 
+            VERBOSE ? print("stop computing ψ!\n") : nothing
+        end
+    else 
+        ψ_new = ψ
+    end
+                            
+    return δ, ψ_new, κ_A, compute_ψ
 end
 
 
@@ -546,13 +555,17 @@ function eval_error!(
     m::Integer,
     s::Real,
     extra_precision::Bool,
-    factorials::Union{FactorialsStruct,Nothing}=nothing
+    factorials::Union{FactorialsStruct,Nothing}=nothing,
+    ψ_in=nothing,
+    compute_ψ::Bool=true
 )
     if S.use_taylor
         isnothing(factorials) && throw(ArgumentError("`factorials` is required when `S.use_taylor` is true."))
-        scalar_error_tayl!(S, x, m, s, extra_precision, factorials)
+        isnothing(ψ_in) && throw(ArgumentError("`ψ_in` is required when `S.use_taylor` is true."))
+        scalar_error_tayl!(S, x, m, s, extra_precision, 
+                           factorials, ψ_in, compute_ψ)
     else 
-        scalar_error_pade!(S, x, m, s, extra_precision)
+        scalar_error_pade!(S, x, m, s, extra_precision)..., true
     end
 end
 
@@ -1010,25 +1023,28 @@ function exp_mp(
         compute_ψ = true         # compute_normexpm
 
         # think: pensa meglio a cosa fa questa porzione di codice.
-        #        imo: scala X, calcola tutte le potenze di A che gli consentiamo
+        #        imo: con Taylor, tenta direttamente l'approx di grado massimo, scalando il meno possibile
         if alpha_vec[1] > 1e7   # if opnorm(A, 1) > 1e7
             extra_precision = false 
             if use_taylor
                 α = alpha!(alpha_vec, XandP, maxdegree, s)
-                δ, ψ, _ = eval_error!(XandP, α, maxdegree, s, extra_precision, factorials)
+                δ, ψ, _, compute_ψ = eval_error!(XandP, α, maxdegree, s, extra_precision, 
+                                                 factorials, ψ, compute_ψ)
                 while (δ > epsilon * ψ || !isfinite(ψ)) && s ≤ maxscaling
                     s += 1
                     X /= 2
                     compute_ψ = true
 
-                    δ, ψ, _ = eval_error!(XandP, α, maxdegree, s, extra_precision, factorials)
+                    δ, ψ, _, compute_ψ = eval_error!(XandP, α, maxdegree, s, extra_precision, 
+                                                     factorials, ψ, compute_ψ)
                 end
             end
         end
         extra_precision = true
 
         α = alpha!(alpha_vec, XandP, m, s)
-        δ, ψ, κ_A = eval_error!(XandP, α, m, s, extra_precision, factorials)
+        δ, ψ, κ_A, compute_ψ = eval_error!(XandP, α, m, s, extra_precision, 
+                                           factorials, ψ, compute_ψ)
         curr_ϵ = update_epsilon(epsilon, ψ, use_abs_err_flag)
         #κ_A_old = κ_A
 
@@ -1039,11 +1055,12 @@ function exp_mp(
             compute_ψ = true 
             m = degrees[currcost]
             α = alpha!(alpha_vec, XandP, m, s)
-            δ, ψ, κ_A = eval_error!(XandP, α, m, s, extra_precision, factorials)
+            δ, ψ, κ_A, compute_ψ = eval_error!(XandP, α, m, s, extra_precision, 
+                                               factorials, ψ, compute_ψ)
         end
 
         δ_old = typemax(real(T))
-        ψ_old = 1
+        #ψ_old = 1
         
         ## main loop
         while !found_degree && m < maxdegree && s < maxscaling
@@ -1060,31 +1077,34 @@ function exp_mp(
                 m = degrees[currcost]
             end
             δ_old = δ
-            ψ_old = ψ
+            #ψ_old = ψ
             α = alpha!(alpha_vec, XandP, m, s)
-            δ, ψ, κ_A = eval_error!(XandP, α, m, s, extra_precision, factorials)
+            δ, ψ, κ_A, compute_ψ = eval_error!(XandP, α, m, s, extra_precision, 
+                                               factorials, ψ, compute_ψ)
             curr_ϵ = update_epsilon(epsilon, ψ, use_abs_err_flag)
         end
         if VERBOSE
-            print("At the end of the main loop:\n")
-            print("\tm = $m, s = $s, found_degree = $(found_degree)\n")
+              print("At the end of the main loop:\n")
+              print("\tm = $m, s = $s, found_degree = $(found_degree)\n")
             @printf("\tδ = %.6g, ψ = %.6g, κ_A = %.6g\n", δ, ψ, κ_A)
             @printf("\tepsilon = %.6g, current epsilon = %.6g\n", epsilon, curr_ϵ)
-            print("\tlength(XandP) = $(length(XandP.powers))\n")
+              print("\tlength(XandP) = $(length(XandP.powers))\n")
         end
 
-        # Il grado adesso è fisso. Se non ne è stato trovato uno buono, 
-        # non ci resta che scalare fino a che il bound sull'errore non è < epsilon 
+        # Il grado adesso è fisso (il massimo, direi). Se non ne è stato trovato uno buono, 
+        # non ci resta che scalare (per quanto ci è ancora concesso) fino a che il bound sull'errore non è < epsilon 
         if !found_degree
             α = alpha!(alpha_vec, XandP, maxdegree, s)
-            δ, ψ, κ_A = eval_error!(XandP, α, maxdegree, s, extra_precision, factorials)
+            δ, ψ, κ_A, compute_ψ = eval_error!(XandP, α, maxdegree, s, extra_precision, 
+                                               factorials, ψ, compute_ψ)
             curr_ϵ = update_epsilon(epsilon, ψ, use_abs_err_flag)
             while δ ≥ curr_ϵ && s < maxscaling 
                 X /= 2
                 s += 1 
                 compute_ψ = true 
                 α = alpha!(alpha_vec, XandP, maxdegree, s)
-                δ, ψ, κ_A = eval_error!(XandP, α, maxdegree, s, extra_precision, factorials)
+                δ, ψ, κ_A, compute_ψ = eval_error!(XandP, α, m, s, extra_precision, 
+                                                   factorials, ψ, compute_ψ)
                 curr_ϵ = update_epsilon(epsilon, ψ, use_abs_err_flag)
             end
         end
@@ -1099,7 +1119,7 @@ function exp_mp(
         if useshift && !positive_shift
             scal = 2.0^(-s)*μ
             Y .*= exp(scal)      # Y = e^(μ/(2^s))rₘ(2^(-s)X) (see [exptayotf18])
-            X += scal * I(n)    # X = 2^(-s)A 
+            X += scal * I(n)     # X = 2^(-s)A 
         end
         VERBOSE ? print("... Computing approximant stop\n") : nothing
 

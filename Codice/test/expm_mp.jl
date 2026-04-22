@@ -53,11 +53,14 @@ Y_true = H' * exp.(D) * H;
 Y_base = exp(A);
 
 @printf("‖ exp(A) - Y_base ‖ / ‖ exp(A) ‖ = %.6g\n", rel_err(Y_base, Y_true))
+print("\n")
 
 Y_pade = exp_mp(A, approximant=:diagonal);
 @printf("‖ Y_pade - exp(A) ‖ / ‖ exp(A) ‖ = %.6g\n", rel_err(Y_pade, Y_true))
+print("\n")
 
 Y_tayl = exp_mp(A, approximant=:taylor);
 @printf("‖ Y_tayl - exp(A) ‖ / ‖ exp(A) ‖ = %.6g\n", rel_err(Y_tayl, Y_true))
+print("\n")
 
 print("eltype(Y_base) = $(eltype(Y_base)),\teltype(Y_tayl) = $(eltype(Y_tayl)),\teltype(Y_pade) = $(eltype(Y_pade))\n")
