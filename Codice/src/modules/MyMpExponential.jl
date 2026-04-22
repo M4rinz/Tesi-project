@@ -17,6 +17,7 @@ const VALID_APPRX = (:taylor, :pade, :diagonal)
 const VALID_ALGS  = (:transfree, :realschur, :complexschur)
 const ASSRT_STRNG = """Taylor is being used but epsilon^(-1/8) ≤ 1. 
 Maybe you're being too lenient with the tolerance on the error bound (i.e. epsilon is too big)?"""
+const VERBOSE = true
 
 ############ Valutare polinomi di matrici ############
 
@@ -67,9 +68,11 @@ function polyvalm_ps!(
     # oss: the original MATLAB code creates a copy as well. 
     # oss: creating a copy and then converting is smart, as the divisions 
     #      in the `for` loop are flops and not BigFlops
-    mpowers = copy(Apows)   
+    # oss: a small benchmark suggests that having the two dotted operations is 
+    #      slightly more efficient (alternative: having none. Bugs otherwise!)
+    mpowers = copy.(Apows)   
     for i = 1:ν+1
-        mpowers[i] /= 2^(2*big(s)*(i-1))
+        mpowers[i] ./= 2^(2*big(s)*(i-1))
     end
     # convert creates an alias, if Apows already contains matrices of `outputclass`.
     # Thus, the original accuracy of A would be preserved
@@ -969,18 +972,15 @@ function exp_mp(
 
     # shift the input matrix
     μ = tr(X) / n
-    useshift = true # secondo me si può togliere questa variabile
+    useshift       = true 
+    positive_shift = false
     if abs(μ) > 10
         X .-= μ*I(n)
-        if real(μ) ≥ 0 
-            positive_shift = true 
-        else 
-            positive_shift = false 
-        end
+        positive_shift = real(μ) ≥ 0
     else
         useshift = false
-        μ = 0
     end
+    VERBOSE ? @printf("μ = %.4g + %.4gi,\tuseshift = %s,\tpositive_shift = %s\n", real(μ), imag(μ), useshift, positive_shift) : nothing
 
     if isdiag(X)
         Y = diagm(exp.(diag(A)))
@@ -1049,7 +1049,7 @@ function exp_mp(
         while !found_degree && m < maxdegree && s < maxscaling
             if δ ≤ curr_ϵ && κ_A < ζ
                 found_degree = true 
-            elseif κ_A ≥ ζ || (δ_old > 1 && abs(δ_old) > abs(δ)^2)
+            elseif κ_A ≥ ζ || (δ_old > 1 && abs(δ_old) < abs(δ)^2)
                 assertion = κ_A ≥ ζ && use_taylor   # se si usa Taylor, κ_A ≥ ζ dovrebbe essere sempre falsa
                 !assertion || throw(AssertionError(ASSRT_STRNG))
                 X /= 2
@@ -1065,11 +1065,13 @@ function exp_mp(
             δ, ψ, κ_A = eval_error!(XandP, α, m, s, extra_precision, factorials)
             curr_ϵ = update_epsilon(epsilon, ψ, use_abs_err_flag)
         end
-        print("At the end of the main loop:\n")
-        print("\tm = $m, s = $s, found_degree = $(found_degree)\n")
-        @printf("\tδ = %.6g, ψ = %.6g, κ_A = %.6g\n", δ, ψ, κ_A)
-        @printf("\tepsilon = %.6g, current epsilon = %.6g\n", epsilon, curr_ϵ)
-        print("\tlength(XandP) = $(length(XandP.powers))\n")
+        if VERBOSE
+            print("At the end of the main loop:\n")
+            print("\tm = $m, s = $s, found_degree = $(found_degree)\n")
+            @printf("\tδ = %.6g, ψ = %.6g, κ_A = %.6g\n", δ, ψ, κ_A)
+            @printf("\tepsilon = %.6g, current epsilon = %.6g\n", epsilon, curr_ϵ)
+            print("\tlength(XandP) = $(length(XandP.powers))\n")
+        end
 
         # Il grado adesso è fisso. Se non ne è stato trovato uno buono, 
         # non ci resta che scalare fino a che il bound sull'errore non è < epsilon 
@@ -1088,7 +1090,7 @@ function exp_mp(
         end
 
         ## Calcolo dell'esponenziale di matrice 
-        print("Computing approximant start...\n")
+        VERBOSE ? print("Computing approximant start...\n") : nothing
         X /= 2^s    # scaling 
         Y = eval_pade!(XandP, m, s) # Y = rₘ(2^(-s)X)
         if recompute_diag_blocks
@@ -1096,13 +1098,13 @@ function exp_mp(
         end
         if useshift && !positive_shift
             scal = 2.0^(-s)*μ
-            Y *= exp(scal)      # Y = e^(μ/(2^s))rₘ(2^(-s)X) (see [exptayotf18])
+            Y .*= exp(scal)      # Y = e^(μ/(2^s))rₘ(2^(-s)X) (see [exptayotf18])
             X += scal * I(n)    # X = 2^(-s)A 
         end
-        print("... Computing approximant stop\n")
+        VERBOSE ? print("... Computing approximant stop\n") : nothing
 
         ## Squaring 
-        print("Scaling start...\n")
+        VERBOSE ? print("Scaling start...\n") : nothing
         for _ = 1:s
             Y = Y^2
             if recompute_diag_blocks
@@ -1110,7 +1112,7 @@ function exp_mp(
                 recompute_diagonals!(X, Y)
             end 
         end
-        print("... Scaling stop\n")
+        VERBOSE ? print("... Scaling stop\n") : nothing
 
     end # if isdiag(X)
 
@@ -1121,7 +1123,7 @@ function exp_mp(
         Y = real(Y)
     end
     if useshift && positive_shift 
-        Y *= exp(μ)
+        Y .*= exp(μ)
     end
 
     setprecision(BigFloat, old_prec)
