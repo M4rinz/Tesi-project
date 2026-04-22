@@ -418,7 +418,6 @@ function expm2by2_tri(M::AbstractMatrix{T}) where {T}
 end
 
 
-
 export recompute_diagonals!, expm2by2_full, expm2by2_tri
 
 
@@ -822,6 +821,7 @@ function opt_degs(max_deg::Integer=500, approximant::Symbol=:pade)
     end
 end
 
+
 export opt_degs
 
 
@@ -1088,6 +1088,7 @@ function exp_mp(
         end
 
         ## Calcolo dell'esponenziale di matrice 
+        print("Computing approximant start...\n")
         X /= 2^s    # scaling 
         Y = eval_pade!(XandP, m, s) # Y = rₘ(2^(-s)X)
         if recompute_diag_blocks
@@ -1098,15 +1099,18 @@ function exp_mp(
             Y *= exp(scal)      # Y = e^(μ/(2^s))rₘ(2^(-s)X) (see [exptayotf18])
             X += scal * I(n)    # X = 2^(-s)A 
         end
+        print("... Computing approximant stop\n")
 
         ## Squaring 
+        print("Scaling start...\n")
         for _ = 1:s
-            Y = Y * Y 
+            Y = Y^2
             if recompute_diag_blocks
                 X *= 2      # X = 2^(-s+t)A
                 recompute_diagonals!(X, Y)
             end 
         end
+        print("... Scaling stop\n")
 
     end # if isdiag(X)
 
