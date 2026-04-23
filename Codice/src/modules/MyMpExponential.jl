@@ -930,10 +930,6 @@ function exp_mp(
     use_abs_err_flag = Val(use_abs_err)
     ζ = epsilon^(-1/8)  # normqinv_bound
 
-    # WIP: make it a dictionary?
-    alpha_vec = zeros(maxdegree)
-    alpha_vec[1] = opnorm(A, 1)
-
     # precision (digits in MATLAB), ...
     old_prec = precision(BigFloat)
     if real(T) != BigFloat    # oss: l'ho messa io perché... se T == Float64?
@@ -973,7 +969,6 @@ function exp_mp(
             cmplx_schur   = true
         end
     end
-
     if compute_schur
         F = schur(A)
         if cmplx_schur
@@ -981,7 +976,6 @@ function exp_mp(
         end
         X, Q, _ = F
     end
-
 
     # shift the input matrix
     μ = tr(X) / n
@@ -992,11 +986,16 @@ function exp_mp(
         positive_shift = real(μ) ≥ 0
     else
         useshift = false
+        μ = 0   # 
     end
     VERBOSE ? @printf("μ = %.4g + %.4gi,\tuseshift = %s,\tpositive_shift = %s\n", real(μ), imag(μ), useshift, positive_shift) : nothing
 
+    # WIP: make it a dictionary?
+    alpha_vec = zeros(maxdegree)
+    alpha_vec[1] = opnorm(X, 1)     # oss: secondo me nel MATLAB è sbagliato...
+
     if isdiag(X)
-        Y = diagm(exp.(diag(A)))
+        Y = diagm(exp.(diag(X)))
         s, m = 0, 0
         degrees = [0]
     else 
@@ -1009,14 +1008,14 @@ function exp_mp(
 
         if approximant === :taylor
             use_taylor = true
-            Apows = [I(n), A]
+            Xpows = [I(n), X]
             factorials = FactorialsStruct(m)
         else 
             use_taylor = false
-            Apows = [I(n), A^2]
+            Xpows = [I(n), X^2]
             factorials = nothing
         end
-        XandP = AandPowsStruct(X, Apows, use_taylor)
+        XandP = AandPowsStruct(X, Xpows, use_taylor)
 
         found_degree = false 
         ψ = typemax(real(T))     # tempnormexpm1
@@ -1032,7 +1031,7 @@ function exp_mp(
                                                  factorials, ψ, compute_ψ)
                 while (δ > epsilon * ψ || !isfinite(ψ)) && s ≤ maxscaling
                     s += 1
-                    X /= 2
+                    #X /= 2
                     compute_ψ = true
 
                     δ, ψ, _, compute_ψ = eval_error!(XandP, α, maxdegree, s, extra_precision, 
@@ -1069,7 +1068,7 @@ function exp_mp(
             elseif κ_A ≥ ζ || (δ_old > 1 && abs(δ_old) < abs(δ)^2)
                 assertion = κ_A ≥ ζ && use_taylor   # se si usa Taylor, κ_A ≥ ζ dovrebbe essere sempre falsa
                 !assertion || throw(AssertionError(ASSRT_STRNG))
-                X /= 2
+                #X /= 2
                 s += 1
                 compute_ψ = true
             else 
@@ -1099,7 +1098,7 @@ function exp_mp(
                                                factorials, ψ, compute_ψ)
             curr_ϵ = update_epsilon(epsilon, ψ, use_abs_err_flag)
             while δ ≥ curr_ϵ && s < maxscaling 
-                X /= 2
+                #X /= 2
                 s += 1 
                 compute_ψ = true 
                 α = alpha!(alpha_vec, XandP, maxdegree, s)
@@ -1112,27 +1111,29 @@ function exp_mp(
         ## Calcolo dell'esponenziale di matrice 
         VERBOSE ? print("Computing approximant start...\n") : nothing
         X /= 2^s    # scaling 
+        X ≈ (A - μ*I(n)) / 2^s || @warn("X ≈ 2^-s⋅(A-μI) è falso. $(norm(X - (A-μ*I(n))/2^s))")
+        X ≈ (A - μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(A-μI).")
         Y = eval_pade!(XandP, m, s) # Y = rₘ(2^(-s)X)
         if recompute_diag_blocks
             recompute_diagonals!(X, Y)  # overwrites Y
         end
         if useshift && !positive_shift
             scal = 2.0^(-s)*μ
-            Y .*= exp(scal)      # Y = e^(μ/(2^s))rₘ(2^(-s)X) (see [exptayotf18])
+            Y .*= exp(scal)      # Y = e^(μ/(2^s))rₘ(2^(-s)(A-μI)) (see [exptayotf18])
             X += scal * I(n)     # X = 2^(-s)A 
         end
         VERBOSE ? print("... Computing approximant stop\n") : nothing
 
         ## Squaring 
-        VERBOSE ? print("Scaling start...\n") : nothing
+        VERBOSE ? print("Squaring start...\n") : nothing
         for _ = 1:s
             Y = Y^2
             if recompute_diag_blocks
-                X *= 2      # X = 2^(-s+t)A
+                X *= 2      # X = 2^(-s+t)A if !positive_shift, else 2^(-s+t)(A-μI) 
                 recompute_diagonals!(X, Y)
             end 
         end
-        VERBOSE ? print("... Scaling stop\n") : nothing
+        VERBOSE ? print("... Squaring stop\n") : nothing
 
     end # if isdiag(X)
 
