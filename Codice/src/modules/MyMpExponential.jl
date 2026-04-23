@@ -658,73 +658,47 @@ export alpha!
 ############ Calcolo (meglio: stima) di || A^d ||₁ ############
 
 # Function that returns the action X -> AᵈX, using only elements in `Apows`
-function evalPowVecDiag(d::Integer, S::AandPowsStruct)
-    #length(S.Apows) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
+function evalPowVecDiag end
+
+# Taylor implementation
+function evalPowVecDiag(
+    d::Integer,
+    S::AandPowsStruct,
+    ::Val{true},
+)
+    #length(S.powers) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
     
     # determine the type of the matrices elements
     T = promote_type(eltype.(S.powers)...)
-    
-    # oss: the MATLAB check is more convoluted but tantamounts to this
+    T_low = T <: Complex ? ComplexF64 : Float64
+
     n = LinearAlgebra.checksquare(S.A)
 
-    if S.use_taylor
-        Ad_action = function (X::AbstractVecOrMat)
-            p = d
-            l = min(length(S.powers), p+1)
-            while p > 0 
-                for _ = 1:fld(p, l-1)
-                    X = S.powers[l] * X
-                end
-                p = mod(p, l-1)         
-                l = min(l-1, p+1)
-            end 
-            return X
-        end
-        Adp_action = function (X::AbstractVecOrMat)
-            p = d
-            l = min(length(S.powers), p+1)
-            while p > 0 
-                for _ = 1:fld(p, l-1)
-                    X = S.powers[l]' * X
-                end
-                p = mod(p, l-1)         
-                l = min(l-1, p+1)
-            end 
-            return X
-        end
-    else
-        Ad_action = function (X::AbstractVecOrMat)
-            p = d
-            l = length(S.powers)
-            while p > 1 && l > 1
-                for _ = 1:fld(p, 2*(l-1))
-                    X = S.powers[l] * X
-                end 
-                p = mod(p, 2*(l-1))         # d -= ⌊d/2(l-1)⌋ * 2(l-1)
-                l = min(l-1, fld(p,2)+1)
+    Ad_action = function (X::AbstractVecOrMat)
+        p = d
+        l = min(length(S.powers), p+1)
+        while p > 0 
+            for _ = 1:fld(p, l-1)
+                A_l_double = convert(Matrix{T_low}, S.powers[l])
+                X = A_l_double * X
             end
-            if p == 1 
-                # extra multiplication by A, in case `d` was odd
-                X = S.A * X
-            end    
-            return X
-        end
-        Adp_action = function (X::AbstractVecOrMat)
-            p = d
-            l = length(S.powers)
-            while p > 1 && l > 1
-                for _ = 1:fld(p, 2*(l-1))
-                    X = (S.powers[l])' * X
-                end 
-                p = mod(p, 2*(l-1))         # d -= ⌊d/2(l-1)⌋ * 2(l-1)
-                l = min(l-1, fld(p,2)+1)
+            p = mod(p, l-1)         
+            l = min(l-1, p+1)
+        end 
+        return X
+    end
+    Adp_action = function (X::AbstractVecOrMat)
+        p = d
+        l = min(length(S.powers), p+1)
+        while p > 0 
+            for _ = 1:fld(p, l-1)
+                A_l_double = convert(Matrix{T_low}, S.powers[l])
+                X = A_l_double' * X
             end
-            if p == 1 
-                # extra multiplication by A', in case `d` was odd
-                X = (S.A)' * X
-            end    
-            return X
-        end
+            p = mod(p, l-1)         
+            l = min(l-1, p+1)
+        end 
+        return X
     end
 
     kwargs = (
@@ -732,8 +706,71 @@ function evalPowVecDiag(d::Integer, S::AandPowsStruct)
         ishermitian = ishermitian(S.A),
         isposdef    = isposdef(S.A)
     )
-    return LinearMap{T}(Ad_action, Adp_action, n; kwargs...)
+    return LinearMap{T_low}(Ad_action, Adp_action, n; kwargs...)
 end
+
+# Padé implementation
+function evalPowVecDiag(
+    d::Integer, 
+    S::AandPowsStruct,
+    ::Val{false}
+)
+    #length(S.powers) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
+    
+    # determine the type of the matrices elements
+    T = promote_type(eltype.(S.powers)...)
+    T_low = T <: Complex ? ComplexF64 : Float64
+    
+    # oss: the MATLAB check is more convoluted but tantamounts to this
+    n = LinearAlgebra.checksquare(S.A)
+
+
+    Ad_action = function (X::AbstractVecOrMat)
+        p = d
+        l = length(S.powers)
+        while p > 1 && l > 1
+            for _ = 1:fld(p, 2*(l-1))
+                A_l_double = convert(Matrix{T_low}, S.powers[l])
+                X = A_l_double * X
+            end 
+            p = mod(p, 2*(l-1))         # d -= ⌊d/2(l-1)⌋ * 2(l-1)
+            l = min(l-1, fld(p,2)+1)
+        end
+        if p == 1 
+            # extra multiplication by A, in case `d` was odd
+            A_double = A_l_double = convert(Matrix{T_low}, S.A)
+            X = A_double * X
+        end    
+        return X
+    end
+    Adp_action = function (X::AbstractVecOrMat)
+        p = d
+        l = length(S.powers)
+        while p > 1 && l > 1
+            for _ = 1:fld(p, 2*(l-1))
+                A_l_double = convert(Matrix{T_low}, S.powers[l])
+                X = A_l_double' * X
+            end 
+            p = mod(p, 2*(l-1))         # d -= ⌊d/2(l-1)⌋ * 2(l-1)
+            l = min(l-1, fld(p,2)+1)
+        end
+        if p == 1 
+            # extra multiplication by A', in case `d` was odd
+            A_double = convert(Matrix{T_low}, S.A)
+            X = A_double' * X
+        end    
+        return X
+    end
+
+    kwargs = (
+        issymmetric = issymmetric(S.A),
+        ishermitian = ishermitian(S.A),
+        isposdef    = isposdef(S.A)
+    )
+    return LinearMap{T_low}(Ad_action, Adp_action, n; kwargs...)
+end
+
+evalPowVecDiag(d::Integer, S::AandPowsStruct) = evalPowVecDiag(d, S, Val(S.use_taylor))
 
 
 """
@@ -771,7 +808,7 @@ basically implements `normest1` from [^higham_normest1]).
 function normest1(d::Integer, S::AandPowsStruct)
     length(S.powers) > 1 || throw(ArgumentError(lazy"Supply at least the 0th and 1st power of the matrix"))
     n = LinearAlgebra.checksquare(S.A)
-    eltype(S.A) == BigFloat && throw(ArgumentError(lazy"normest1 is not made for matrices with BigFloat elements"))
+    #eltype(S.A) == BigFloat && @warn"normest1 is not made for matrices with BigFloat elements"
 
     if S.A == abs.(S.A)
         e = ones(n)
