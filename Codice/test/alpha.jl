@@ -13,7 +13,7 @@ Random.seed!(42)
 
 ## Define parameters and useful stuff
 maxdegree = 500;
-ms = opt_degs(maxdegree, :pade);   # contains all optimal `m` up to `maxdegree`
+ms = opt_degs(:diagonalcheap, maxdegree);   # contains all optimal `m` up to `maxdegree`
 
 alpha_vec = zeros(maxdegree);
 

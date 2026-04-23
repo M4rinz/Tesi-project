@@ -46,7 +46,7 @@ m = 6;
 A = 0.1rand(n,n);
 A -= (tr(A)/n) * I(n);
 
-m_tayl = opt_degs(21, :taylor)
+m_tayl = opt_degs(:taylor, 21)
 for m in m_tayl[3:end]
     print("m = $m\n")
     run_tayl_err_test(A, m, 0)

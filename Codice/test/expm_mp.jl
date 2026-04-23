@@ -32,7 +32,7 @@ Y_true = exp(A);
 
 #@benchmark exp_mp(A, approximant=:taylor)
 
-Y_pade = exp_mp(A, approximant=:diagonal);
+Y_pade = exp_mp(A, approximant=:diagonalcheap);
 @printf("‖ Y_pade - exp(A) ‖ / ‖ exp(A) ‖ = %.6g\n", rel_err(Y_pade, Y_true))
 print("\n")
 
@@ -55,7 +55,7 @@ Y_base = exp(A);
 @printf("‖ exp(A) - Y_base ‖ / ‖ exp(A) ‖ = %.6g\n", rel_err(Y_base, Y_true))
 print("\n")
 
-Y_pade = exp_mp(A, approximant=:diagonal);
+Y_pade = exp_mp(A, approximant=:diagonalcheap);
 @printf("‖ Y_pade - exp(A) ‖ / ‖ exp(A) ‖ = %.6g\n", rel_err(Y_pade, Y_true))
 print("\n")
 
