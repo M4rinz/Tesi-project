@@ -23,25 +23,62 @@ function hadamard(n::Int)
     return H
 end
 
+function run_exp_test(
+    A::AbstractMatrix{T}, 
+    Y_true=nothing
+) where {T}
+    print("size(A) = $(size(A, 1)),\teltype(A) = $(eltype(A)),\t")
+    print("ishermitian(A) is $(ishermitian(A))\n")
+
+    T_low = T <: Complex ? ComplexF64 : Float64
+    A_low = convert(Matrix{T_low}, A)
+
+    if isnothing(Y_true)
+        print("Using Base.exp as reference solution.\n")
+        Y_true = exp(A_low)
+    else 
+        print("True exponential of A has been provided.\n")
+        Y_base = exp(A_low)
+        @printf("\t‖ exp(A) - Y_base ‖ / ‖ exp(A) ‖ = %.6g\n", rel_err(Y_base, Y_true))
+        print("\teltype(Y_base) = $(eltype(Y_base)).\n")
+    end
+
+    for appx in [:diagonalcheap, :diagonal, :taylor]
+        ALGS = [:transfree, :complexschur]
+        if T <: Real 
+            push!(ALGS, :realschur)
+        end
+        for alg in ALGS
+            print("Approximant = $appx,\talgorithm = $alg.\n")
+            Y = exp_mp(A, approximant=appx, algorithm=alg)
+
+            @printf("\t‖ Y - exp(A) ‖ / ‖ exp(A) ‖ = %.6g\n", rel_err(Y, Y_true))
+            print("\teltype(Y) = $(eltype(Y)).\n")
+        end
+        print("\n")
+    end
+    print("\n\n")
+end
+
+
 
 ## First numerical test 
 n = 2 << 7;
-A = rand(n,n);
-
-Y_true = exp(A);
+A = randn(n,n);
 
 #@benchmark exp_mp(A, approximant=:taylor)
 
-Y_pade = exp_mp(A, approximant=:diagonalcheap);
-@printf("‖ Y_pade - exp(A) ‖ / ‖ exp(A) ‖ = %.6g\n", rel_err(Y_pade, Y_true))
-print("\n")
-
-Y_tayl = exp_mp(A, approximant=:taylor);
-@printf("‖ Y_tayl - exp(A) ‖ / ‖ exp(A) ‖ = %.6g\n", rel_err(Y_tayl, Y_true))
-print("\n")
+run_exp_test(A)
 
 
 ## Second numerical test
+n = 2 << 7;
+A = randn(BigFloat, n,n);
+
+run_exp_test(A)
+
+
+## Third numerical test
 n = 2 << 4;
 H = hadamard(n);
 H /= sqrt(n);
@@ -50,17 +87,18 @@ D = Diagonal(100rand(n).-50 + 100im*rand(n).-50);
 A = H' * D * H;    
 
 Y_true = H' * exp.(D) * H;
-Y_base = exp(A);
 
-@printf("‖ exp(A) - Y_base ‖ / ‖ exp(A) ‖ = %.6g\n", rel_err(Y_base, Y_true))
-print("\n")
+run_exp_test(A, Y_true)
 
-Y_pade = exp_mp(A, approximant=:diagonalcheap);
-@printf("‖ Y_pade - exp(A) ‖ / ‖ exp(A) ‖ = %.6g\n", rel_err(Y_pade, Y_true))
-print("\n")
 
-Y_tayl = exp_mp(A, approximant=:taylor);
-@printf("‖ Y_tayl - exp(A) ‖ / ‖ exp(A) ‖ = %.6g\n", rel_err(Y_tayl, Y_true))
-print("\n")
+## Fourth numerical test
+n = 2 << 4;
+H = hadamard(n);
+H /= sqrt(n);
+D = Diagonal(100rand(BigFloat, n).-50 + 100im*rand(BigFloat, n).-50);
+# oss: se D è reale, A è Hermitiana (quindi l'alg. diagonalizza)
+A = H' * D * H;   
 
-print("eltype(Y_base) = $(eltype(Y_base)),\teltype(Y_tayl) = $(eltype(Y_tayl)),\teltype(Y_pade) = $(eltype(Y_pade))\n")
+Y_true = H' * exp.(D) * H;
+
+run_exp_test(A, Y_true)

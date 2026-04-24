@@ -475,8 +475,6 @@ function _alpha!(
     S::AandPowsStruct,
     k, m, s
 )
-    eltype(S.A) == BigFloat && @warn "Please don't use this function with arbitrary precision data"
-
     d = fld(1 + sqrt(4*(m+k) + 5), 2)   # sarebbe d^{[k/m]}
     d = Int64(d)
     #print("d = $d\n")
@@ -537,6 +535,8 @@ function alpha!(
     S::AandPowsStruct,
     m, s
 )
+    #real(eltype(S.A)) == BigFloat && @warn "Please don't use alpha! with arbitrary precision data"
+
     if S.use_taylor
         _alpha!(alpha_vec, S, m, 0, s)
     else 
@@ -758,7 +758,7 @@ function opt_degs(::Val{:diagonalcheap}, max_deg::Integer=500)
     degs[degs .< max_deg]
 end
 function opt_degs(::Val{:pade}, max_deg::Integer=500)
-    opt_degs(max_deg, Val(:diagonalcheap))
+    opt_degs(Val(:diagonalcheap), max_deg)
 end
 
 function opt_degs(::Val{:diagonal}, max_deg::Integer=500)
@@ -899,9 +899,10 @@ function expm2by2_tri(M::AbstractMatrix{T}) where {T}
     M₂ -= M[1,1]    # M₂ ← M[2,2] - M[1,1]
 
     exp_arg   = M₁ / 2
+    exp_arg   = exp_arg
     sinch_arg = M₂ / 2
 
-    if max(exp_arg, abs(sinch_arg)) < log(floatmax(T))    # guard against overflow
+    if max(real(exp_arg), abs(sinch_arg)) < log(floatmax(real(T)))    # guard against overflow
         Y[1,2] = M[1,2] * exp(exp_arg) * sinch(sinch_arg)
     else
         # Numerical cancellation if M[2,2] ≈ M[1,1] 
@@ -1061,7 +1062,6 @@ function exp_mp(
         positive_shift = real(μ) ≥ 0
     else
         useshift = false
-        μ = 0   # 
     end
     VERBOSE ? @printf("μ = %.4g + %.4gi,\tuseshift = %s,\tpositive_shift = %s\n", real(μ), imag(μ), useshift, positive_shift) : nothing
 
@@ -1187,10 +1187,19 @@ function exp_mp(
         VERBOSE ? print("Computing approximant start...\n") : nothing
         X /= 2^s    # scaling 
 
-        X ≈ (A - μ*I(n)) / 2^s || @warn("X ≈ 2^-s⋅(A-μI) è falso. $(norm(X - (A-μ*I(n))/2^s))")
-        X ≈ (A - μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(A-μI).")
+        if algorithm === :transfree
+            X ≈ (A - useshift*μ*I(n)) / 2^s    || @warn("X ≈ 2^-s⋅(A-μI) è falso. $(norm(X - (A-μ*I(n))/2^s))")
+            X ≈ (A - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(A-μI).")
+        else 
+            X ≈ (F.T - useshift*μ*I(n)) / 2^s    || @warn("X ≈ 2^-s⋅(T-μI) è falso. $(norm(X - (F.T-μ*I(n))/2^s))")
+            X ≈ (F.T - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(T-μI).")        
+        end
 
-        Y = eval_pade!(XandP, m, s, Val(approximant)) # Y = rₘ(2^(-s)X)
+        t_eval = @elapsed begin
+            Y = eval_pade!(XandP, m, s, Val(approximant)) # Y = rₘ(2^(-s)X)
+        end
+        VERBOSE ? @printf("Approximant evaluation time: %.6f s\n", t_eval) : nothing
+        
         if recompute_diag_blocks
             recompute_diagonals!(X, Y)  # overwrites Y
         end
