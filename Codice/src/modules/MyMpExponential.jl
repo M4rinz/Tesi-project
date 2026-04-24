@@ -408,6 +408,7 @@ function expm2by2_tri(M::AbstractMatrix{T}) where {T}
     M₂ -= M[1,1]    # M₂ ← M[2,2] - M[1,1]
 
     exp_arg   = M₁ / 2
+    exp_arg   = real(exp_arg)
     sinch_arg = M₂ / 2
 
     if max(exp_arg, abs(sinch_arg)) < log(floatmax(T))    # guard against overflow
@@ -1023,7 +1024,6 @@ function exp_mp(
         positive_shift = real(μ) ≥ 0
     else
         useshift = false
-        μ = 0   # 
     end
     VERBOSE ? @printf("μ = %.4g + %.4gi,\tuseshift = %s,\tpositive_shift = %s\n", real(μ), imag(μ), useshift, positive_shift) : nothing
 
@@ -1148,8 +1148,8 @@ function exp_mp(
         ## Calcolo dell'esponenziale di matrice 
         VERBOSE ? print("Computing approximant start...\n") : nothing
         X /= 2^s    # scaling 
-        X ≈ (A - μ*I(n)) / 2^s || @warn("X ≈ 2^-s⋅(A-μI) è falso. $(norm(X - (A-μ*I(n))/2^s))")
-        X ≈ (A - μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(A-μI).")
+        X ≈ (A - useshift*μ*I(n)) / 2^s || @warn("X ≈ 2^-s⋅(A-μI) è falso. $(norm(X - (A-μ*I(n))/2^s))")
+        X ≈ (A - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(A-μI).")
         Y = eval_pade!(XandP, m, s) # Y = rₘ(2^(-s)X)
         if recompute_diag_blocks
             recompute_diagonals!(X, Y)  # overwrites Y
