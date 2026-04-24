@@ -105,8 +105,8 @@ function polyvalm_ps!(
     end
 
     # Evaluate B-terms of degree ν-1, and evaluate the main polynomial using Horner
-    Y = convert(AbstractMatrix{outputclass}, B) # to retain original precision 
-                                                # (B is computed at higher precision, hopefully)
+    Y = convert(Matrix{outputclass}, B) # to retain original precision 
+                                        # (B is computed at higher precision, hopefully)
     for kk = r-1:-1:0
         # compute B coeff. in slightly higher precision
         B = setprecision(floor(Int64, 1.2 * precision(BigFloat))) do 
@@ -121,7 +121,11 @@ function polyvalm_ps!(
         # Y è mantenuta in `outputclass`. Però c'è una copia in più.
         # Ho come l'impressione che tutte queste acrobazie con i tipi non servano a niente, 
         # alla fin fine
-        Y = Y * mpowers[ν+1] + convert(AbstractMatrix{outputclass}, B)
+
+        #Y = Y * mpowers[ν+1] + convert(AbstractMatrix{outputclass}, B)
+        tmp = convert(AbstractMatrix{outputclass}, B)
+        mul!(tmp, Y, mpowers[ν+1], 1, 1)    # tmp ← Y * mpowers[ν+1] + tmp
+        copyto!(Y, tmp)                     #  Y  ← tmp
     end
 
     # WIP: questo `outputclass` è ben gestito?
