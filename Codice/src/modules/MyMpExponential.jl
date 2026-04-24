@@ -1196,10 +1196,10 @@ function exp_mp(
         end
 
         t_eval = @elapsed begin
-            Y = eval_pade!(XandP, m, s, Val(approximant)) # Y = rₘ(2^(-s)X)
+            Y = eval_pade!(XandP, m, s, Val(approximant)) # Y = rₘ(2^(-s)X) 
         end
         VERBOSE ? @printf("Approximant evaluation time: %.6f s\n", t_eval) : nothing
-        
+
         if recompute_diag_blocks
             recompute_diagonals!(X, Y)  # overwrites Y
         end
