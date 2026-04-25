@@ -246,25 +246,27 @@ function eval_pade!(
     end
 
     # compute even and odd parts, using even/odd coefficients
-    Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end])
-    if m ≥ 1 
-        Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end])
-        Uₒ = (S.A / 2^s) * Uₒ
-    else 
-        Uₒ = zeros(eltype(S.A), size(S.A))
+    t_U_e = @elapsed begin 
+        Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end])
+    end 
+    VERBOSE ? @printf("\tEvaluating Uₑ took %.6f s\n", t_U_e) : nothing 
+    t_U_o = @elapsed begin 
+        if m ≥ 1 
+            Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end])
+            Uₒ *= (S.A / 2^s)
+        else 
+            Uₒ = zeros(eltype(S.A), size(S.A))
+        end
     end
+    VERBOSE ? @printf("\tEvaluating Uₒ took %.6f s\n", t_U_o) : nothing 
 
-    Qₘ = Uₑ - Uₒ
-    return Qₘ \ (2*Uₒ) + I(n)
-end
+    t_R_m = begin 
+        Qₘ = Uₑ - Uₒ
+        Rₘ = Qₘ \ (2*Uₒ) + I(n)
+    end 
+    VERBOSE ? @printf("\tEvaluating Rₘ took %.6f s\n", t_R_m) : nothing
 
-function eval_pade!(
-    S::AandPowsStruct,
-    m::Integer,
-    s::Real,
-    ::Val{:pade}
-)
-    eval_pade!(S, m, s, Val(:diagonalcheap))
+    return Rₘ
 end
 
 
@@ -316,6 +318,136 @@ function eval_pade! end
 
 
 export eval_pade!
+
+
+
+########## Ricalcolo delle diagonali per lo squaring triangolare superiore ##########
+
+# Recompute diagonals of a general block triangular matrix (Overwrites Y)
+"""
+    recompute_diagonals!(T, Y)
+
+Recomputes the main diagonal and first upper diagonal elements of 
+``Y ≈ e^T`` using those of ``T``. 
+Namely, the aforementioned elements of ``Y`` are replaced with 
+quantities computed using exact formulas, computed on the original elements
+(those of ``T``).
+
+*Note*: this function overwrites `Y`.
+"""
+function recompute_diagonals!(
+    T::AbstractMatrix, 
+    Y::AbstractMatrix
+) 
+    n = LinearAlgebra.checksquare(T)
+    i = 1
+    while i ≤ n
+        # invariant: [i,i] is the top-left corner of a block 
+        # (be it 1x1, 2x2, or two successive 1x1s (aka triangular 2x2))
+        if (i+1 == n) || (i ≤ n-2 && T[i+2,i+1] == 0)
+            # we're in a 2x2 block, eventually triangular: 
+            # in such a block, T[i+2,i+1] is always 0    
+            
+            # oss: we assume that the Schur algorithm does deflation right, 
+            #      thus we don't check for approximate zeros.
+            if T[i+1,i] == 0   # the block is triangular
+                Y[i:i+1,i:i+1] = expm2by2_tri(T[i:i+1,i:i+1])
+            else               # the block is full 
+                Y[i:i+1,i:i+1] = expm2by2_full(T[i:i+1,i:i+1])
+            end
+            i += 2      # exit this block and actually go to the next one
+        else 
+            # we're in a 1x1 block followed by a 2x2 full block (or at the boundary)
+            Y[i,i] = exp(T[i,i])
+            i += 1
+        end
+    end
+    #return Y
+end
+
+
+function sinch(x::Real)
+    x == 0 ? 1 : sinh(x)/x
+end
+
+function sinch(z::Complex)
+    if real(z) == 0 
+        # oss: we return a real result!
+        z == 0 ? 1 : imag(sinh(z)) / imag(z)
+    else 
+        z == 0 ? 1 : sinh(z) / z
+    end
+end
+
+
+"""
+    Y = expm2by2_full(B)
+
+Computes ``Y = e^B``, the exponential of a full ``2\\times 2`` 
+block `B`, using formula (2.2) from [^alhi09n].
+
+> [^alhi09n] N. J. Higham and A. H. Al-Mohy, A New Scaling and Squaring Algorithm for the Matrix Exponential
+> SIAM J. Matrix Anal. Appl., Vol 31.3 (2010), pp.970-989
+> [doi: 10.1137/09074721X](https://doi.org/10.1137/09074721X)
+"""
+function expm2by2_full(B)
+    Y = similar(B)
+    b11, b21, b12, b22 = B[:]
+    b11mb22 = b11 - b22
+    μsq = (b11mb22)^2 + 4*b12*b21
+    if μsq < 0 
+        μsq = Complex(μsq)
+    end
+    δ = sqrt(μsq)/2     # μ/2 in the formula
+    exp_apd2 = exp((b11+b22)/2)
+    # oss: even if δ is a pure imaginary number, the result is real, 
+    #      as cosh and sinch are even functions. And also the computed 
+    #      result is guaranteed to be real, because of how the functions are implemented 
+    coshδ  = real(cosh(δ))
+    sinchδ = real(sinch(δ))
+
+    Y[1,1] = exp_apd2 * (coshδ + (b11mb22)/2 * sinchδ)
+    Y[2,1] = exp_apd2 * b21 * sinchδ
+    Y[1,2] = exp_apd2 * b12 * sinchδ
+    Y[2,2] = exp_apd2 * (coshδ + (-b11mb22)/2 * sinchδ)   
+    return Y
+end
+
+
+"""
+    expm2by2_tri(T)
+
+Computes ``Y = e^T``, the exponential of a upper triangular ``2\\times 2``
+block `T`, using formula (10.42) from [^Higham].
+
+> [^Higham] Higham, N. J. Functions of Matrices, SIAM, 2008
+> [doi:10.1137/1.9780898717778](https://doi.org/10.1137/1.9780898717778)
+"""
+function expm2by2_tri(M::AbstractMatrix{T}) where {T}
+    Y = zeros(T, size(M)...)
+    M₁, M₂ = diag(M)
+
+    Y[1,1] = exp(M₁)
+    Y[2,2] = exp(M₂)
+
+    M₁ += M₂        # M₁ ← M[1,1] + M[2,2]
+    M₂ -= M[1,1]    # M₂ ← M[2,2] - M[1,1]
+
+    exp_arg   = M₁ / 2
+    sinch_arg = M₂ / 2
+
+    if max(real(exp_arg), abs(sinch_arg)) < log(floatmax(T))    # guard against overflow
+        Y[1,2] = M[1,2] * exp(exp_arg) * sinch(sinch_arg)
+    else
+        # Numerical cancellation if M[2,2] ≈ M[1,1] 
+        # we use divided differences in this case
+        Y[1,2] = M[1,2] * (Y[2,2] - Y[1,1]) / M₂
+    end
+    return Y
+end
+
+
+export recompute_diagonals!, expm2by2_full, expm2by2_tri
 
 
 
@@ -757,164 +889,19 @@ function opt_degs(::Val{:diagonalcheap}, max_deg::Integer=500)
             2501]
     degs[degs .< max_deg]
 end
-function opt_degs(::Val{:pade}, max_deg::Integer=500)
-    opt_degs(Val(:diagonalcheap), max_deg)
-end
 
-function opt_degs(::Val{:diagonal}, max_deg::Integer=500)
-    # degs[n] = \sum_{k=0}^n ⌊k/4⌋
-    degs = [1,    2,    3,    4,    6,    8,    10,   12,   15,
-            18,   21,   24,   28,   32,   36,   40,   45,   50,   55,
-            60,   66,   72,   78,   84,   91,   98,   105,  112,  120,
-            128,  136,  144,  153,  162,  171,  180,  190,  200,  210,
-            220,  231,  242,  253,  264,  276,  288,  300,  312,  325,
-            338,  351,  364,  378,  392,  406,  420,  435,  450,  465,
-            480,  496,  512,  528,  544,  561,  578,  595,  612,  630,
-            648,  666,  684,  703,  722,  741,  760,  780,  800,  820,
-            840,  861,  882,  903,  924,  946,  968,  990,  1012, 1035,
-            1058, 1081, 1104, 1128, 1152, 1176, 1200, 1225, 1250, 1275,
-            1300, 1326, 1352, 1378, 1404, 1431, 1458, 1485, 1512, 1540,
-            1568, 1596, 1624, 1653, 1682, 1711, 1740, 1770, 1800, 1830,
-            1860, 1891, 1922, 1953, 1984, 2016, 2048, 2080, 2112, 2145,
-            2178, 2211, 2244, 2278, 2312, 2346, 2380, 2415, 2450, 2485,
-            2520]
-    degs[degs .< max_deg]
+function opt_degs(max_deg::Integer=500, approximant::Symbol=:pade)
+    approximant ∈ VALID_APPRX || 
+            throw(ArgumentError("Invalid approximant: $approximant. Valid options are $(VALID_APPROXIMANTS)"))
+    if approximant == :taylor
+        opt_degs_tayl(max_deg)
+    else 
+        opt_degs_pade(max_deg)
+    end
 end
 
 
 export opt_degs
-
-
-
-########## Ricalcolo delle diagonali per lo squaring triangolare superiore ##########
-
-# Recompute diagonals of a general block triangular matrix (Overwrites Y)
-"""
-    recompute_diagonals!(T, Y)
-
-Recomputes the main diagonal and first upper diagonal elements of 
-``Y ≈ e^T`` using those of ``T``. 
-Namely, the aforementioned elements of ``Y`` are replaced with 
-quantities computed using exact formulas, computed on the original elements
-(those of ``T``).
-
-*Note*: this function overwrites `Y`.
-"""
-function recompute_diagonals!(
-    T::AbstractMatrix, 
-    Y::AbstractMatrix
-) 
-    n = LinearAlgebra.checksquare(T)
-    i = 1
-    while i ≤ n
-        # invariant: [i,i] is the top-left corner of a block 
-        # (be it 1x1, 2x2, or two successive 1x1s (aka triangular 2x2))
-        if (i+1 == n) || (i ≤ n-2 && T[i+2,i+1] == 0)
-            # we're in a 2x2 block, eventually triangular: 
-            # in such a block, T[i+2,i+1] is always 0    
-            
-            # oss: we assume that the Schur algorithm does deflation right, 
-            #      thus we don't check for approximate zeros.
-            if T[i+1,i] == 0   # the block is triangular
-                Y[i:i+1,i:i+1] = expm2by2_tri(T[i:i+1,i:i+1])
-            else               # the block is full 
-                Y[i:i+1,i:i+1] = expm2by2_full(T[i:i+1,i:i+1])
-            end
-            i += 2      # exit this block and actually go to the next one
-        else 
-            # we're in a 1x1 block followed by a 2x2 full block (or at the boundary)
-            Y[i,i] = exp(T[i,i])
-            i += 1
-        end
-    end
-    #return Y
-end
-
-
-function sinch(x::Real)
-    x == 0 ? 1 : sinh(x)/x
-end
-
-function sinch(z::Complex)
-    if real(z) == 0 
-        # oss: we return a real result!
-        z == 0 ? 1 : imag(sinh(z)) / imag(z)
-    else 
-        z == 0 ? 1 : sinh(z) / z
-    end
-end
-
-
-"""
-    Y = expm2by2_full(B)
-
-Computes ``Y = e^B``, the exponential of a full ``2\\times 2`` 
-block `B`, using formula (2.2) from [^alhi09n].
-
-> [^alhi09n] N. J. Higham and A. H. Al-Mohy, A New Scaling and Squaring Algorithm for the Matrix Exponential
-> SIAM J. Matrix Anal. Appl., Vol 31.3 (2010), pp.970-989
-> [doi: 10.1137/09074721X](https://doi.org/10.1137/09074721X)
-"""
-function expm2by2_full(B)
-    Y = similar(B)
-    b11, b21, b12, b22 = B[:]
-    b11mb22 = b11 - b22
-    μsq = (b11mb22)^2 + 4*b12*b21
-    if μsq < 0 
-        μsq = Complex(μsq)
-    end
-    δ = sqrt(μsq)/2     # μ/2 in the formula
-    exp_apd2 = exp((b11+b22)/2)
-    # oss: even if δ is a pure imaginary number, the result is real, 
-    #      as cosh and sinch are even functions. And also the computed 
-    #      result is guaranteed to be real, because of how the functions are implemented 
-    coshδ  = real(cosh(δ))
-    sinchδ = real(sinch(δ))
-
-    Y[1,1] = exp_apd2 * (coshδ + (b11mb22)/2 * sinchδ)
-    Y[2,1] = exp_apd2 * b21 * sinchδ
-    Y[1,2] = exp_apd2 * b12 * sinchδ
-    Y[2,2] = exp_apd2 * (coshδ + (-b11mb22)/2 * sinchδ)   
-    return Y
-end
-
-
-"""
-    expm2by2_tri(T)
-
-Computes ``Y = e^T``, the exponential of a upper triangular ``2\\times 2``
-block `T`, using formula (10.42) from [^Higham].
-
-> [^Higham] Higham, N. J. Functions of Matrices, SIAM, 2008
-> [doi:10.1137/1.9780898717778](https://doi.org/10.1137/1.9780898717778)
-"""
-function expm2by2_tri(M::AbstractMatrix{T}) where {T}
-    Y = zeros(T, size(M)...)
-    M₁, M₂ = diag(M)
-
-    Y[1,1] = exp(M₁)
-    Y[2,2] = exp(M₂)
-
-    M₁ += M₂        # M₁ ← M[1,1] + M[2,2]
-    M₂ -= M[1,1]    # M₂ ← M[2,2] - M[1,1]
-
-    exp_arg   = M₁ / 2
-    exp_arg   = exp_arg
-    sinch_arg = M₂ / 2
-
-    if max(real(exp_arg), abs(sinch_arg)) < log(floatmax(real(T)))    # guard against overflow
-        Y[1,2] = M[1,2] * exp(exp_arg) * sinch(sinch_arg)
-    else
-        # Numerical cancellation if M[2,2] ≈ M[1,1] 
-        # we use divided differences in this case
-        Y[1,2] = M[1,2] * (Y[2,2] - Y[1,1]) / M₂
-    end
-    return Y
-end
-
-
-export recompute_diagonals!, expm2by2_full, expm2by2_tri
-
 
 
 
@@ -999,7 +986,7 @@ function exp_mp(
 
     #TODO: better verification of the validity of the arguments
     approximant ∈ VALID_APPRX || 
-        throw(ArgumentError("Invalid approximant: $approximant. Valid options are $(VALID_APPROXIMANTS)"))
+        throw(ArgumentError("Invalid approximant: $approximant. Valid options are $(VALID_APPRX)"))
     algorithm ∈ VALID_ALGS || 
         throw(ArgumentError("Invalid algorithm: $algorithm. Valid options are $(VALID_ALGS)"))
         
@@ -1050,7 +1037,8 @@ function exp_mp(
         if cmplx_schur
             F = Schur{Complex}(F)
         end
-        X, Q, _ = F
+        #X, Q, _ = F
+        X = F.T
     end
 
     # shift the input matrix
@@ -1185,21 +1173,11 @@ function exp_mp(
 
         ## Calcolo dell'esponenziale di matrice 
         VERBOSE ? print("Computing approximant start...\n") : nothing
+        VERBOSE ? print("XandP has $(length(XandP.powers)) elements.\n") : nothing
         X /= 2^s    # scaling 
-
-        if algorithm === :transfree
-            X ≈ (A - useshift*μ*I(n)) / 2^s    || @warn("X ≈ 2^-s⋅(A-μI) è falso. $(norm(X - (A-μ*I(n))/2^s))")
-            X ≈ (A - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(A-μI).")
-        else 
-            X ≈ (F.T - useshift*μ*I(n)) / 2^s    || @warn("X ≈ 2^-s⋅(T-μI) è falso. $(norm(X - (F.T-μ*I(n))/2^s))")
-            X ≈ (F.T - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(T-μI).")        
-        end
-
-        t_eval = @elapsed begin
-            Y = eval_pade!(XandP, m, s, Val(approximant)) # Y = rₘ(2^(-s)X) 
-        end
-        VERBOSE ? @printf("Approximant evaluation time: %.6f s\n", t_eval) : nothing
-
+        X ≈ (A - μ*I(n)) / 2^s || @warn("X ≈ 2^-s⋅(A-μI) è falso. $(norm(X - (A-μ*I(n))/2^s))")
+        X ≈ (A - μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(A-μI).")
+        Y = eval_pade!(XandP, m, s) # Y = rₘ(2^(-s)X)
         if recompute_diag_blocks
             recompute_diagonals!(X, Y)  # overwrites Y
         end
@@ -1213,7 +1191,7 @@ function exp_mp(
         ## Squaring 
         VERBOSE ? print("Squaring start...\n") : nothing
         for _ = 1:s
-            Y = Y^2
+            Y *= Y          # Y ← Y²
             if recompute_diag_blocks
                 X *= 2      # X = 2^(-s+t)A if !positive_shift, else 2^(-s+t)(A-μI) 
                 recompute_diagonals!(X, Y)
@@ -1224,7 +1202,10 @@ function exp_mp(
     end # if isdiag(X)
 
     if compute_schur 
-        Y = Q * Y * Q'
+        Y = F.Z * Y * F.Z'
+        #tmp = similar(Y);
+        #mul!(tmp, F.Z, Y)   # Y ← Q * Y
+        #mul!(Y, tmp, F.Z')  # Y ← Y * Q'
     end
     if isreal(A)
         Y = real(Y)
