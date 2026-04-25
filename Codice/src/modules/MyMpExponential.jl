@@ -264,7 +264,7 @@ function eval_pade!(
     end
     VERBOSE ? @printf("\tEvaluating Uₒ took %.6f s\n", t_U_o) : nothing 
 
-    t_R_m = begin 
+    t_R_m = @elapsed begin 
         Qₘ = Uₑ - Uₒ
         Rₘ = Qₘ \ (2*Uₒ) + I(n)
     end 
@@ -440,7 +440,7 @@ function expm2by2_tri(M::AbstractMatrix{T}) where {T}
     exp_arg   = M₁ / 2
     sinch_arg = M₂ / 2
 
-    if max(real(exp_arg), abs(sinch_arg)) < log(floatmax(T))    # guard against overflow
+    if max(real(exp_arg), abs(sinch_arg)) < log(floatmax(real(T)))    # guard against overflow
         Y[1,2] = M[1,2] * exp(exp_arg) * sinch(sinch_arg)
     else
         # Numerical cancellation if M[2,2] ≈ M[1,1] 

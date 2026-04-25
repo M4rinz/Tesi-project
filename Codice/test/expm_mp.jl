@@ -53,11 +53,11 @@ function run_exp_test(
             Y = exp_mp(A, approximant=appx, algorithm=alg)
 
             @printf("\t‖ Y - exp(A) ‖ / ‖ exp(A) ‖ = %.6g\n", rel_err(Y, Y_true))
-            print("\teltype(Y) = $(eltype(Y)).\n")
+            print("\teltype(Y) = $(eltype(Y)).\n\n")
         end
         print("\n")
     end
-    print("\n\n")
+    print("\n\n\n")
 end
 
 
@@ -94,7 +94,7 @@ run_exp_test(A, Y_true)
 ## Fourth numerical test
 n = 2 << 4;
 H = hadamard(n);
-H /= sqrt(n);
+H /= sqrt(big(n));
 D = Diagonal(100rand(BigFloat, n).-50 + 100im*rand(BigFloat, n).-50);
 # oss: se D è reale, A è Hermitiana (quindi l'alg. diagonalizza)
 A = H' * D * H;   
