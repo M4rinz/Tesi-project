@@ -221,35 +221,22 @@ function expm_diagonal!(
     end
 
     # compute even and odd parts, using even/odd coefficients
-    t_U_e = @elapsed begin 
-        Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end])
-    end 
-    VERBOSE ? @printf("\tEvaluating Uₑ took %.6f s\n", t_U_e) : nothing 
-    t_U_o = @elapsed begin 
-        if m ≥ 1 
-            Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end])
-            Uₒ *= (S.A / 2^s)
-        else 
-            Uₒ = zeros(eltype(S.A), size(S.A))
-        end
+    Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end])
+    if m ≥ 1 
+        Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end])
+        Uₒ = (S.A / 2^s) * Uₒ
+    else 
+        Uₒ = zeros(eltype(S.A), size(S.A))
     end
-    VERBOSE ? @printf("\tEvaluating Uₒ took %.6f s\n", t_U_o) : nothing 
 
-    t_R_m = @elapsed begin 
-        if cheap_r
-            Qₘ = Uₑ - Uₒ
-            Rₘ = Qₘ \ (2*Uₒ) + I(n)
-            #return Pₘ
-        else 
-            Pₘ = polyvalm_ps!(S.powers, s, c_num)
-            Qₘ = polyvalm_ps!(S.powers, s, c_den)
-            Rₘ = Qₘ \ Pₘ
-            #return Qₘ \ Pₘ
-        end
+    if cheap_r
+        Qₘ = Uₑ - Uₒ
+        return Qₘ \ (2*Uₒ) + I(n)
+    else 
+        Pₘ = polyvalm_ps!(S.powers, s, c_num)
+        Qₘ = polyvalm_ps!(S.powers, s, c_den)
+        return Qₘ \ Pₘ
     end
-    VERBOSE ? @printf("\tEvaluating Rₘ took %.6f s\n", t_R_m) : nothing
-
-    return Rₘ
 end
 
 
@@ -884,7 +871,7 @@ end
 
 function opt_degs(max_deg::Integer=500, approximant::Symbol=:pade)
     approximant ∈ VALID_APPRX || 
-            throw(ArgumentError("Invalid approximant: $approximant. Valid options are $(VALID_APPRX)"))
+            throw(ArgumentError("Invalid approximant: $approximant. Valid options are $(VALID_APPROXIMANTS)"))
     if approximant == :taylor
         opt_degs_tayl(max_deg)
     else 
@@ -978,7 +965,7 @@ function exp_mp(
 
     #TODO: better verification of the validity of the arguments
     approximant ∈ VALID_APPRX || 
-        throw(ArgumentError("Invalid approximant: $approximant. Valid options are $(VALID_APPRX)"))
+        throw(ArgumentError("Invalid approximant: $approximant. Valid options are $(VALID_APPROXIMANTS)"))
     algorithm ∈ VALID_ALGS || 
         throw(ArgumentError("Invalid algorithm: $algorithm. Valid options are $(VALID_ALGS)"))
         
@@ -1029,8 +1016,7 @@ function exp_mp(
         if cmplx_schur
             F = Schur{Complex}(F)
         end
-        #X, Q, _ = F
-        X = F.T
+        X, Q, _ = F
     end
 
     # shift the input matrix
@@ -1165,22 +1151,10 @@ function exp_mp(
 
         ## Calcolo dell'esponenziale di matrice 
         VERBOSE ? print("Computing approximant start...\n") : nothing
-        VERBOSE ? print("XandP has $(length(XandP.powers)) elements.\n") : nothing
         X /= 2^s    # scaling 
-        
-        if algorithm === :transfree
-            X ≈ (A - useshift*μ*I(n)) / 2^s    || @warn("X ≈ 2^-s⋅(A-μI) è falso. $(norm(X - (A-μ*I(n))/2^s))")
-            X ≈ (A - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(A-μI).")
-        else
-            X ≈ (F.T - useshift*μ*I(n)) / 2^s    || @warn("X ≈ 2^-s⋅(T-μI) è falso. $(norm(X - (A-μ*I(n))/2^s))")
-            X ≈ (F.T - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(T-μI).")
-        end
-
-        t_eval = @elapsed begin
-            Y = eval_pade!(XandP, m, s) # Y = rₘ(2^(-s)X)
-        end
-        VERBOSE ? @printf("Approximant evaluation time: %.6f s\n", t_eval) : nothing
-
+        X ≈ (A - useshift*μ*I(n)) / 2^s || @warn("X ≈ 2^-s⋅(A-μI) è falso. $(norm(X - (A-μ*I(n))/2^s))")
+        X ≈ (A - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(A-μI).")
+        Y = eval_pade!(XandP, m, s) # Y = rₘ(2^(-s)X)
         if recompute_diag_blocks
             recompute_diagonals!(X, Y)  # overwrites Y
         end
@@ -1194,7 +1168,7 @@ function exp_mp(
         ## Squaring 
         VERBOSE ? print("Squaring start...\n") : nothing
         for _ = 1:s
-            Y *= Y          # Y ← Y²
+            Y = Y^2
             if recompute_diag_blocks
                 X *= 2      # X = 2^(-s+t)A if !positive_shift, else 2^(-s+t)(A-μI) 
                 recompute_diagonals!(X, Y)
@@ -1205,10 +1179,7 @@ function exp_mp(
     end # if isdiag(X)
 
     if compute_schur 
-        Y = F.Z * Y * F.Z'
-        #tmp = similar(Y);
-        #mul!(tmp, F.Z, Y)   # Y ← Q * Y
-        #mul!(Y, tmp, F.Z')  # Y ← Y * Q'
+        Y = Q * Y * Q'
     end
     if isreal(A)
         Y = real(Y)
