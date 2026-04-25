@@ -218,9 +218,14 @@ function eval_pade!(
         c_num, c_den;
     end
 
-    Pₘ = polyvalm_ps!(S.powers, s, c_num)
-    Qₘ = polyvalm_ps!(S.powers, s, c_den)
-    return Qₘ \ Pₘ
+    t_R_m = @elapsed begin 
+        Pₘ = polyvalm_ps!(S.powers, s, c_num)
+        Qₘ = polyvalm_ps!(S.powers, s, c_den)
+        Rₘ = Qₘ \ Pₘ
+    end
+    VERBOSE ? @printf("\tEvaluating Rₘ took %.6f s\n", t_R_m) : nothing
+
+    return Rₘ
 end
 
 function eval_pade!(
@@ -234,15 +239,14 @@ function eval_pade!(
     n = LinearAlgebra.checksquare(S.A)
 
     # Compute coefficients of the Padé approximants using the formulas
-    c_num, c_den = setprecision(floor(Int64, 2*precision(BigFloat))) do 
+    c_num = setprecision(floor(Int64, 2*precision(BigFloat))) do 
         mb = big(m)
         ranges = 0:mb
         c_num = (factorial(mb)/factorial(2mb)) ./
                 (factorial.(mb .- ranges) .* factorial.(ranges)) .*
                 factorial.(2mb .- ranges)
         c_num[1] = big(1.)
-        c_den = ((-1).^ranges) .* c_num
-        c_num, c_den;
+        c_num;
     end
 
     # compute even and odd parts, using even/odd coefficients
@@ -889,15 +893,28 @@ function opt_degs(::Val{:diagonalcheap}, max_deg::Integer=500)
             2501]
     degs[degs .< max_deg]
 end
+function opt_degs(::Val{:pade}, max_deg::Integer=500)
+    opt_degs(Val(:diagonalcheap), max_deg)
+end
 
-function opt_degs(max_deg::Integer=500, approximant::Symbol=:pade)
-    approximant ∈ VALID_APPRX || 
-            throw(ArgumentError("Invalid approximant: $approximant. Valid options are $(VALID_APPROXIMANTS)"))
-    if approximant == :taylor
-        opt_degs_tayl(max_deg)
-    else 
-        opt_degs_pade(max_deg)
-    end
+function opt_degs(::Val{:diagonal}, max_deg::Integer=500)
+    # degs[n] = \sum_{k=0}^n ⌊k/4⌋
+    degs = [1,    2,    3,    4,    6,    8,    10,   12,   15,
+            18,   21,   24,   28,   32,   36,   40,   45,   50,   55,
+            60,   66,   72,   78,   84,   91,   98,   105,  112,  120,
+            128,  136,  144,  153,  162,  171,  180,  190,  200,  210,
+            220,  231,  242,  253,  264,  276,  288,  300,  312,  325,
+            338,  351,  364,  378,  392,  406,  420,  435,  450,  465,
+            480,  496,  512,  528,  544,  561,  578,  595,  612,  630,
+            648,  666,  684,  703,  722,  741,  760,  780,  800,  820,
+            840,  861,  882,  903,  924,  946,  968,  990,  1012, 1035,
+            1058, 1081, 1104, 1128, 1152, 1176, 1200, 1225, 1250, 1275,
+            1300, 1326, 1352, 1378, 1404, 1431, 1458, 1485, 1512, 1540,
+            1568, 1596, 1624, 1653, 1682, 1711, 1740, 1770, 1800, 1830,
+            1860, 1891, 1922, 1953, 1984, 2016, 2048, 2080, 2112, 2145,
+            2178, 2211, 2244, 2278, 2312, 2346, 2380, 2415, 2450, 2485,
+            2520]
+    degs[degs .< max_deg]
 end
 
 
@@ -1174,10 +1191,22 @@ function exp_mp(
         ## Calcolo dell'esponenziale di matrice 
         VERBOSE ? print("Computing approximant start...\n") : nothing
         VERBOSE ? print("XandP has $(length(XandP.powers)) elements.\n") : nothing
+        
         X /= 2^s    # scaling 
-        X ≈ (A - μ*I(n)) / 2^s || @warn("X ≈ 2^-s⋅(A-μI) è falso. $(norm(X - (A-μ*I(n))/2^s))")
-        X ≈ (A - μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(A-μI).")
-        Y = eval_pade!(XandP, m, s) # Y = rₘ(2^(-s)X)
+        
+        if algorithm === :transfree
+            X ≈ (A - useshift*μ*I(n)) / 2^s    || @warn("X ≈ 2^-s⋅(A-μI) è falso. $(norm(X - (A-μ*I(n))/2^s))")
+            X ≈ (A - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(A-μI).")
+        else 
+            X ≈ (F.T - useshift*μ*I(n)) / 2^s    || @warn("X ≈ 2^-s⋅(T-μI) è falso. $(norm(X - (F.T-μ*I(n))/2^s))")
+            X ≈ (F.T - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(T-μI).")        
+        end
+
+        t_eval = @elapsed begin
+            Y = eval_pade!(XandP, m, s, Val(approximant)) # Y = rₘ(2^(-s)X) 
+        end
+        VERBOSE ? @printf("Approximant evaluation time: %.6f s\n", t_eval) : nothing        
+        
         if recompute_diag_blocks
             recompute_diagonals!(X, Y)  # overwrites Y
         end
