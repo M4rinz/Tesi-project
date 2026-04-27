@@ -3,7 +3,7 @@ module MyMpExponential
 using LinearAlgebra
 using GenericSchur
 using LinearMaps, MatrixEquations
-using Symbolics
+#using Symbolics
 using Printf
 
 include("MyStructs.jl")
@@ -40,8 +40,8 @@ function polyvalm_ps!(
     #        Float64 (widen(T) would do it) as a default. 
     #        But setting precision is only truly doable with BigFloats
     # WIP: `to_output_type` introdotta per poter usare i `Num`
-    to_output_type(::Type{T}) where T = big(T)
-    to_output_type(::Type{Symbolics.Num}) = Symbolics.Num
+    to_output_type(::Type{T}) where T = big(real(T))
+    #to_output_type(::Type{Symbolics.Num}) = Symbolics.Num
     outputclass = something(outputclass, to_output_type(T))
 
     n = LinearAlgebra.checksquare(Apows[2])
@@ -174,6 +174,80 @@ export polyvalm_tay_exp, polyvalm_ps!
 
 ############ Approssimanti dell'esponenziale (Taylor e Padé) ############
 
+# Helper to compute even and odd Padé parts
+function _pade_even_odd_parts(
+    S::AandPowsStruct,
+    m::Integer,
+    s::Real
+)
+    c_num = setprecision(floor(Int64, 2*precision(BigFloat))) do
+        mb = big(m)
+        ranges = 0:mb
+        c_num = (factorial(mb)/factorial(2mb)) ./
+                (factorial.(mb .- ranges) .* factorial.(ranges)) .*
+                factorial.(2mb .- ranges)
+        c_num[1] = big(1.)
+        c_num
+    end
+
+    t_U_e = @elapsed begin
+        Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end])
+    end
+    VERBOSE ? @printf("\tEvaluating Uₑ took %.6f s\n", t_U_e) : nothing
+
+    t_U_o = @elapsed begin
+        if m ≥ 1
+            Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end])
+            Uₒ *= (S.A / 2^s)
+        else
+            Uₒ = zeros(eltype(S.A), size(S.A))
+        end
+    end
+    VERBOSE ? @printf("\tEvaluating Uₒ took %.6f s\n", t_U_o) : nothing
+
+    return Uₑ, Uₒ
+end
+
+# approximate expm using Padé (`EvalPadeDiag` in the article, `expm_diagonal` in MATLAB)
+function eval_pade!(
+    S::AandPowsStruct,
+    m::Integer,
+    s::Real,
+    ::Val{:diagonal}
+)
+    S.use_taylor && error(lazy"Mismatch between struct powers and chosen approximant: this is `expm_diagonal!`.")
+
+    t_R_m = @elapsed begin
+        Uₑ, Uₒ = _pade_even_odd_parts(S, m, s)
+        Pₘ = Uₑ + Uₒ
+        Qₘ = Uₑ - Uₒ
+        Rₘ = Qₘ \ Pₘ
+    end
+    VERBOSE ? @printf("\tEvaluating Rₘ took %.6f s\n", t_R_m) : nothing
+
+    return Rₘ
+end
+
+function eval_pade!(
+    S::AandPowsStruct,
+    m::Integer,
+    s::Real,
+    ::Val{:diagonalcheap}
+)
+    S.use_taylor && error(lazy"Mismatch between struct powers and chosen approximant: this is `expm_diagonal!`.")
+
+    n = LinearAlgebra.checksquare(S.A)
+
+    t_R_m = @elapsed begin
+        Uₑ, Uₒ = _pade_even_odd_parts(S, m, s)
+        Qₘ = Uₑ - Uₒ
+        Rₘ = Qₘ \ (2*Uₒ) + I(n)
+    end
+    VERBOSE ? @printf("\tEvaluating Rₘ took %.6f s\n", t_R_m) : nothing
+
+    return Rₘ
+end
+
 # approximate expm using Taylor (`EvalPadeTayl` in the article, `expm_taylor` in MATLAB)
 function eval_pade!(
     S::AandPowsStruct,
@@ -194,83 +268,6 @@ function eval_pade!(
     end
     
     return polyvalm_tay_exp(Apows, m, s)
-end
-
-
-# approximate expm using Padé (`EvalPadeDiag` in the article, `expm_diagonal` in MATLAB)
-function eval_pade!(
-    S::AandPowsStruct,
-    m::Integer,
-    s::Real,
-    ::Val{:diagonal}
-)
-    S.use_taylor && error(lazy"Mismatch between struct powers and chosen approximant: this is `expm_diagonal!`.")
-
-    # Compute coefficients of the Padé approximants using the formulas
-    c_num, c_den = setprecision(floor(Int64, 2*precision(BigFloat))) do 
-        mb = big(m)
-        ranges = 0:mb
-        c_num = (factorial(mb)/factorial(2mb)) ./
-                (factorial.(mb .- ranges) .* factorial.(ranges)) .*
-                factorial.(2mb .- ranges)
-        c_num[1] = big(1.)
-        c_den = ((-1).^ranges) .* c_num
-        c_num, c_den;
-    end
-
-    t_R_m = @elapsed begin 
-        Pₘ = polyvalm_ps!(S.powers, s, c_num)
-        Qₘ = polyvalm_ps!(S.powers, s, c_den)
-        Rₘ = Qₘ \ Pₘ
-    end
-    VERBOSE ? @printf("\tEvaluating Rₘ took %.6f s\n", t_R_m) : nothing
-
-    return Rₘ
-end
-
-function eval_pade!(
-    S::AandPowsStruct,
-    m::Integer,
-    s::Real,
-    ::Val{:diagonalcheap}
-)
-    S.use_taylor && error(lazy"Mismatch between struct powers and chosen approximant: this is `expm_diagonal!`.")
-
-    n = LinearAlgebra.checksquare(S.A)
-
-    # Compute coefficients of the Padé approximants using the formulas
-    c_num = setprecision(floor(Int64, 2*precision(BigFloat))) do 
-        mb = big(m)
-        ranges = 0:mb
-        c_num = (factorial(mb)/factorial(2mb)) ./
-                (factorial.(mb .- ranges) .* factorial.(ranges)) .*
-                factorial.(2mb .- ranges)
-        c_num[1] = big(1.)
-        c_num;
-    end
-
-    # compute even and odd parts, using even/odd coefficients
-    t_U_e = @elapsed begin 
-        Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end])
-    end 
-    VERBOSE ? @printf("\tEvaluating Uₑ took %.6f s\n", t_U_e) : nothing 
-    t_U_o = @elapsed begin 
-        if m ≥ 1 
-            Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end])
-            Uₒ *= (S.A / 2^s)
-        else 
-            Uₒ = zeros(eltype(S.A), size(S.A))
-        end
-    end
-    VERBOSE ? @printf("\tEvaluating Uₒ took %.6f s\n", t_U_o) : nothing 
-
-    t_R_m = @elapsed begin 
-        Qₘ = Uₑ - Uₒ
-        Rₘ = Qₘ \ (2*Uₒ) + I(n)
-    end 
-    VERBOSE ? @printf("\tEvaluating Rₘ took %.6f s\n", t_R_m) : nothing
-
-    return Rₘ
 end
 
 
@@ -310,9 +307,9 @@ If `approximant` is `:diagonalcheap` or `:pade` a "smart" formula is used.
            i.e. obtained by the formula `floor((i+2)^2 / 4)` for some ``i\\ge 0``. 
            Otherwise, the result will be incorrect.
 
-**OSS 3**: the difference between the two diagonal Padé versions is that the cheap 
-           version uses the formula ``2(U\\_e-U\\_o)^{-1}U\\_o + I`` to compute the approximant.           
-
+**OSS 3**: the difference between the two diagonal Padé versions is that the `:diagonal` 
+           solves ``(U\\_e - U\\_o)^{-1}(U\\_e + U\\_o)`` via a linear system, 
+           whereas `:diagonalcheap` uses the closed-form formula ``2(U\\_e-U\\_o)^{-1}U\\_o + I``
 # References 
 > [^hf19_mpexpm] N. J. Higham and M. Fasi, An Arbitrary Precision Scaling and Squaring Algorithm for the Matrix Exponential
 > SIAM J. Matrix Anal. Appl., Vol. 40.4 (2019), pp.1233-1256.
@@ -916,6 +913,10 @@ function opt_degs(::Val{:diagonal}, max_deg::Integer=500)
             2520]
     degs[degs .< max_deg]
 end
+
+# function opt_degs(::Val{:diagonal}, max_deg::Integer=500)
+#     opt_degs(Val(:diagonalcheap), max_deg)
+# end
 
 
 export opt_degs
