@@ -1,5 +1,6 @@
 ## Imports
 using LinearAlgebra
+using ChainRules
 using Random, Printf
 using BenchmarkTools
 using Revise
@@ -61,6 +62,21 @@ function run_exp_test(
 end
 
 
+function compute_cond_exp(A)
+    n = LinearAlgebra.checksquare(A)
+    T = eltype(A)
+    T_low = T <: Complex ? ComplexF64 : Float64
+
+    A_low = convert(AbstractMatrix{T_low}, A)
+    Y_true, exp_pullback = ChainRules.rrule(exp, A_low)
+
+    K = construct_full_jacobian(x -> exp_pullback(x)[2], n, T_low)
+
+    #κ_exp(A) = (‖K‖₂⋅‖A‖_F) / ‖exp(A)‖_F
+    opnorm(K, 2) * norm(A) / norm(Y_true)
+end
+
+
 
 ## First numerical test 
 n = 2 << 7;
@@ -81,7 +97,7 @@ run_exp_test(A)
 ## Third numerical test
 n = 2 << 4;
 H = hadamard(n);
-H /= sqrt(n);
+H /= sqrt(n);   # adesso H*H' = I(n)
 D = Diagonal(100rand(n).-50 + 100im*rand(n).-50);
 # oss: se D è reale, A è Hermitiana (quindi l'alg. diagonalizza)
 A = H' * D * H;    

@@ -2,6 +2,9 @@ module MyHelper
 
 using LinearAlgebra, Random
 
+
+############ Valutazioni dell'errore ############
+
 """
     rel_err(approx, exact)
 
@@ -26,6 +29,7 @@ function sym_err(A, B)
 end
 
 export rel_err, sym_err
+
 
 
 # courtesy of ChatGPT (under my detailed instructions)
@@ -139,6 +143,35 @@ end
 
 
 export tayl_exp_horner
+
+
+
+
+
+
+""" 
+Given a linear operator ``\\mathbb{C}^{n\\times n}\\to\\mathbb{C}^{n\\times n}`` 
+(typically, a fréchet differential ``L_f(A)``), constructs the matrix 'K'
+such that 'linear_operator[E] = K * y' where ``y=\\operatorname{Vec}(E)``
+"""
+function construct_full_jacobian(linear_operator, n, T)
+    K = Matrix{T}(undef, n^2, n^2)    # il tipo lo prendiamo in input eh
+    e_i = zeros(n); e_i[1] = 1
+    e_j = zeros(n); e_j[1] = 1
+    for j = 1:n#, i = 1:n
+        for i = 1:n
+            column = linear_operator(e_i * e_j')
+            K[:, (j-1)*n + i] = vec(column)
+            
+            circshift!(e_i, 1)
+        end
+        circshift!(e_j, 1)
+    end
+    return K
+end
+
+
+export construct_full_jacobian
 
 
 end #module

@@ -40,7 +40,7 @@ function polyvalm_ps!(
     #        Float64 (widen(T) would do it) as a default. 
     #        But setting precision is only truly doable with BigFloats
     # WIP: `to_output_type` introdotta per poter usare i `Num`
-    to_output_type(::Type{T}) where T = big(real(T))
+    to_output_type(::Type{T}) where T = big(T)
     #to_output_type(::Type{Symbolics.Num}) = Symbolics.Num
     outputclass = something(outputclass, to_output_type(T))
 
