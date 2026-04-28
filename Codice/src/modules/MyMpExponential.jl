@@ -992,7 +992,7 @@ end
 function exp_mp(
     A::AbstractMatrix{T};
     working_precision::Integer = precision(real(T)),  # decimal digit in the MATLAB
-    epsilon::AbstractFloat = eps(real(T)),    # tolerance on the error bound
+    epsilon::Union{AbstractFloat,Nothing} = nothing,    # tolerance on the error bound
     maxscaling::Integer = 100,
     maxdegree::Integer = 100,
     algorithm::Symbol = :transfree,         # schur?
@@ -1007,15 +1007,22 @@ function exp_mp(
     algorithm ∈ VALID_ALGS || 
         throw(ArgumentError("Invalid algorithm: $algorithm. Valid options are $(VALID_ALGS)"))
         
-    use_abs_err_flag = Val(use_abs_err)
-    ζ = epsilon^(-1/8)  # normqinv_bound
-
-    # precision (digits in MATLAB), ...
+    # precision
     old_prec = precision(BigFloat)
-    if real(T) != BigFloat    # oss: l'ho messa io perché... se T == Float64?
-        setprecision(BigFloat, working_precision)   
+    # oss: se A è double, anche i BigFloats saranno in doppia precisione...
+    setprecision(BigFloat, working_precision)   
+    # oss: Taylor è in grado di funzionare anche con Float64 senza mai tirare in ballo 
+    #      i BigFloats. Ma questo è un algoritmo in precisione arbitraria...
+    A = T <: Real ? BigFloat.(A) : Complex{BigFloat}.(A)  
+    # questa è la cosa più vicina al MATLAB originale, 
+    # posto che Advanpix funzioni come i BigFloats (penso proprio di sì)
+
+    # epsilon
+    if isnothing(epsilon)
+        epsilon = eps(real(T))
     end
-    #A = big.(A) # sarà la cosa giusta da fare?
+    ζ = epsilon^(-1/8)  # normqinv_bound
+    use_abs_err_flag = Val(use_abs_err)
 
     # Schur form stuff
     compute_schur = false

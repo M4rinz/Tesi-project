@@ -43,6 +43,7 @@ function run_exp_test(
         @printf("\t‖ exp(A) - Y_base ‖ / ‖ exp(A) ‖ = %.6g\n", rel_err(Y_base, Y_true))
         print("\teltype(Y_base) = $(eltype(Y_base)).\n")
     end
+    print("\n")
 
     for appx in [:diagonalcheap, :diagonal, :taylor]
         ALGS = [:transfree, :complexschur]
