@@ -1,0 +1,1 @@
+kind, n, eltype, approximant, algorithm, schur_time, alpha_time, eval_bound_time, eval_pade_time, squaring_time, total_time, rel_err, cond_exp_A, cond_A
