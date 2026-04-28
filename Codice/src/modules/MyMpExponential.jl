@@ -812,6 +812,9 @@ that implements the action is created, then the norm is estimated using
 the `opnorm1est` function from `MatrixEquations.jl` (which in turn 
 basically implements `normest1` from [^higham_normest1]).
 
+**Note**: The norm is computed in double precision. There are `convert`s 
+          inside the linear operator whose norm is computed.
+
 # Arguments
 - `d::Integer`: the power of `A`
 - `S::AandPowsStruct`: a struct with the fields `use_taylor`,
@@ -872,7 +875,7 @@ function opt_degs(::Val{:taylor}, max_deg::Integer=500)
             1260, 1296, 1332, 1369, 1406, 1444, 1482, 1521, 1560, 1600,
             1640, 1681, 1722, 1764, 1806, 1849, 1892, 1936, 1980, 2025,
             2070, 2116, 2162, 2209, 2256, 2304, 2352, 2401, 2450, 2500]
-    degs[degs .< max_deg]   # return degrees less than the provided one
+    filter!(x -> x < max_deg, degs) # return degrees less than the provided one
 end
 
 function opt_degs(::Val{:diagonalcheap}, max_deg::Integer=500)
@@ -888,7 +891,7 @@ function opt_degs(::Val{:diagonalcheap}, max_deg::Integer=500)
             1601, 1641, 1681, 1723, 1765, 1807, 1849, 1893, 1937, 1981,
             2025, 2071, 2117, 2163, 2209, 2257, 2305, 2353, 2401, 2451,
             2501]
-    degs[degs .< max_deg]
+    filter!(x -> x < max_deg, degs)
 end
 function opt_degs(::Val{:pade}, max_deg::Integer=500)
     opt_degs(Val(:diagonalcheap), max_deg)
@@ -911,12 +914,9 @@ function opt_degs(::Val{:diagonal}, max_deg::Integer=500)
             1860, 1891, 1922, 1953, 1984, 2016, 2048, 2080, 2112, 2145,
             2178, 2211, 2244, 2278, 2312, 2346, 2380, 2415, 2450, 2485,
             2520]
-    degs[degs .< max_deg]
+    filter!(x -> x < max_deg, degs)
 end
 
-# function opt_degs(::Val{:diagonal}, max_deg::Integer=500)
-#     opt_degs(Val(:diagonalcheap), max_deg)
-# end
 
 
 export opt_degs
