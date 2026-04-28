@@ -51,10 +51,12 @@ function polyvalm_ps!(
 
     if ν == 0
         Y = outputclass(β_vec[1]) * I(n) 
-        return Y
+        return Y, 0
     end
 
     r = fld(m, ν)              # the "degree" of the P.-S. polynomial
+    
+    compute_powers_time = @elapsed begin
     for i = length(Apows)+1:ν+1
         if isodd(i)
             i_half = div(i - 1, 2) + 1
@@ -65,6 +67,7 @@ function polyvalm_ps!(
             push!(Apows, Apows[2] * Apows[i-1])
         end
     end
+    end #elapsed
 
     # promotion creates a copy. Can we avoid the use of this copy?
     # oss: the original MATLAB code creates a copy as well. 
@@ -129,7 +132,7 @@ function polyvalm_ps!(
     # WIP: questo `outputclass` è ben gestito?
     # WIP: questi `setprecision` che senso hanno?
 
-    return Y
+    return Y, compute_powers_time
 end
 
 
@@ -190,22 +193,25 @@ function _pade_even_odd_parts(
         c_num
     end
 
+    tempo_potenze = 0
     t_U_e = @elapsed begin
-        Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end])
+        Uₑ, tempo = polyvalm_ps!(S.powers, s, c_num[1:2:end])
     end
+    tempo_potenze += tempo
     VERBOSE ? @printf("\tEvaluating Uₑ took %.6f s\n", t_U_e) : nothing
 
     t_U_o = @elapsed begin
         if m ≥ 1
-            Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end])
+            Uₒ, tempo = polyvalm_ps!(S.powers, s, c_num[2:2:end])
             Uₒ *= (S.A / 2^s)
         else
             Uₒ = zeros(eltype(S.A), size(S.A))
         end
     end
+    tempo_potenze += tempo
     VERBOSE ? @printf("\tEvaluating Uₒ took %.6f s\n", t_U_o) : nothing
 
-    return Uₑ, Uₒ
+    return Uₑ, Uₒ, tempo_potenze
 end
 
 # approximate expm using Padé (`EvalPadeDiag` in the article, `expm_diagonal` in MATLAB)
@@ -217,15 +223,12 @@ function eval_pade!(
 )
     S.use_taylor && error(lazy"Mismatch between struct powers and chosen approximant: this is `expm_diagonal!`.")
 
-    t_R_m = @elapsed begin
-        Uₑ, Uₒ = _pade_even_odd_parts(S, m, s)
-        Pₘ = Uₑ + Uₒ
-        Qₘ = Uₑ - Uₒ
-        Rₘ = Qₘ \ Pₘ
-    end
-    VERBOSE ? @printf("\tEvaluating Rₘ took %.6f s\n", t_R_m) : nothing
+    Uₑ, Uₒ, tempo = _pade_even_odd_parts(S, m, s)
+    Pₘ = Uₑ + Uₒ
+    Qₘ = Uₑ - Uₒ
+    Rₘ = Qₘ \ Pₘ
 
-    return Rₘ
+    return Rₘ, tempo
 end
 
 function eval_pade!(
@@ -238,14 +241,11 @@ function eval_pade!(
 
     n = LinearAlgebra.checksquare(S.A)
 
-    t_R_m = @elapsed begin
-        Uₑ, Uₒ = _pade_even_odd_parts(S, m, s)
-        Qₘ = Uₑ - Uₒ
-        Rₘ = Qₘ \ (2*Uₒ) + I(n)
-    end
-    VERBOSE ? @printf("\tEvaluating Rₘ took %.6f s\n", t_R_m) : nothing
+    Uₑ, Uₒ, tempo = _pade_even_odd_parts(S, m, s)
+    Qₘ = Uₑ - Uₒ
+    Rₘ = Qₘ \ (2*Uₒ) + I(n)
 
-    return Rₘ
+    return Rₘ, tempo
 end
 
 # approximate expm using Taylor (`EvalPadeTayl` in the article, `expm_taylor` in MATLAB)
@@ -259,6 +259,7 @@ function eval_pade!(
 
     # oss: il calcolo delle potenze di A viene fatto in `scalar_error_tayl!`
     #      Non mi sono ancora convinto che le potenze ci siano tutte
+    tempo_potenze = @elapsed begin 
     ν = ceil(typeof(m), √m)     # the "batch size" of P.-S.
     if length(S.powers) < ν+1
         @warn "expm_taylor is adding powers!"
@@ -266,8 +267,9 @@ function eval_pade!(
     else 
         Apows = S.powers
     end
-    
-    return polyvalm_tay_exp(Apows, m, s)
+    end #elapsed
+
+    return polyvalm_tay_exp(Apows, m, s), tempo_potenze
 end
 
 
@@ -465,9 +467,11 @@ function scalar_error_tayl!(
     ψ,
     compute_ψ::Bool = true
 )
-    ν = ceil(typeof(m), √m)     # the "batch size" of P.-S.
-    for i = length(S.powers)+1:ν+1
-        push!(S.powers, S.powers[i-1] * S.A)    # Add powers
+    eval_time = @elapsed begin 
+        ν = ceil(typeof(m), √m)     # the "batch size" of P.-S.
+        for i = length(S.powers)+1:ν+1
+            push!(S.powers, S.powers[i-1] * S.A)    # Add powers
+        end
     end
 
     old_prec = precision(BigFloat)
@@ -505,7 +509,7 @@ function scalar_error_tayl!(
         ψ_new = ψ
     end
                             
-    return δ, ψ_new, κ_A, compute_ψ
+    return δ, ψ_new, κ_A, compute_ψ, eval_time
 end
 
 
@@ -543,12 +547,16 @@ function scalar_error_pade!(
         xx[k] = xb * xx[k-1]
     end
 
+    tempo = 0
+
     # think: meglio convertire tutti i c_num ora, piuttosto che lasciarlo fare alla funzione?
     out_T = T <: Real ? Float64 : ComplexF64
-    Uₑ = polyvalm_ps!(S.powers, s, c_num[1:2:end], outputclass=out_T)
+    Uₑ, time_pows = polyvalm_ps!(S.powers, s, c_num[1:2:end], outputclass=out_T)
+    tempo += time_pows
     if m ≥ 1 
-        Uₒ = polyvalm_ps!(S.powers, s, c_num[2:2:end], outputclass=out_T)
+        Uₒ, time_pows = polyvalm_ps!(S.powers, s, c_num[2:2:end], outputclass=out_T)
         Uₒ = (convert(Matrix{out_T}, S.A) / 2^s) * Uₒ
+        tempo += time_pows
     else 
         Uₒ = zeros(eltype(Uₑ), size(S.A))
     end
@@ -568,7 +576,7 @@ function scalar_error_pade!(
 
     setprecision(BigFloat, old_prec)
 
-    return δ, ψ, κ_A
+    return δ, ψ, κ_A, tempo
 end
 
 
@@ -592,7 +600,8 @@ function eval_error!(
         scalar_error_tayl!(S, x, m, s, extra_precision, 
                            factorials, ψ_in, compute_ψ)
     else 
-        scalar_error_pade!(S, x, m, s, extra_precision)..., true
+        δ, ψ, κ_A, tempo = scalar_error_pade!(S, x, m, s, extra_precision)
+        return δ, ψ, κ_A, true, tempo
     end
 end
 
@@ -1008,6 +1017,13 @@ function exp_mp(
     algorithm ∈ VALID_ALGS || 
         throw(ArgumentError("Invalid algorithm: $algorithm. Valid options are $(VALID_ALGS)"))
         
+    # times[1]: compute Schur decomposition
+    # times[2]: computing α_min
+    # times[3]: evaluating error upper bound
+    # times[4]: evaluating the approximant
+    # times[5]: squaring phase
+    times = zeros(5)
+
     use_abs_err_flag = Val(use_abs_err)
     ζ = epsilon^(-1/8)  # normqinv_bound
 
@@ -1026,8 +1042,11 @@ function exp_mp(
 
     if algorithm === :transfree
         if ishermitian(A)
-            d, V = eigen(A)     # GenericSchur provides eigendecomposition in arbitrary precision
-            return V * diagm(exp.(d)) / V
+            schur_time = @elapsed begin
+                d, V = eigen(A)     # GenericSchur provides eigendecomposition in arbitrary precision
+            end
+            times[1] += schur_time
+            return V * diagm(exp.(d)) / V, times
         end
         X = copy(A)
         if isschur(A) 
@@ -1051,10 +1070,13 @@ function exp_mp(
         end
     end
     if compute_schur
-        F = schur(A)
-        if cmplx_schur
-            F = Schur{Complex}(F)
+        schur_time = @elapsed begin 
+            F = schur(A)
+            if cmplx_schur
+                F = Schur{Complex}(F)
+            end
         end
+        times[1] += schur_time
         #X, Q, _ = F
         X = F.T
     end
@@ -1087,47 +1109,67 @@ function exp_mp(
         m = degrees[currcost]
         s = 0 
 
-        if approximant === :taylor
-            use_taylor = true
-            Xpows = [I(n), X]
-            factorials = FactorialsStruct(m)
-        else 
-            use_taylor = false
-            Xpows = [I(n), X^2]
-            factorials = nothing
+        eval_time = @elapsed begin
+            if approximant === :taylor
+                use_taylor = true
+                Xpows = [I(n), X]
+                factorials = FactorialsStruct(m)
+            else 
+                use_taylor = false
+                Xpows = [I(n), X^2]
+                factorials = nothing
+            end
+            XandP = AandPowsStruct(X, Xpows, use_taylor)
         end
-        XandP = AandPowsStruct(X, Xpows, use_taylor)
+        times[4] += eval_time
 
         found_degree = false 
+
+        bound_time = @elapsed begin 
         ψ = typemax(real(T))     # tempnormexpm1
         compute_ψ = true         # compute_normexpm
 
-        # think: pensa meglio a cosa fa questa porzione di codice.
-        #        imo: con Taylor, tenta direttamente l'approx di grado massimo, scalando il meno possibile
+        # con Taylor, tenta direttamente l'approx di grado massimo, scalando il meno possibile
         if alpha_vec[1] > 1e7   # if opnorm(A, 1) > 1e7
             extra_precision = false 
             if use_taylor
-                α = alpha!(alpha_vec, XandP, maxdegree, s)
-                δ, ψ, _, compute_ψ = eval_error!(XandP, α, maxdegree, s, extra_precision, 
-                                                 factorials, ψ, compute_ψ)
+                alpha_time = @elapsed begin
+                    α = alpha!(alpha_vec, XandP, maxdegree, s)
+                end 
+                times[2] += alpha_time
+                δ, ψ, _, compute_ψ, tempo = eval_error!(XandP, α, maxdegree, s, extra_precision, 
+                                                        factorials, ψ, compute_ψ)
+                times[3] -= tempo 
+                times[4] += tempo
                 while (δ > epsilon * ψ || !isfinite(ψ)) && s ≤ maxscaling
                     s += 1
                     #X /= 2
                     compute_ψ = true
 
-                    δ, ψ, _, compute_ψ = eval_error!(XandP, α, maxdegree, s, extra_precision, 
-                                                     factorials, ψ, compute_ψ)
+                    alpha_time = @elapsed begin 
+                        α = alpha!(alpha_vec, XandP, maxdegree, s)
+                    end 
+                    times[2] += alpha_time
+                    δ, ψ, _, compute_ψ, tempo = eval_error!(XandP, α, maxdegree, s, extra_precision, 
+                                                            factorials, ψ, compute_ψ)
+                    times[3] -= tempo 
+                    times[4] += tempo
                 end
             end
         end
         extra_precision = true
 
         α = alpha!(alpha_vec, XandP, m, s)
-        δ, ψ, κ_A, compute_ψ = eval_error!(XandP, α, m, s, extra_precision, 
-                                           factorials, ψ, compute_ψ)
+        δ, ψ, κ_A, compute_ψ, tempo = eval_error!(XandP, α, m, s, extra_precision, 
+                                                  factorials, ψ, compute_ψ)
+        times[3] -= tempo 
+        times[4] += tempo
+        end #elapsed 
+        times[3] += bound_time
         curr_ϵ = update_epsilon(epsilon, ψ, use_abs_err_flag)
         #κ_A_old = κ_A
 
+        bound_time = @elapsed begin 
         while !isfinite(ψ)
             @printf("ψ = %.6g", ψ)
             currcost += 1
@@ -1135,9 +1177,14 @@ function exp_mp(
             compute_ψ = true 
             m = degrees[currcost]
             α = alpha!(alpha_vec, XandP, m, s)
-            δ, ψ, κ_A, compute_ψ = eval_error!(XandP, α, m, s, extra_precision, 
-                                               factorials, ψ, compute_ψ)
+            δ, ψ, κ_A, compute_ψ, tempo = eval_error!(XandP, α, m, s, extra_precision, 
+                                                      factorials, ψ, compute_ψ)
+            times[3] -= tempo 
+            times[4] += tempo
         end
+        end# elapsed
+        times[3] += bound_time
+
 
         δ_old = typemax(real(T))
         #ψ_old = 1
@@ -1158,9 +1205,17 @@ function exp_mp(
             end
             δ_old = δ
             #ψ_old = ψ
-            α = alpha!(alpha_vec, XandP, m, s)
-            δ, ψ, κ_A, compute_ψ = eval_error!(XandP, α, m, s, extra_precision, 
+            alpha_time = @elapsed begin 
+                α = alpha!(alpha_vec, XandP, m, s)
+            end 
+            times[2] += alpha_time
+            bound_time = @elapsed begin 
+            δ, ψ, κ_A, compute_ψ, tempo = eval_error!(XandP, α, m, s, extra_precision, 
                                                factorials, ψ, compute_ψ)
+            end
+            times[3] += bound_time
+            times[3] -= tempo 
+            times[4] += tempo
             curr_ϵ = update_epsilon(epsilon, ψ, use_abs_err_flag)
         end
         if VERBOSE
@@ -1174,17 +1229,33 @@ function exp_mp(
         # Il grado adesso è fisso (il massimo, direi). Se non ne è stato trovato uno buono, 
         # non ci resta che scalare (per quanto ci è ancora concesso) fino a che il bound sull'errore non è < epsilon 
         if !found_degree
-            α = alpha!(alpha_vec, XandP, maxdegree, s)
-            δ, ψ, κ_A, compute_ψ = eval_error!(XandP, α, maxdegree, s, extra_precision, 
-                                               factorials, ψ, compute_ψ)
+            alpha_time = @elapsed begin 
+                α = alpha!(alpha_vec, XandP, maxdegree, s)
+            end
+            times[2] += alpha_time
+            bound_time = @elapsed begin 
+            δ, ψ, κ_A, compute_ψ, tempo = eval_error!(XandP, α, maxdegree, s, extra_precision, 
+                                                      factorials, ψ, compute_ψ)
+            end
+            times[3] += bound_time
+            times[3] -= tempo 
+            times[4] += tempo
             curr_ϵ = update_epsilon(epsilon, ψ, use_abs_err_flag)
             while δ ≥ curr_ϵ && s < maxscaling 
                 #X /= 2
                 s += 1 
                 compute_ψ = true 
-                α = alpha!(alpha_vec, XandP, maxdegree, s)
-                δ, ψ, κ_A, compute_ψ = eval_error!(XandP, α, m, s, extra_precision, 
+                alpha_time = @elapsed begin 
+                    α = alpha!(alpha_vec, XandP, maxdegree, s)
+                end
+                times[2] += alpha_time 
+                bound_time = @elapsed begin 
+                δ, ψ, κ_A, compute_ψ, tempo = eval_error!(XandP, α, m, s, extra_precision, 
                                                    factorials, ψ, compute_ψ)
+                end
+                times[3] += bound_time
+                times[3] -= tempo 
+                times[4] += tempo
                 curr_ϵ = update_epsilon(epsilon, ψ, use_abs_err_flag)
             end
         end
@@ -1193,7 +1264,10 @@ function exp_mp(
         VERBOSE ? print("Computing approximant start...\n") : nothing
         VERBOSE ? print("XandP has $(length(XandP.powers)) elements.\n") : nothing
         
-        X /= 2^s    # scaling 
+        pade_time = @elapsed begin 
+            X /= 2^s    # scaling 
+        end
+        times[4] += pade_time
         
         if algorithm === :transfree
             X ≈ (A - useshift*μ*I(n)) / 2^s    || @warn("X ≈ 2^-s⋅(A-μI) è falso. $(norm(X - (A-μ*I(n))/2^s))")
@@ -1203,11 +1277,17 @@ function exp_mp(
             X ≈ (F.T - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(T-μI).")        
         end
 
-        t_eval = @elapsed begin
-            Y = eval_pade!(XandP, m, s, Val(approximant)) # Y = rₘ(2^(-s)X) 
+        pade_time = @elapsed begin
+            Y, tempo = eval_pade!(XandP, m, s, Val(approximant)) # Y = rₘ(2^(-s)X) 
         end
-        VERBOSE ? @printf("Approximant evaluation time: %.6f s\n", t_eval) : nothing        
+        times[3] -= tempo # a sto punto dovrebbe essere 0 o quasi, ma continuo il giochino cmq
+        times[4] += tempo
+        #VERBOSE ? print("\ttempo = $(tempo)\n") : nothing
+        times[4] += pade_time
+
+        VERBOSE ? @printf("`eval_pade!` total time (includes Uₑ, Uₒ): %.6f s\n", pade_time) : nothing        
         
+        pade_time = @elapsed begin 
         if recompute_diag_blocks
             recompute_diagonals!(X, Y)  # overwrites Y
         end
@@ -1216,10 +1296,13 @@ function exp_mp(
             Y .*= exp(scal)      # Y = e^(μ/(2^s))rₘ(2^(-s)(A-μI)) (see [exptayotf18])
             X += scal * I(n)     # X = 2^(-s)A 
         end
+        end #elapsed 
+        times[4] += pade_time
         VERBOSE ? print("... Computing approximant stop\n") : nothing
 
         ## Squaring 
         VERBOSE ? print("Squaring start...\n") : nothing
+        squaring_time = @elapsed begin
         for _ = 1:s
             Y *= Y          # Y ← Y²
             if recompute_diag_blocks
@@ -1227,6 +1310,8 @@ function exp_mp(
                 recompute_diagonals!(X, Y)
             end 
         end
+        end #elapsed 
+        times[5] += squaring_time
         VERBOSE ? print("... Squaring stop\n") : nothing
 
     end # if isdiag(X)
@@ -1246,7 +1331,7 @@ function exp_mp(
 
     setprecision(BigFloat, old_prec)
 
-    return Y   
+    return Y, times   
 end
 
 export exp_mp
