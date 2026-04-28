@@ -484,10 +484,9 @@ function scalar_error_tayl!(
 
     setprecision(BigFloat, old_prec)
 
-    # oss: qui ci sarebbe un `if` per smettere di calcolare l'approx di exp(2^(-s)A)
-    # quando diventa inutile (i.e. aggiungendo termini non cambia più nulla)
-    # Essenzialmente: quando rel_err(ψ, ψ_old) < √ϵ, allora smettiamo di calcolare 
-    # (per sempre); di aggiornare ψ, e teniamo la ψ corrente
+    # oss: `if` per smettere di calcolare l'approx di exp(2^(-s)A)
+    # Essenzialmente: quando rel_err(ψ, ψ_old) < √ϵ, allora smettiamo di calcolare, 
+    # di aggiornare ψ (per sempre), e teniamo la ψ corrente
     if compute_ψ
         lm1 = length(S.powers) - 1
         # alternatives: 2.0.^(-s .* (0:lm1)); un ciclo for a mano (sembrano equivalenti in performance)
@@ -499,7 +498,7 @@ function scalar_error_tayl!(
                                     #      andrebbe data una LinearMap fatta a modo
         if ψ_new ≈ ψ
             compute_ψ = false 
-            VERBOSE ? print("stop computing ψ!\n") : nothing
+            VERBOSE ? print("stopped computing ψ. l = $(lm1)\n") : nothing
         end
     else 
         ψ_new = ψ
@@ -1017,7 +1016,6 @@ function exp_mp(
         setprecision(BigFloat, working_precision)   
     end
     #A = big.(A) # sarà la cosa giusta da fare?
-
 
     # Schur form stuff
     compute_schur = false
