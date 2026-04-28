@@ -488,10 +488,9 @@ function scalar_error_tayl!(
 
     setprecision(BigFloat, old_prec)
 
-    # oss: qui ci sarebbe un `if` per smettere di calcolare l'approx di exp(2^(-s)A)
-    # quando diventa inutile (i.e. aggiungendo termini non cambia più nulla)
-    # Essenzialmente: quando rel_err(ψ, ψ_old) < √ϵ, allora smettiamo di calcolare 
-    # (per sempre); di aggiornare ψ, e teniamo la ψ corrente
+    # oss: `if` per smettere di calcolare l'approx di exp(2^(-s)A)
+    # Essenzialmente: quando rel_err(ψ, ψ_old) < √ϵ, allora smettiamo di calcolare, 
+    # di aggiornare ψ (per sempre), e teniamo la ψ corrente
     if compute_ψ
         lm1 = length(S.powers) - 1
         # alternatives: 2.0.^(-s .* (0:lm1)); un ciclo for a mano (sembrano equivalenti in performance)
@@ -503,7 +502,7 @@ function scalar_error_tayl!(
                                     #      andrebbe data una LinearMap fatta a modo
         if ψ_new ≈ ψ
             compute_ψ = false 
-            VERBOSE ? print("stop computing ψ!\n") : nothing
+            VERBOSE ? print("stopped computing ψ. l = $(lm1)\n") : nothing
         end
     else 
         ψ_new = ψ
@@ -1002,7 +1001,7 @@ end
 function exp_mp(
     A::AbstractMatrix{T};
     working_precision::Integer = precision(real(T)),  # decimal digit in the MATLAB
-    epsilon::AbstractFloat = eps(real(T)),    # tolerance on the error bound
+    epsilon::Union{AbstractFloat,Nothing} = nothing,    # tolerance on the error bound
     maxscaling::Integer = 100,
     maxdegree::Integer = 100,
     algorithm::Symbol = :transfree,         # schur?
@@ -1024,16 +1023,22 @@ function exp_mp(
     # times[5]: squaring phase
     times = zeros(5)
 
-    use_abs_err_flag = Val(use_abs_err)
-    ζ = epsilon^(-1/8)  # normqinv_bound
-
     # precision (digits in MATLAB), ...
     old_prec = precision(BigFloat)
-    if real(T) != BigFloat    # oss: l'ho messa io perché... se T == Float64?
-        setprecision(BigFloat, working_precision)   
-    end
-    #A = big.(A) # sarà la cosa giusta da fare?
+    # oss: se A è double, anche i BigFloats saranno in doppia precisione...
+    setprecision(BigFloat, working_precision)   
+    # oss: Taylor è in grado di funzionare anche con Float64 senza mai tirare in ballo 
+    #      i BigFloats. Ma questo è un algoritmo in precisione arbitraria...
+    A = T <: Real ? BigFloat.(A) : Complex{BigFloat}.(A)  
+    # questa è la cosa più vicina al MATLAB originale, 
+    # posto che Advanpix funzioni come i BigFloats (penso proprio di sì)
 
+    # epsilon
+    if isnothing(epsilon)
+        epsilon = eps(real(T))
+    end
+    ζ = epsilon^(-1/8)  # normqinv_bound
+    use_abs_err_flag = Val(use_abs_err)
 
     # Schur form stuff
     compute_schur = false
