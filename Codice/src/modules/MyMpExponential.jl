@@ -17,7 +17,7 @@ const VALID_APPRX = (:taylor, :pade, :diagonal, :diagonalcheap)
 const VALID_ALGS  = (:transfree, :realschur, :complexschur)
 const ASSRT_STRNG = """Taylor is being used but epsilon^(-1/8) ≤ 1. 
 Maybe you're being too lenient with the tolerance on the error bound (i.e. epsilon is too big)?"""
-const VERBOSE = true
+const VERBOSE = false
 
 
 
