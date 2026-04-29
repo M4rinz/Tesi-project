@@ -103,7 +103,7 @@ D = Diagonal(100rand(n).-50 + 100im*rand(n).-50);
 # oss: se D è reale, A è Hermitiana (quindi l'alg. diagonalizza)
 A = H' * D * H;    
 
-Y_true = H' * exp.(D) * H;
+Y_true = H' * exp(D) * H;
 
 run_exp_test(A, Y_true)
 
@@ -116,6 +116,6 @@ D = Diagonal(100rand(BigFloat, n).-50 + 100im*rand(BigFloat, n).-50);
 # oss: se D è reale, A è Hermitiana (quindi l'alg. diagonalizza)
 A = H' * D * H;   
 
-Y_true = H' * exp.(D) * H;
+Y_true = H' * exp(D) * H;
 
 run_exp_test(A, Y_true)

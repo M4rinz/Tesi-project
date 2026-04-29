@@ -1091,7 +1091,7 @@ function exp_mp(
     useshift       = true 
     positive_shift = false
     if abs(μ) > 10
-        X .-= μ*I(n)
+        X -= μ*I(n)
         positive_shift = real(μ) ≥ 0
     else
         useshift = false

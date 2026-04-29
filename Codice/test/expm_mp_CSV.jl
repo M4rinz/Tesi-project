@@ -161,7 +161,7 @@ function run_and_record(
             row = [kind, string(n), string(T), 
                    string(approximant), string(alg),
                    schur_time, alpha_time, eval_bound_time, eval_pade_time, squaring_time,
-                   total_time, format_rel_err(err_rel), cond_E, cond_A]
+                   total_time, format_long_number(err_rel), format_long_number(cond_E), cond_A]
             write_row(csvfile, row)
         end
     end
