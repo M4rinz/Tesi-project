@@ -186,7 +186,7 @@ for n in [16, 64]   #[16, 64, 256]
     H = Matrix{Float64}(H) / sqrt(n)
     D = Diagonal(100rand(n).-50 + 100im*rand(n).-50)
     A = H' * D * H
-    Y_true = H' * exp.(D) * H
+    Y_true = H' * exp(D) * H
     run_and_record("hadamard_complex", A; Y_true=Y_true)
 end
 
@@ -196,6 +196,6 @@ for n in [16, 64]   #[16, 64, 256]
     H = Matrix{BigFloat}(H) / sqrt(big(n))
     D = Diagonal(100rand(BigFloat, n).-50 + 100im*rand(BigFloat, n).-50)
     A = H' * D * H
-    Y_true = H' * exp.(D) * H
+    Y_true = H' * exp(D) * H
     run_and_record("hadamard_complex_big", A; Y_true=Y_true)
 end
