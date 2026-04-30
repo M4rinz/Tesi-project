@@ -39,13 +39,14 @@ function compute_cond_exp(A)
 end
 
 ############## Files per runnare esperimenti e scrivere su CSV ##############
-csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.2alpha-29_03.csv")
+csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.2alpha-30_03.csv")
 
 const CSV_HEADER = [
     "kind", "n", "eltype",
     "approximant", "algorithm",
     "schur_time", "alpha_time", "eval_bound_time",
     "eval_pade_time", "squaring_time", "total_time",
+    "m", "s", "delta", "psi", "cond_q", "epsilon",
     "rel_err",
     "cond_exp_A", "cond_A",
 ]
@@ -147,21 +148,34 @@ function run_and_record(
         end
         for alg in ALGS
             print("Running: kind=$kind, n=$n, eltype=$(T), approximant=$approximant, algorithm=$alg\n")
-            t = @elapsed Y, times = exp_mp(A; approximant=approximant, algorithm=alg)
+            t = @elapsed Y, times, params = exp_mp(A; approximant=approximant, algorithm=alg)
+            
+            # get times
             schur_time = times[1]
             alpha_time = times[2]
             eval_bound_time = times[3]
             eval_pade_time = times[4]
             squaring_time = times[5]
             total_time = t
+
+            # get algorithm internal parameters
+            m       = params.m
+            s       = params.s
+            delta   = params.delta
+            psi     = params.psi
+            cond_q  = params.cond_q
+            epsilon = params.epsilon
+
             ## ensure reference and result have comparable eltypes
             #Y_low = convert(Matrix{T_low}, Y)
             err_rel = rel_err(Y, Y_true)
 
             row = [kind, string(n), string(T), 
                    string(approximant), string(alg),
-                   schur_time, alpha_time, eval_bound_time, eval_pade_time, squaring_time,
-                   total_time, format_long_number(err_rel), format_long_number(cond_E), cond_A]
+                   schur_time, alpha_time, eval_bound_time, 
+                   eval_pade_time, squaring_time, total_time, 
+                   m, s, format_long_number(delta), psi, cond_q, format_long_number(epsilon),
+                   format_long_number(err_rel), format_long_number(cond_E), cond_A]
             write_row(csvfile, row)
         end
     end

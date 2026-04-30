@@ -81,4 +81,33 @@ export FactorialsStruct
 
 
 
+############ Struct per tenere assieme i parametri di exp_mp ############
+
+struct ExpMpParams
+    m
+    s
+    δ
+    ψ
+    κ_A
+    ϵ
+end
+
+Base.getproperty(p::ExpMpParams, name::Symbol) = begin
+    if name === :delta
+        return getfield(p, :δ)
+    elseif name === :cond_q
+        return getfield(p, :κ_A)
+    elseif name === :epsilon
+        return getfield(p, :ϵ)
+    elseif name === :psi
+        return getfield(p, :ψ)
+    else
+        return getfield(p, name)
+    end
+end
+
+
+export ExpMpParams
+
+
 end #module

@@ -1051,7 +1051,7 @@ function exp_mp(
                 d, V = eigen(A)     # GenericSchur provides eigendecomposition in arbitrary precision
             end
             times[1] += schur_time
-            return V * diagm(exp.(d)) / V, times
+            return V * diagm(exp.(d)) / V, times, ExpMpParams(NaN, NaN, NaN, NaN, NaN, epsilon)
         end
         X = copy(A)
         if isschur(A) 
@@ -1336,7 +1336,7 @@ function exp_mp(
 
     setprecision(BigFloat, old_prec)
 
-    return Y, times   
+    return Y, times, ExpMpParams(m,s,δ,ψ,κ_A,epsilon)  
 end
 
 export exp_mp
