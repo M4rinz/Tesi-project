@@ -656,23 +656,50 @@ function _alpha!(
     S::AandPowsStruct,
     k, m, s
 )
+    d = fld(1 + sqrt(4*(m+k) + 5), 2)   # sarebbe d^{[k/m]}
+    d = Int64(d)
 
+    α_d = get!(alpha_dict, d, normest1(d, S)^(1/d))
+    
+    if !haskey(alpha_dict, d+1)
+        # Proviamo ad evitare il calcolo di ‖A^(d+1)‖
+        found_upper_bound = false
+        dp1od = (d+1) / d 
+        for low_key in keys(alpha_dict)
+            high_key = d + 1 - low_key
+            if haskey(alpha_dict, high_key) && low_key < high_key
+                if α_d^dp1od > alpha_dict[low_key]*alpha_dict[high_key]
+                    found_upper_bound = true 
+                    break 
+                end
+            end
+        end
+        if found_upper_bound 
+            return α_d / 2^s 
+        else 
+            alpha_dict[d+1] = normest1(d+1, S)^(1/(d+1))            
+        end        
+    end
+    # oss: at one point, alpha_vec[d+1] was 0, then it has been computed.
+    #      When this happened, also alpha_vec[d] had been computed.
+    α_min = max(alpha_dict[d+1], alpha_dict[d])
+    α_min /= 2^s
 end
 
 
 function alpha! end 
 
 function alpha!(
-    alpha_vec::AbstractVector, 
+    alphaVecOrDict,#::Union{AbstractVector,Dict}, 
     S::AandPowsStruct,
     m, s
 )
     #real(eltype(S.A)) == BigFloat && @warn "Please don't use alpha! with arbitrary precision data"
 
     if S.use_taylor
-        _alpha!(alpha_vec, S, m, 0, s)
+        _alpha!(alphaVecOrDict, S, m, 0, s)
     else 
-        _alpha!(alpha_vec, S, m, m, s)
+        _alpha!(alphaVecOrDict, S, m, m, s)
     end
 end
 
