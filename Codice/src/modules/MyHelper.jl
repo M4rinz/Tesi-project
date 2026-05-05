@@ -32,6 +32,55 @@ export rel_err, sym_err
 
 
 
+############ Manipolazione di files ############
+
+# Make sure that the first line of the file is CSV_header. If not, write it
+function ensure_csv_header(csvfile, header::Vector{String})
+    header_line = join(header, ",")
+
+    if !isfile(csvfile)
+        open(csvfile, "w") do io
+            println(io, header_line)
+        end
+        return
+    end
+
+    contents = read(csvfile, String)
+    if isempty(contents)
+        open(csvfile, "w") do io
+            println(io, header_line)
+        end
+        return
+    end
+
+    lines = readlines(IOBuffer(contents))
+
+    first_row = strip.(split(first(lines), ','))
+    if first_row != header || !endswith(contents, "\n")
+        open(csvfile, "w") do io
+            println(io, header_line)
+            for line in lines
+                println(io, line)
+            end
+        end
+    end
+end
+
+
+export ensure_csv_header
+
+
+
+
+
+
+
+
+
+
+############ Costruzione di esempi ############
+
+
 # courtesy of ChatGPT (under my detailed instructions)
 """
     gebal_example(n; k1=2, k2=2, do_permutation=true, seed=42)
@@ -171,7 +220,22 @@ function construct_full_jacobian(linear_operator, n, T)
 end
 
 
-export construct_full_jacobian
+function cond_exp_exact(A)
+    n = LinearAlgebra.checksquare(A)
+    T = eltype(A)
+    T_low = T <: Complex ? ComplexF64 : Float64
+
+    A_low = convert(AbstractMatrix{T_low}, A)
+    Y_true, exp_pullback = ChainRules.rrule(exp, A_low)
+
+    K = construct_full_jacobian(x -> exp_pullback(x)[2], n, T_low)
+
+    #κ_exp(A) = (‖K‖₂⋅‖A‖_F) / ‖exp(A)‖_F
+    opnorm(K, 2) * norm(A) / norm(Y_true)
+end
+
+
+export construct_full_jacobian, cond_exp_exact
 
 
 end #module

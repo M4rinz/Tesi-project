@@ -63,21 +63,6 @@ function run_exp_test(
 end
 
 
-function compute_cond_exp(A)
-    n = LinearAlgebra.checksquare(A)
-    T = eltype(A)
-    T_low = T <: Complex ? ComplexF64 : Float64
-
-    A_low = convert(AbstractMatrix{T_low}, A)
-    Y_true, exp_pullback = ChainRules.rrule(exp, A_low)
-
-    K = construct_full_jacobian(x -> exp_pullback(x)[2], n, T_low)
-
-    #κ_exp(A) = (‖K‖₂⋅‖A‖_F) / ‖exp(A)‖_F
-    opnorm(K, 2) * norm(A) / norm(Y_true)
-end
-
-
 
 ## First numerical test 
 n = 2 << 7;
