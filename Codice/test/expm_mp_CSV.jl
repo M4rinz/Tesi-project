@@ -144,7 +144,7 @@ function run_and_record(
                    string(approximant), string(alg),
                    schur_time, alpha_time, eval_bound_time, 
                    eval_pade_time, squaring_time, total_time, 
-                   m, s, format_long_number(delta), psi, cond_q, format_long_number(epsilon),
+                   m, s, format_long_number(delta), format_long_number(psi), cond_q, format_long_number(epsilon),
                    format_long_number(rel_err_F), format_long_number(abs_err_1), format_long_number(nrm1_Ytrue),
                    format_long_number(cond_E), 
                    condA_1, condA_2]
@@ -155,13 +155,13 @@ end
 
 
 ## First experiment: Float64 random 
-for n in [16, 64, 256]
+for n in [16, 64] #[16, 64, 256]
     A = rand(n,n);
     run_and_record("randn", A)
 end
 
 ## Second experiment: BigFloat random
-for n in [16, 64, 256]
+for n in [16, 64] #[16, 64, 256]
     A = rand(BigFloat, n,n)
     run_and_record("randn_big", A)
 end
