@@ -71,8 +71,9 @@ function run_and_record(
     total_time = t_exp
 
     # compute reference with diagonalization (and crossing our fingers)
-    Y_true = setprecision(10 * precision(BigFloat)) do 
-        d, V = eigen(A);
+    Y_true = setprecision(20 * precision(BigFloat)) do 
+        Abig = convert(Matrix{big(eltype(A))}, A)
+        d, V = eigen(Abig);
         V * diagm(d) / V ≈ A || @warn "The diagonalization used for the reference solution is too inaccurate."
         V * diagm(exp.(d)) / V
     end
