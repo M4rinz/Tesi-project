@@ -37,7 +37,20 @@
     eprint = {https://doi.org/10.1137/09074721X},
 }
 
-@book{higham:book,
+@article{higham:hili13,
+	author = {Higham, Nicholas J. and Lin, Lijing},
+	title = {An Improved Schur--Padé Algorithm for Fractional Powers of a Matrix and Their Fréchet Derivatives},
+	journal = {SIAM Journal on Matrix Analysis and Applications},
+	volume = {34},
+	number = {3},
+	pages = {1341-1360},
+	year = {2013},
+	doi = {10.1137/130906118},
+	URL = {https://doi.org/10.1137/130906118},
+	eprint = {https://doi.org/10.1137/130906118},
+}
+
+@book{higham:matfun_book,
     author = {Higham, Nicholas J.},
     title = {Functions of Matrices},
     publisher = {SIAM},
@@ -49,6 +62,32 @@
     eprint = {https://epubs.siam.org/doi/pdf/10.1137/1.9780898717778}
 }
 
+@book{higham:accuracy_book,
+	author = {Higham, Nicholas J.},
+	title = {Accuracy and Stability of Numerical Algorithms},
+	publisher = {Society for Industrial and Applied Mathematics},
+	year = {2002},
+	doi = {10.1137/1.9780898718027},
+	address = {},
+	edition   = {Second},
+	URL = {https://epubs.siam.org/doi/abs/10.1137/1.9780898718027},
+	eprint = {https://epubs.siam.org/doi/pdf/10.1137/1.9780898718027}
+}
+
+@article{article:Julia,
+	author = {Bezanson, Jeff and Edelman, Alan and Karpinski, Stefan and Shah, Viral B.},
+	title = {Julia: A Fresh Approach to Numerical Computing},
+	journal = {SIAM Review},
+	volume = {59},
+	number = {1},
+	pages = {65-98},
+	year = {2017},
+	doi = {10.1137/141000671},
+	URL = {https://doi.org/10.1137/141000671},
+	eprint = {https://doi.org/10.1137/141000671},
+	abstract = { Bridging cultures that have often been distant, Julia combines expertise from the diverse fields of computer science and computational science to create a new approach to numerical computing. Julia is designed to be easy and fast and questions notions generally held to be “laws of nature" by practitioners of numerical computing: \beginlist \item High-level dynamic programs have to be slow. \item One must prototype in one language and then rewrite in another language for speed or deployment. \item There are parts of a system appropriate for the programmer, and other parts that are best left untouched as they have been built by the experts. \endlist We introduce the Julia programming language and its design---a dance between specialization and abstraction. Specialization allows for custom treatment. Multiple dispatch, a technique from computer science, picks the right algorithm for the right circumstance. Abstraction, which is what good computation is really about, recognizes what remains the same after differences are stripped away. Abstractions in mathematics are captured as code through another technique from computer science, generic programming. Julia shows that one can achieve machine performance without sacrificing human convenience. }
+}
+
 
 @misc{link:gh_exp_conversation,
     key = {},
@@ -56,6 +95,25 @@
     howpublished = "\url{https://github.com/JuliaDiff/ForwardDiff.jl/issues/174}",
     year = {2016},
     note = "Online; accessed February 26, 2026", 
+}
+
+@misc{link:julia_documentation,
+	key = {},
+	title = {{Julia 1.12 Documentation}},
+	howpublished = "\url{https://docs.julialang.org/en/v1/}",
+	year = {2026},
+	note = "Online; accessed May 09, 2026",
+}
+
+@software{sw:GenericSchur,
+	author = {Chris Rackauckas et al},
+	title = {GenericSchur.jl. Eigen-analysis of matrices with generic floating-point element types in Julia},
+	url = {https://github.com/RalphAS/GenericSchur.jl},
+	publisher = {GitHub},
+	month = oct,
+	year = 2025,
+	version = {v0.5.6},
+	note = "Online; accessed May 09, 2026", 
 }
 
 @software{sw:ChainRules,
@@ -151,19 +209,6 @@
     keywords = {Backward error estimate for the matrix exponential, Overscaling, Multiple precision floating point computation, Scaling and squaring algorithm, Truncated Taylor series, Krylov methods},
 }
 
-@article{higham:hili13,
-    author = {Higham, Nicholas J. and Lin, Lijing},
-    title = {An Improved Schur--Padé Algorithm for Fractional Powers of a Matrix and Their Fréchet Derivatives},
-    journal = {SIAM Journal on Matrix Analysis and Applications},
-    volume = {34},
-    number = {3},
-    pages = {1341-1360},
-    year = {2013},
-    doi = {10.1137/130906118},
-    URL = {https://doi.org/10.1137/130906118},
-    eprint = {https://doi.org/10.1137/130906118},
-}
-
 @article{ruiz:high_2016,
 	title = {High performance computing of the matrix exponential},
 	volume = {291},
@@ -187,3 +232,45 @@
     version = {},
     url = {https://www.advanpix.com}
 }
+
+@article{article:MPFR,
+	author = {Fousse, Laurent and Hanrot, Guillaume and Lef\`{e}vre, Vincent and P\'{e}lissier, Patrick and Zimmermann, Paul},
+	title = {MPFR: A multiple-precision binary floating-point library with correct rounding},
+	addendum = {\url{https://www.mpfr.org/}},
+	year = {2007},
+	issue_date = {June 2007},
+	publisher = {Association for Computing Machinery},
+	address = {New York, NY, USA},
+	volume = {33},
+	number = {2},
+	issn = {0098-3500},
+	url = {https://doi.org/10.1145/1236463.1236468},
+	doi = {10.1145/1236463.1236468},
+	abstract = {This article presents a multiple-precision binary floating-point library, written in the ISO C language, and based on the GNU MP library. Its particularity is to extend to arbitrary-precision, ideas from the IEEE 754 standard, by providing correct rounding and exceptions. We demonstrate how these strong semantics are achieved---with no significant slowdown with respect to other arbitrary-precision tools---and discuss a few applications where such a library can be useful.},
+	journal = {ACM Trans. Math. Softw.},
+	month = jun,
+	pages = {13–es},
+	numpages = {15},
+	keywords = {IEEE 754 standard, Multiple-precision arithmetic, correct rounding, elementary function, floating-point arithmetic, portable software}
+}
+
+@article{article:BLAS,
+	title = {An updated set of basic linear algebra subprograms (BLAS)},
+	year = {2002},
+	issue_date = {June 2002},
+	publisher = {Association for Computing Machinery},
+	address = {New York, NY, USA},
+	volume = {28},
+	number = {2},
+	issn = {0098-3500},
+	url = {https://doi.org/10.1145/567806.567807},
+	doi = {10.1145/567806.567807},
+	journal = {ACM Trans. Math. Softw.},
+	month = jun,
+	pages = {135–151},
+	numpages = {17},
+	keywords = {standards, linear algebra, BLAS}
+}
+
+
+

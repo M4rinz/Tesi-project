@@ -15,13 +15,14 @@
 \usepackage{algorithm}                  % Definisce l'ambiente algorithm (ha numero e didascalia)
 \usepackage[beginLComment=//~,endLComment=~]{algpseudocodex} % Per scrivere pseudocodice
 
+%\usepackage{beramono}
 \usepackage{listings}					% Per scrivere codice in LaTeX...
 %\usepackage{minted}
 
-%\usepackage{siunitx}					% Unità di misura
-%\let\svqty\qty
-%\usepackage{physics}		%physics conflicts with siunitx
-%\let\qty\svqty
+\usepackage{siunitx}					% Unità di misura
+\let\svqty\qty
+\usepackage{physics}		%physics conflicts with siunitx
+\let\qty\svqty
 
 %\usepackage[all,cmtip]{xy}				% xymatrix. Per fare diagrammi
 %\usepackage{arydshln}					% Linee 
@@ -47,6 +48,8 @@
 \newtheorem{oss}{Remark}[section]
 \newtheorem*{oss*}{Remark}
 \newtheorem*{notazione}{Notation}
+\newtheorem{esempio}{Example}
+\newtheorem*{esempio*}{Example}
 
 \theoremstyle{plain}
 %\newtheorem{esercizio}{Esercizio}[section]
@@ -62,11 +65,37 @@
 
 
 	% COMANDI CUSTOM
-	
+\newcommand{\matlab}{\mbox{\textsc{matlab}\textsuperscript{\textregistered}}}
 	
 	
 	% COLORI CUSTOM (per il codice e non solo)
-	
+\definecolor{ForestGreen}{RGB}{18, 159, 87}
+%%
+%% Julia definition (c) 2014 Jubobs
+%%
+\lstdefinelanguage{Julia}%
+{morekeywords={abstract,break,case,catch,const,continue,do,else,elseif,%
+		end,export,false,for,function,immutable,import,importall,if,in,%
+		let,%
+		macro,module,otherwise,quote,return,switch,true,try,type,typealias,%
+		using,while},%
+	sensitive=true,%
+	alsoother={$},%
+	morecomment=[l]\#,%
+	morecomment=[n]{\#=}{=\#},%
+	morestring=[s]{"}{"},%
+	morestring=[m]{'}{'},%
+}[keywords,comments,strings]%
+
+\lstset{%
+	language         = Julia,
+	basicstyle       = \ttfamily,
+	keywordstyle     = \bfseries\color{blue},
+	stringstyle      = \color{magenta},
+	commentstyle     = \color{ForestGreen},
+	showstringspaces = false,
+	literate={π}{$\pi$}1
+}
 	
 	
 % -------------------------- BODY -------------------------- 	
@@ -106,10 +135,11 @@
 \include{Varie/Introduction}	
 
 
-\include{Capitoli/Chapter1}
+\include{Capitoli/Chapter1}		% Esponenziale di matrice
+\include{Capitoli/Chapter2}		% Aritmetica di macchina, precisione arbitraria
 
 
-\include{Capitoli/Chapter6}
+\include{Capitoli/Chapter6}		% Sperimentazioni numeriche
 	
 	
 	
