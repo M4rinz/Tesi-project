@@ -24,7 +24,31 @@ function hadamard(n::Int)
     return H
 end
 
+function create_J(n::Int, ::Type{T}=Float64) where {T<:AbstractFloat}
+    n > 0 || throw(ArgumentError("n must be positive"))
 
+    J = zeros(Complex{T}, n, n)
+    first = 1
+    remaining = n
+
+    while remaining > 0
+        block_size = rand(1:remaining)
+        λ = complex(T(100) * rand(T) - T(50), T(100) * rand(T) - T(50))
+
+        last = first + block_size - 1
+        for i in first:last
+            J[i, i] = λ
+            if i < last
+                J[i, i + 1] = one(T)
+            end
+        end
+
+        first = last + 1
+        remaining -= block_size
+    end
+
+    return J
+end
 
 ############## Files per runnare esperimenti e scrivere su CSV ##############
 csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.2alpha-5_05.csv")
@@ -37,7 +61,8 @@ const CSV_HEADER = [
     "m", "s", "delta", "psi", "cond_q", "epsilon",
     "rel_err_F", "abs_err_1", "nrm1_Ytrue",
     "cond_expA_F", 
-    "condA_1", "condA_2"
+    "condA_1", "condA_2",
+    "precision"
 ]
 
 ensure_csv_header(csvfile, CSV_HEADER)
@@ -48,7 +73,7 @@ function write_row(csvfile, row::Vector)
     end
 end
 
-format_long_number(x) = isfinite(x) ? @sprintf("%.15g", x) : string(x)
+format_long_number(x) = isfinite(x) ? @sprintf("%.16g", x) : string(x)
 
 
 function run_and_record(
@@ -87,7 +112,13 @@ function run_and_record(
     cond_E = NaN
     try 
         cond_E = cond_exp_exact(A)
-    catch OutOfMemoryError
+        println("DEBUG: cond_exp_exact returned: $cond_E")
+    catch e
+        if e isa OutOfMemoryError
+            println("DEBUG: OutOfMemoryError caught!")
+        else
+            println("DEBUG: Exception caught: $(typeof(e)) - $e")
+        end
         cond_E = NaN
     end
     condA_1 = cond(A_low, 1)
@@ -101,20 +132,16 @@ function run_and_record(
             NaN, NaN, NaN, NaN, NaN, eps(T_low),
             format_long_number(rel_err_F), format_long_number(abs_err_1), format_long_number(nrm1_Ytrue),
             format_long_number(cond_E), 
-            condA_1, condA_2]
+            condA_1, condA_2,
+            53]
     write_row(csvfile, row)
 
     # run configurations using exp_mp
     for approximant in (:diagonalcheap, :taylor)
         ALGS =  [:transfree, :complexschur]
-        PRECS = [256, 1024]
+        PRECS = [53, 256, 851]
         if T <: Real
             push!(ALGS, :realschur)
-        end
-        if real(T) == Float64
-            push!(PRECS, 128)
-        else 
-            push!(PRECS, 851)
         end
         for alg in ALGS, wrk_p in PRECS
             print("Running: kind=$kind, n=$n, eltype=$(T), approximant=$approximant, algorithm=$alg, precision=$wrk_p\n")
@@ -148,7 +175,8 @@ function run_and_record(
                    m, s, format_long_number(delta), format_long_number(psi), cond_q, format_long_number(epsilon),
                    format_long_number(rel_err_F), format_long_number(abs_err_1), format_long_number(nrm1_Ytrue),
                    format_long_number(cond_E), 
-                   condA_1, condA_2]
+                   condA_1, condA_2,
+                   wrk_p]
             write_row(csvfile, row)
         end
     end
@@ -168,10 +196,9 @@ for n in [16, 64] #[16, 64, 256]
 end
 
 
+## Third experiment: Hadamard + diagonalization (ComplexF64)
 """I TEST QUI SOTTO SONO DA AGGIUSTARE
 """
-
-## Third experiment: Hadamard diagonalization (ComplexF64)
 for n in [16, 64]   #[16, 64, 256]
     H = hadamard(n)
     H = Matrix{Float64}(H) / sqrt(n)
@@ -181,7 +208,7 @@ for n in [16, 64]   #[16, 64, 256]
     run_and_record("hadamard_complex", A; Y_true=Y_true)
 end
 
-## Fourth experiment: Hadamard with BigFloat
+## Fourth experiment: Hadamard + diagonalization (BigFloat)
 for n in [16, 64]   #[16, 64, 256]
     H = hadamard(n)
     H = Matrix{BigFloat}(H) / sqrt(big(n))
@@ -190,3 +217,7 @@ for n in [16, 64]   #[16, 64, 256]
     Y_true = H' * exp(D) * H
     run_and_record("hadamard_complex_big", A; Y_true=Y_true)
 end
+
+
+## Fourth experiment: Hadamard + Jordan form (ComplexF64)
+

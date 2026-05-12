@@ -1,6 +1,7 @@
 module MyHelper
 
 using LinearAlgebra, Random
+using ChainRules
 
 
 ############ Valutazioni dell'errore ############
