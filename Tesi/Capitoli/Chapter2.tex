@@ -132,7 +132,7 @@ Let $A,B\in\R{n}{n}$ such that $A, B$ have elements of type \texttt{BigFloat}. T
 		\item $A^n,\ n\in\mathbb{Z}$ calls the $\mathtt{power\_by\_squaring}$ function, which essentially is an implementation of the \emph{binary powering} algorithm~\cite[Alg.~4.1]{higham:matfun_book}. For $n<0$, $\mathtt{inv}(A)^{\abs{n}}$ is computed. 
 	\end{itemize}
 \end{oss*}
-If the exponent $n$ is not an integer, $A^n$ is not doable natively. This is because $A^n$ is computed as $Q\,T^n\,T^r\,Q^{h}$, where $A=QTQ^H$ is a Schur decomposition of $A$, $T^r$ with $r=n-\lfloor n\rfloor$ is computed using the algorithm described in~\cite{higham:hili13}.
+If the exponent $n$ is not an integer, $A^n$ is not doable natively. This is because $A^n$ is computed as $Q\,T^n\,T^r\,Q^{H}$, where $A=QTQ^H$ is a Schur decomposition of $A$, $T^r$ with $r=n-\lfloor n\rfloor$ is computed using the algorithm described in~\cite{higham:hili13}.
 
 The Schur decomposition of matrices with \texttt{BigFloat} elements is available through the \texttt{GenericSchur.jl}~\cite{sw:GenericSchur} library, but is not natively implemented in the language.
 The library also allows the computation of the spectrum of $A$, or in general its eigendecomposition (namely, it gives the ability to run the Julia \texttt{eigvals} and \texttt{eigen} commands). 

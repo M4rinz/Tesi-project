@@ -1,0 +1,626 @@
+module MyMatrixGalleries
+
+using LinearAlgebra
+using TypedMatrices
+using Random
+
+
+############### Costruire matrici programmaticamente ###############
+function hadamard(n::Int)
+    ispow2(n) || throw(ArgumentError("n must be a power of 2"))
+
+    H = ones(Int, 1, 1)
+    while size(H,1) < n
+        H = [ H   H;
+              H  -H ]
+    end
+    return H
+end
+
+function create_J(n::Int, ::Type{T}=Float64) where {T<:AbstractFloat}
+    n > 0 || throw(ArgumentError("n must be positive"))
+
+    J = zeros(Complex{T}, n, n)
+    first = 1
+    remaining = n
+
+    while remaining > 0
+        block_size = rand(1:remaining)
+        λ = complex(T(100) * rand(T) - T(50), T(100) * rand(T) - T(50))
+
+        last = first + block_size - 1
+        for i in first:last
+            J[i, i] = λ
+            if i < last
+                J[i, i + 1] = one(T)
+            end
+        end
+
+        first = last + 1
+        remaining -= block_size
+    end
+
+    return J
+end
+
+export hadamard, create_J
+
+function Toeppd(n, m=n, x=rand(m,1), theta=rand(m,1))
+    A = zeros(n,n)
+    for i=1:m
+        T = collect(1:n) .- collect(1:n)'
+        T = cos.(2*π*theta[i]*T)
+        A += x[i]*T
+    end
+    return A
+end
+
+function Toeppen(n, a=1, b=-10, c=0, d=10, e=1)
+    A = diagm(
+        -2 => a * ones(n-2),
+        -1 => b * ones(n-1),
+         0 => c * ones(n),
+         1 => d * ones(n-1),
+         2 => e * ones(n-2)
+    )
+    return A
+end
+
+
+
+
+############### Funzioni usate da Fasi e Higham ###############
+
+"""
+    A, n_matrices = FasiMatrices(k, T=Float64)
+
+Returns `A`, the `k`th matrices in a test set that has been used 
+to evaluate algorithm in [^hf19_mpexpm]. 
+`n_matrices` returns the total number of matrices in such set (i.e. 18).
+The original MATLAB code can be found 
+[in this repo](https://github.com/mfasi/mpexpm/blob/master/include/mymatrices.m)
+
+All credits to the original authors (N. J. Higham and M. Fasi).
+
+# References 
+> [^hf19_mpexpm] N. J. Higham and M. Fasi, An Arbitrary Precision Scaling and Squaring Algorithm for the Matrix Exponential
+> SIAM J. Matrix Anal. Appl., Vol. 40.4 (2019), pp.1233-1256.
+> [doi: 10.1137/18M1228876](https://doi.org/10.1137/18M1228876)
+"""
+function FasiMatrices(
+    k::Integer,
+    T::DataType=Float64
+)
+    n_mats = 18
+    
+    if k < 1 
+        return [], n_mats
+    end
+
+    epsilon = eps(real(T))
+
+    if k == 1
+        A = Tridiagonal([-1], [-2 -2], [1])
+    elseif k == 2
+        A = [1 1; 1 1 + 10 * epsilon]
+    elseif k == 3
+        A = [10 0 0; 0 1 1; 0 1 1 + 10 * epsilon]
+    elseif k == 4
+        A = zeros(ComplexF64, 10, 10)
+        A = Matrix{T}(I, n, n) - v * v'
+        for i = 1:4
+            A[accum+1:accum+i,accum+1:accum+i] = Tridiagonal(0*ones(i-1),i*ones(i),ones(i-1))
+            accum += i
+        end
+    elseif k == 5
+        n_local = 10
+        D = diagm([zeros(n_local - 1); 1])
+        Q = triu(ones(n_local, n_local))
+        A = Q * D / Q
+    elseif k == 6
+        A = diagm([0, 1, 1e6])
+    elseif k == 7
+        A = [1e-4 0; 0 1e4]
+    elseif k == 8
+        A = ones(2, 2)
+    elseif k == 9
+        n_local = 10
+        A = Toeplitz(vcat(16-3im, (4+3im)/8, zeros(n_local - 2)),
+                     vcat(16-3im, -5, zeros(n_local - 2)))
+    elseif k == 10
+        A = [1 1; 0 1e2]
+    elseif k == 11
+        A = [1 1e3; 1e3 1]
+    elseif k == 12
+        A = [1 2 3; 1 2 3; 1 2 3]
+    elseif k == 13
+        t = -π / 2
+        A = [cos(t) -sin(t); sin(t) cos(t)]
+    elseif k == 14
+        v = ones(n, 1)
+        A = I(n) - v * v'
+    elseif k == 15
+        A = [100 2 3; 4 5 6; 7 8 100]
+    elseif k == 16
+        A = [1 1 1; 1 1 1 + 10 * epsilon; 1 1 1 + 100 * epsilon]
+    elseif k == 17
+        A = [1 2 3; 4 5 6; 7 8 1e2]
+    elseif k == 18
+        A = [1 1 1 0.1; 1 1 1 10 * epsilon; 1 1 1 100 * epsilon; 1 1 1 1000 * epsilon]
+    else 
+        error("k can be at most $(n_mats)")
+        #return [], n_mats
+    end
+    
+    return A, n_mats
+end
+
+
+"""
+    expm_testmats(k, n=10)
+
+Returns the `k`th matrix
+"""
+function expm_testmats(
+    k::Integer, 
+    n::Integer=10
+)
+    n_mats = 38
+
+    if k < 1
+        return [], n_mats
+    end
+
+    if k == 1
+        # \cite[Test 1]{ward77}.
+        A = [4 2 0; 1 4 1; 1 1 4]
+    elseif k == 2
+        # \cite[Test 2]{ward77}.
+        A = [29.87942128909879     .7815750847907159 -2.289519314033932
+             .7815750847907159   25.72656945571064    8.680737820540137
+             -2.289519314033932   8.680737820540137  34.39400925519054]
+    elseif k == 3
+        # \cite[Test 3]{ward77}.
+        A = [-131 19 18;
+             -390 56 54;
+             -387 57 52]
+    elseif k == 4
+        # \cite[Test 4]{ward77}.
+        A = Forsythe(10, 1e-10, 0)
+    elseif k == 5
+        # \cite[p. 370]{naha95}.
+        T = [1 10 100; 1 9 100; 1 11 99]
+        A = T * [0.001 0 0; 0 1 0; 0 0 100] / T
+    elseif k == 6
+        # \cite[Ex.~2]{kela98}.
+        A = [0.1 1e6; 0 0.1]
+    elseif k == 7
+        # \cite[p.~655]{kela98}.
+        A = [0  3.8e3 0    0   0
+             0 -3.8e3 1    0   0
+             0 0     -1  5.5e6 0
+             0 0      0 -5.5e6 2.7e7
+             0 0      0   0   -2.7e7]
+    elseif k == 8
+        # \cite[Ex.~3.10]{dipa00}
+        w = 1.3
+        x = 1e6
+        n_local = 8
+        n2 = div(n_local, 2)
+        A = (1 / n_local) * [w * ones(n2) x * ones(n2)
+                       zeros(n2)  -w * ones(n2)]
+    elseif k == 9
+        A = Rosser(8)
+        A = 2.05 * A / norm(A, 1)  # Bad case for expm re. cost.
+    elseif k == 10
+        A = [0 1e4;
+             -1e4 0]  # exp = [cos(x) sin(x); - sin(x) cos(x)], x = 100;
+    elseif k == 11
+        A = 1e2 * triu(randn(n), 1)  # Nilpotent.
+    elseif k == 12
+        # log of Cholesky factor of Pascal matrix. See \cite{edst03}.
+        A = zeros(n, n)
+        A[n+1:n+1:n^2] = 1:n-1
+    elseif k == 13
+        # \cite[p.~206]{kela89}
+        A = [48 -49 50 49; 0 -2 100 0; 0 -1 -2 1; -50 50 50 -52]
+    elseif k == 14
+        # \cite[p.~7, Ex I]{pang85}
+        A = [0    30 1   1  1  1
+             -100   0 1   1  1  1
+             0     0 0  -6  1  1
+             0     0 500 0  1  1
+             0     0 0   0  0  200
+             0     0 0   0 -15 0]
+    elseif k == 15
+        # \cite[p.~9, Ex II]{pang85}
+        # My interpretation of their matrix for arbitrary n.
+        # N = 31 corresponds to the matrix in above ref.
+        A = Triw(n,n, 1)
+        m = (n - 1) / 2
+        A = A - diagm(diag(A)) + diagm(-m:m) * im
+        for i = 1:n-1
+            A[i, i+1] = -2 * (n - 1) - 2 + 4 * i
+        end
+    elseif k == 16
+        # \cite[p.~10, Ex III]{pang85}
+        A = Triw(n,n, 1, 1)
+        A = A - diagm(diag(A)) + diagm(-(n - 1) / 2:(n - 1) / 2)
+    elseif k == 17
+        # \cite[Ex.~5]{kela89}.
+        A = [0 1e6; 0 0]  # Same as case 6 but with ei'val 0.1 -> 0.
+    elseif k == 18
+        # \cite[(52)]{jemc05}.
+        g = [0.6 0.6 4.0]
+        b = [2.0 0.75]
+        A = [-g[1]        0     g[1]*b[1]
+                0       -g[2]   g[2]*b[2]
+             -g[1]*g[3]  g[3]  -g[3]*(1-g[1]*b[1])]
+    elseif k == 19
+        # \cite[(55)]{jemc05}.
+        g = [1.5 0.5 3.0 2.0 0.4 0.03]
+        b = [0.6 7.0]
+        A1 = [-g[5]     0      0
+                0     -g[1]    0
+              g[4]     g[4]   -g[3]]
+        A2 = [-g[6]    0    g[6]*b[2]
+                0    -g[2]  g[2]*b[1]
+                0     g[4] -g[4]]
+        A = [zeros(3, 3) I(3); A2 A1]
+    elseif k == 20
+        # \cite[Ex.~3]{kela98}.
+        A = [-1 1e7; 0 -1e7]
+    elseif k == 21
+        # \cite[(21)]{mopa03}.
+        Thalf = [3.8235 * 60 * 24 3.10 26.8 19.9] / 60  # Half lives in seconds/
+        a = log.(2) ./ Thalf  # decay constant
+        A = diagm(-a) + diagm(-1 => a[1:end-1])
+    elseif k == 22
+        # \cite[(26)]{mopa03}.
+        a1 = 0.01145
+        a2 = 0.2270
+        A = [-a1              0  0
+             0.3594 * a1     -a2  0
+             0.6406 * a1     a2  0]
+    elseif k == 23
+        # \cite[Table 1]{kase99}.
+        a = [4.916e-18
+             3.329e-7
+             8.983e-14
+             2.852e-13
+             1.373e-11
+             2.098e-6
+             9.850e-10
+             1.601e-6
+             5.796e-8
+             0.000]
+        A = diagm(-a) + diagm(-1 => a[1:end-1])
+    elseif k == 24
+        # Jitse Niesen sent me this example.
+        lambda = 1e6 * 1im
+        mu = 1 / 2 * (-1 + sqrt(1 + 4 * lambda))
+        A = [0 1; lambda -1] - mu*I(2)
+    elseif k == 25
+        # Awad
+        A = [1 1e17; 0 1]
+    elseif k == 26
+        # Awad
+        b = 1e3
+        x = 1e10
+        A = [1 - b/2   b/2; -b/2   1 + b/2]
+        A = [A          x * ones(2, 2);
+             zeros(2, 2)       -A]
+    elseif k == 27
+        # Awad
+        b = 1e4
+        A = [1 - b/2   b/2; -b/2   1 + b/2]
+    elseif k == 28
+        # Awad
+        b = 1e2
+        A = [1 - b/2   b/2; -b^4/2   1 + b/2]
+    elseif k == 29
+        # \cite S. K. Godunov, "Modern Aspects of Linear Algebra",
+        # \cite EigTool
+        A = [289   2064  336   128  80   32    16
+             1152  30    1312  512  288  128   32
+             -29   -2000 756   384  1008 224   48
+             512   128   640   0    640  512   128
+             1053  2256  -504  -384 -756 800   208
+             -287  -16   1712  -128 1968 -30   2032
+             -2176 -287  -1565 -512 -541 -1152 -289]
+        A /= 100
+    elseif k == 30
+        # \cite[(14.17), p. 141]{trem05}.
+        A = 10 * [0 1 2; -0.01 0 3; 0 0 0]
+    elseif k == 31
+        A = triu(schur(Invol(13), "complex"), 1)
+    elseif k == 32
+        # \cite{kuda10}
+        alpha = 1
+        beta = 1  # No values are given in the paper, unfortunately.
+        A = -I(n) + alpha / 2 * (diagm(1 => ones(n - 1)) + diagm(-1 => ones(n - 1)))
+        A[1, 2] = beta
+        A[n, n - 1] = beta
+    elseif k == 33
+        # \cite[Benchmark #1]{lara17}
+        # \cite[Problem 1]{zhao17}
+        A = [-3.328853448977761e-07 4.915959875924379e-18;
+             0    -4.915959875924379e-18]
+    elseif k == 34
+        # \cite[Benchmark #2]{lara17}
+        # \cite[Problem 2]{zhao17}
+        A = [-2.974063693062615e-07            0      1.024464026382002e-14;
+             2.974063693062615e-07 -1.379680196333551e-13                 0;
+             0                0     -1.024464026382002e-14]
+    elseif k == 35
+        # \cite[Benchmark #3]{lara17}
+        # \cite[Problem 3]{zhao17}
+        A = [-2.421897905520424e-03            0      5.383443102348909e-03;
+             0                -3.200125487349701e-04            0;
+             0                 3.200125487349701e-04 -5.398342527725431e-03]
+    elseif k == 36
+        # \cite[Benchmark #4]{lara17}
+        # \cite[Problem 4]{zhao17}
+        A = [-1.000000000000312e-04         0                  0      0;
+             1.000000000000000e-04 -1.000000000009379e-04     0      0;
+             0  1.000000000000000e-04 -1.188523972153541e-06  0;
+             0     0          1.188523972153541e-06 -1.024464026382002e-14]
+    elseif k == 37
+        # \cite[Benchmark #5]{lara17}
+        # \cite[Problem 5]{zhao17}
+        A = sparse(
+            [1, 1, 2, 2, 3, 3, 3, 4, 4, 5, 5, 5, 6, 6,
+             7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12],
+            [1, 7, 1, 2, 2, 3, 10, 3, 4, 4, 5, 12, 5, 6, 6,
+             7, 7, 8, 6, 9, 8, 10, 10, 11, 11, 12],
+            [-1.000000000000049e-04
+             5.880666420493406e-14
+             1.000000000000000e-04
+             -4.926419193745169e-04
+             4.926419193745169e-04
+             -3.405151448232769e-06
+             2.980258985838552e-12
+             3.405151448232769e-06
+             -1.000000009110124e-04
+             1.000000000000000e-04
+             -1.000000033477380e-04
+             1.212838692746004e-09
+             1.000000000000000e-04
+             -1.000015370544945e-04
+             1.000000000000000e-04
+             -1.000000000588073e-04
+             1.000000000000000e-04
+             -3.885005720114481e-05
+             1.537023753355886e-09
+             -5.077325179294990e-11
+             3.885005720114481e-05
+             -1.000000029802590e-04
+             1.000000000000000e-04
+             -1.906345381077957e-05
+             1.906345381077957e-05
+             -1.212838692746004e-09])
+    elseif k == 38
+        # \cite[Benchmark #6]{lara17}
+        # \cite[Problem 6]{zhao17}
+        A = sparse(
+            [1  1  2  2  2  3  3  3  4  5  5  6  6  7  7  8  8],
+            [1  4  1  2  4  2  3  4  4  4  5  5  6  6  7  7  8],
+            [-2.930607054625170e-05
+             1.292290622141271e-07
+             2.446793135977101e-05
+             -2.106574217602557e-05
+             2.051479647948103e-08
+             2.106574217602557e-05
+             -9.549786402447881e-15
+             1.855074206409039e-12
+             -1.100000000000049e-04
+             1.000000000000000e-04
+             -4.926419193745169e-04
+             4.926419193745169e-04
+             -3.405151448232769e-06
+             3.405151448232769e-06
+             -1.000000091101239e-05
+             1.000000000000000e-05
+             -3.347737955438215e-12])
+    else
+        return [], n_mats
+    end
+
+    return A, n_mats
+end
+
+
+function gallery_getall_expm(
+    k::Integer,
+    n::Integer=10
+)
+    n_mats = length(vcat(101:130, 201:216, 301:328, 401:402))
+
+    if k < 1 
+        return [], n_mats
+    end
+
+    if k == 1
+        A = Cauchy(n)
+    elseif k == 2
+        error("condex unavailable")
+        #gallery("condex", 2,4,6)
+    elseif k == 3
+        error("condex unavailable")
+        #gallery("condex", 3,2)
+    elseif k == 4
+        error("condex unavailable")
+        #gallery("condex", n,3)
+    elseif k == 5
+        # condex (symmetric real)
+        error("condex unavailable")
+        #gallery("condex", n,4,100)
+    elseif k == 6
+        A = Dorr(n, 100.0)
+    elseif k == 7
+        A = Dramadah(n, 2)
+    elseif k == 8
+        A = Frank(n)
+    elseif k == 9
+        A = GCDMat(n)   # (symmetric real)
+    elseif k == 10
+        A = Grcar(n)
+    elseif k == 11
+        A = Hanowa(n)
+    elseif k == 12
+        A = Hilbert(n)  # (symmetric real)
+    elseif k == 13
+        A = Invhess(n)
+    elseif k == 14
+        A = JordBloc(n, 1) # (symmetric real)
+    elseif k == 15
+        A = Kahan(n)
+    elseif k == 16
+        A = Lehmer(n)   # (symmetric real)
+    elseif k == 17
+        A = Minij(n)    # (symmetric real)
+    elseif k == 18
+        A = Moler(n)    # (symmetric real)
+    elseif k == 19
+        A = Parter(n)
+    elseif k == 20
+        A = Pei(n)
+    elseif k == 21
+        A = Poisson(ceil(Int, sqrt(n)))# (symmetric real, n^2)
+    elseif k == 22
+        A = Prolate(n, 1.)  # (symmetric real Toeplitz)
+    elseif k == 23
+        A = Randcorr(n) # (symmetric real)
+    elseif k == 24
+        A = Sampling(n)
+    elseif k == 25
+        A = Toeppd(n)   # (symmetric real)
+    elseif k == 26
+        A = SymTridiagonal(2*ones(n), -ones(n-1))
+        #A = Matrix(A)
+    elseif k == 27
+        # symmetric real
+        A = Wathen(ceil(Int, n^(1/4)), ceil(Int, n^(1/4)))
+    elseif k == 28
+        A = Wilkinson(3)
+    elseif k == 29
+        A = Wilkinson(4)
+    elseif k == 30
+        A = Wilkinson(5)
+    elseif k == 31
+        A = Binomial(n)
+    elseif k == 32
+        A = Fiedler(n)
+    elseif k == 33
+        error("Non funziona")
+        v, beta = Householder(n)
+        A = I(n) - beta * (v * v')
+    elseif k == 34
+        A = JordBloc(n, 2)
+    elseif k == 35
+        A = KMS(n)
+    elseif k == 36
+        A = Lesp(n)
+    elseif k == 37
+        A = Lotkin(n)
+    elseif k == 38
+        A = Orthog(n, 1)
+    elseif k == 39
+        A = Orthog(n, 2)
+    elseif k == 40
+        A = Orthog(n, 5)
+    elseif k == 41
+        A = Orthog(n, 6)
+    elseif k == 42
+        A = Orthog(n, -1)
+    elseif k == 43
+        A = Redheff(n)
+    elseif k == 44
+        A = Riemann(n)
+    elseif k == 45
+        A = RIS(n, 1e1)
+    elseif k == 46
+        A = Wilkinson(21)
+    elseif k == 47
+        A = Clement(n, 1)
+    elseif k == 48
+        A = ChebSpec(n)
+    elseif k == 49
+        error("Non c'è questa")
+        A = ChebVand(n)
+    elseif k == 50
+        A = Chow(n)
+    elseif k == 51
+        A = Circulant(n)
+    elseif k == 52
+        A = Cycol(n)
+    elseif k == 53
+        A = Dramadah(n, 1)
+    elseif k == 54
+        A = Dramadah(n, 3)
+    elseif k == 55
+        A = Forsythe(n)
+    elseif k == 56
+        A = Leslie(n)
+    elseif k == 57
+        A = Leslie(n)
+    elseif k == 58
+        # uso Xoshiro(10) solo perché il codice originale
+        # usa 10 come seed. 
+        randn(Xoshiro(10), (n,n))
+    elseif k == 59
+        A = Orthog{ComplexF64}(n, 3)
+    elseif k == 60
+        A = Orthog(n, 4)
+    elseif k == 61
+        A = Orthog(n, -2)
+    elseif k == 62
+        A = Randcolu(n)
+    elseif k == 63
+        error("Non c'è questa")
+        A = Randhess(n)
+    elseif k == 64
+        A = Rando(n, 1)
+    elseif k == 65
+        A = Rando(n, 2)
+    elseif k == 66
+        A = Rando(n, 3)
+    elseif k == 67
+        A = RandSVD(n, 1.)
+    elseif k == 68
+        A = RandSVD(n, 2.)
+    elseif k == 69
+        A = RandSVD(n, 3.)
+    elseif k == 70
+        A = Randsvd(n, 4.)
+    elseif k == 71
+        A = Randsvd(n, 5.)
+    elseif k == 72
+        A = Smoke(n)
+    elseif k == 73
+        A = Smoke(n, 1)
+    elseif k == 74
+        A = Toeppen(n)
+    elseif k == 75
+        error("Non c'è")
+        A = Uniformdata(n, 1000)
+    elseif k == 76
+        A = GearMat(n)
+    elseif k == 77
+        A = Neumann(ceil(Int, sqrt(n))^2)
+    else
+        return [], n_mats
+    end
+
+    return A, n_mats
+end
+
+
+export FasiMatrices, expm_testmats, gallery_getall_expm
+
+
+
+
+
+
+end #module

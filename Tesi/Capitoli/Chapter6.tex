@@ -1,6 +1,8 @@
 \chapter{Numerical Experiments}\label{capitolo:6}
 In this chapter, the numerical experiments to assess and validate the \texttt{expm\_mp} algorithm will be thouroughly described. Then, their outcomes will be presented, emphasizing the most relevant ones. A critical discussion of the obtained results will be given, and conclusions will be drawn.
 
+\textcolor{red}{Per citare MatrixDepot~\cite{higham:MatrixDepot}. Per citare TypedMatrices invece~\cite{fasi25:TypedMatrices}}
+
 \section{Experimental setup}
 In~\cite{higham:hf19_mpexpm} the proposed algorithm is tested on matrices taken from many sources, most of them having elements that are explicitely specified, such as
 \begin{equation}\label{eqn:Higham_test_matrix}
@@ -162,13 +164,13 @@ We measure how well $Y_{\textup{true}}$ approximates $\exponential(\tilde{A})$ b
 	 & \le \norm{\Delta{E}} + \norm{\exp(D+\Delta{D})-\exp(D)}\\
 	 & = O(u_{53})\norm{\exp(D)}+\kappa_{\exp}(D)\frac{\norm{\Delta{D}}}{\norm{D}}\norm{\exp(D)}+O(\norm{D}^2)
 \end{align*}
-where for this last equality the definition of condition was used (see also~\cite[eq.~(3.3)]{higham:accuracy_book}). Dropping higher order terms and grouping the terms proportional to $u_{53}$ we get
+where for this last equality the definition of condition number was used (see also~\cite[eq.~(3.3)]{higham:accuracy_book}). Dropping higher order terms and grouping the terms proportional to $u_{53}$ we get
 \[
 	\norm*{Y_{\textup{true}}-\exponential(\tilde{A})} = O(u_{53})\qty(1+\kappa_{\exp}(D))\norm{\exp(D)}\approx O(u_{53})\norm{L_{\exp}(D)}\norm{D}.
 \]
 \textcolor{red}{Ora andrebbe discusso questo risultato, ma vorrei anche consegnare qualcosa ad un certo punto\dots}
 
-\textcolor{red}{Allora, sicuramente il fatto che compaia il numero di condizionamento non promette nulla di buono. Però è anche buono il fatto che non compaia $\norm{\exponential(\tilde{A})}$ perché in un certo senso ce la possiamo ``giocare'' nel tentare di dare un bound all'errore relativo (così a occhio direi che comunque non viene fuori nulla di buono perché comunque $\norm{\exp(D+\Delta{D})}/\norm{\exp{D}}$ dovrebbe essere limitato dall'alto da qualcosa tipo $1+\kappa_{\exp}(D)\norm{\Delta{D}}/\norm{D}$\dots}
+\textcolor{red}{Allora, sicuramente il fatto che compaia il numero di condizionamento non promette nulla di buono. Però è anche buono il fatto che non compaia $\norm{\exponential(\tilde{A})}$ perché in un certo senso ce la possiamo ``giocare'' nel tentare di dare un bound all'errore relativo (così a occhio direi che comunque non viene fuori nulla di buono perché comunque $\norm{\exp(D+\Delta{D})}/\norm{\exp{D}}$ dovrebbe essere limitato dall'alto da qualcosa tipo $1+\kappa_{\exp}(D)\norm{\Delta{D}}/\norm{D}$\dots)}
 
 \textcolor{red}{Aldilà dell'errore relativo, possiamo comunque avere un bound uniforme all'errore assoluto. Se scegliamo la norma di Frobenius, $\norm{L_{\exp}(D)}=\max_{i,j\in[n]}\abs{\exp[d_i,d_j]}$ mentre $\norm{D}=\sum_{i=1}^n\abs{d_i}$ se non sbaglio\dots}
 

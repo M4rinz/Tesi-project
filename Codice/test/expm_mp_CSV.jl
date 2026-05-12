@@ -204,8 +204,8 @@ for n in [16, 64]   #[16, 64, 256]
     H = Matrix{Float64}(H) / sqrt(n)
     D = Diagonal(100rand(n).-50 + 100im*rand(n).-50)
     A = H' * D * H
-    Y_true = H' * exp(D) * H
-    run_and_record("hadamard_complex", A; Y_true=Y_true)
+    #Y_true = H' * exp(D) * H
+    run_and_record("hadamard_diag", A)
 end
 
 ## Fourth experiment: Hadamard + diagonalization (BigFloat)
@@ -214,10 +214,22 @@ for n in [16, 64]   #[16, 64, 256]
     H = Matrix{BigFloat}(H) / sqrt(big(n))
     D = Diagonal(100rand(BigFloat, n).-50 + 100im*rand(BigFloat, n).-50)
     A = H' * D * H
-    Y_true = H' * exp(D) * H
-    run_and_record("hadamard_complex_big", A; Y_true=Y_true)
+    #Y_true = H' * exp(D) * H
+    run_and_record("hadamard_diag_big", A)
 end
 
 
 ## Fourth experiment: Hadamard + Jordan form (ComplexF64)
+"""The Hadamard similarity + Jordan form test is disabled (for now)
+"""
+# for n in [16, 64]
+#     H = hadamard(n)
+#     H = Matrix{Float64}(H) / sqrt(n)
+#     J = create_J(n)
+#     A = H' * J * H
+#     #Y_true = H' * exp(J) * H
+#     run_and_record("hadamard_jord", A)
+# end
 
+
+## Fifth experiment: 
