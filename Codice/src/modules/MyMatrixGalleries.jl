@@ -200,8 +200,8 @@ function FasiMatrices(
     elseif k == 18
         A = [1 1 1 0.1; 1 1 1 10 * epsilon; 1 1 1 100 * epsilon; 1 1 1 1000 * epsilon]
     else 
-        error("k can be at most $(n_mats)")
-        #return [], n_mats
+        #error("k can be at most $(n_mats)")
+        return [], n_mats
     end
     
     return A, k, n_mats
@@ -542,7 +542,8 @@ function gallery_getall_expm(
     k::Integer,
     n::Integer=10,
 )
-    n_mats = length(vcat(101:130, 201:216, 301:328, 401:402))
+    #n_mats = length(vcat(101:130, 201:216, 301:328, 401:402))
+    n_mats = 77
 
     if k < 1 
         return [], "EMPTY", n_mats
@@ -812,6 +813,7 @@ function gallery_getall_expm(
         id = "neumann_$(ceil(Int, sqrt(n))^2)"
         A = Neumann(ceil(Int, sqrt(n))^2)
     else
+        #error("k can be at most $(n_mats)")
         return [], "EMPTY", n_mats
     end
 

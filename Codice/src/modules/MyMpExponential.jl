@@ -565,8 +565,8 @@ function scalar_error_pade!(
     F = lu(Qₘ) 
     opinv = InverseMap(F)
 
-    η = opnorm1est(opinv)   # ‖ qₘ(2^(-s)A)^(-1) ‖₁ ≡ opnorm(inv(Qₘ), 1)
-    #η = opnorm(F.U \ inv(F.L) * F.P)
+    #η = opnorm1est(opinv)   # ‖ qₘ(2^(-s)A)^(-1) ‖₁ ≡ opnorm(inv(Qₘ), 1)
+    η = opnorm(F.U \ inv(F.L) * F.P, 1)
     # Q: gli autori ripristinano la precisione qui!
        
     δ   = η * abs(exp(xb) * dot(c_den, xx) - dot(c_num, xx))
