@@ -141,6 +141,7 @@ All credits to the original authors (N. J. Higham and M. Fasi).
 """
 function FasiMatrices(
     k::Integer,
+    n::Integer=10,
     T::DataType=Float64
 )
     n_mats = 18
@@ -152,14 +153,14 @@ function FasiMatrices(
     epsilon = eps(real(T))
 
     if k == 1
-        A = Tridiagonal([-1], [-2 -2], [1])
+        A = Tridiagonal([-1], [-2, -2], [1])
     elseif k == 2
         A = [1 1; 1 1 + 10 * epsilon]
     elseif k == 3
         A = [10 0 0; 0 1 1; 0 1 1 + 10 * epsilon]
     elseif k == 4
-        A = zeros(ComplexF64, 10, 10)
-        A = Matrix{T}(I, n, n) - v * v'
+        A = zeros(10, 10)
+        accum = 0
         for i = 1:4
             A[accum+1:accum+i,accum+1:accum+i] = Tridiagonal(0*ones(i-1),i*ones(i),ones(i-1))
             accum += i
@@ -189,7 +190,7 @@ function FasiMatrices(
         t = -π / 2
         A = [cos(t) -sin(t); sin(t) cos(t)]
     elseif k == 14
-        v = ones(n, 1)
+        v = I(n)[:,1]
         A = I(n) - v * v'
     elseif k == 15
         A = [100 2 3; 4 5 6; 7 8 100]
@@ -209,7 +210,7 @@ end
 
 
 """
-    A, id, n_mats = expm_testmats(k, n=10)
+    A, Y_true, id, n_mats = expm_testmats(k, n=10)
 
 Returns the `k`th matrix in a test set test set that has been used 
 to evaluate algorithm in [^hf19_mpexpm]. Specifically, this is the same as 
@@ -217,6 +218,8 @@ to evaluate algorithm in [^hf19_mpexpm]. Specifically, this is the same as
 `n_matrices` is the total number of matrices in such set (i.e. 38).
 `id` is an identifier of `A`: for this function, it is given by the comment
 left by the original authors.
+For some matrices, the true exponential of ``A`` is available: this is `Y_true`.
+In the other cases, `Y_true = nothing`.
 
 The original MATLAB code can be found
 [at this link](https://github.com/mfasi/mpexpm/blob/master/include/expm_testmats.m)
@@ -235,8 +238,10 @@ function expm_testmats(
 )
     n_mats = 38
 
+    Y_true = nothing
+
     if k < 1
-        return [], "EMPTY", n_mats
+        return [], Y_true, "EMPTY", n_mats
     end
 
     if k == 1
@@ -268,6 +273,7 @@ function expm_testmats(
         # \cite[Ex.~2]{kela98}.
         id = "kela98_ex2"
         A = [0.1 1e6; 0 0.1]
+        Y_true = [exp(0.1) 1e6*exp(0.1); 0 exp(0.1)]
     elseif k == 7
         # \cite[p.~655]{kela98}.
         id = "kela98_p655"
@@ -283,8 +289,8 @@ function expm_testmats(
         x = 1e6
         n_local = 8
         n2 = div(n_local, 2)
-        A = (1 / n_local) * [w * ones(n2) x * ones(n2)
-                       zeros(n2)  -w * ones(n2)]
+        A = (1 / n_local) * [w * ones(n2,n2) x * ones(n2,n2)
+                       zeros(n2,n2)  -w * ones(n2,n2)]
     elseif k == 9
         id = "rosser8"
         A = Rosser(8)
@@ -529,10 +535,10 @@ function expm_testmats(
              1.000000000000000e-05
              -3.347737955438215e-12])
     else
-        return [], "EMPTY", n_mats
+        return [], Y_true, "EMPTY", n_mats
     end
 
-    return A, id, n_mats
+    return A, Y_true, id, n_mats
 end
 
 """

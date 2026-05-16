@@ -976,7 +976,7 @@ end
 
 function isschur(
     A::AbstractMatrix{T}, 
-    atol::Real = eps(T)
+    atol::Real = eps(real(float(T)))
 ) where {T<:Real}
     n = LinearAlgebra.checksquare(A)
     istriu(A) && return true 
@@ -1028,7 +1028,7 @@ end
 """
 function exp_mp(
     A::AbstractMatrix{T};
-    working_precision::Integer = precision(real(T)),  # decimal digit in the MATLAB
+    working_precision::Integer = precision(real(float(T))),  # decimal digit in the MATLAB
     epsilon::Union{AbstractFloat,Nothing} = nothing,    # tolerance on the error bound
     maxscaling::Integer = 100,
     maxdegree::Integer = 100,
@@ -1063,7 +1063,7 @@ function exp_mp(
 
     # epsilon
     if isnothing(epsilon)
-        epsilon = eps(real(T))
+        epsilon = eps(real(float(T)))
     end
     ζ = epsilon^(-1/8)  # normqinv_bound
     use_abs_err_flag = Val(use_abs_err)
@@ -1133,6 +1133,8 @@ function exp_mp(
     if isdiag(X)
         Y = diagm(exp.(diag(X)))
         s, m = 0, 0
+        δ, ψ = NaN, NaN
+        κ_A = 1
         degrees = [0]
     else 
         degrees = opt_degs(Val(approximant), maxdegree)
@@ -1159,7 +1161,7 @@ function exp_mp(
         found_degree = false 
 
         bound_time = @elapsed begin 
-        ψ = typemax(real(T))     # tempnormexpm1
+        ψ = typemax(float(real(T)))     # tempnormexpm1
         compute_ψ = true         # compute_normexpm
 
         # con Taylor, tenta direttamente l'approx di grado massimo, scalando il meno possibile
@@ -1219,7 +1221,7 @@ function exp_mp(
         times[3] += bound_time
 
 
-        δ_old = typemax(real(T))
+        δ_old = typemax(float(real(T)))
         #ψ_old = 1
         
         ## main loop
@@ -1304,10 +1306,19 @@ function exp_mp(
         
         if algorithm === :transfree
             X ≈ (A - useshift*μ*I(n)) / 2^s    || @warn("X ≈ 2^-s⋅(A-μI) è falso. $(norm(X - (A-μ*I(n))/2^s))")
-            X ≈ (A - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(A-μI).")
-        else 
-            X ≈ (F.T - useshift*μ*I(n)) / 2^s    || @warn("X ≈ 2^-s⋅(T-μI) è falso. $(norm(X - (F.T-μ*I(n))/2^s))")
-            X ≈ (F.T - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(T-μI).")        
+            if s > 0
+                X ≈ (A - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(A-μI).")
+            end
+        else
+            baseT = try
+                F.T
+            catch UndefVarError
+                A
+            end
+            X ≈ (baseT - useshift*μ*I(n)) / 2^s    || @warn("X ≈ 2^-s⋅(T-μI) è falso. $(norm(X - (baseT-μ*I(n))/2^s))")
+            if s > 0
+                X ≈ (baseT - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(T-μI).")   
+            end
         end
 
         pade_time = @elapsed begin

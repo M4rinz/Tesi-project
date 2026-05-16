@@ -68,7 +68,14 @@ function ensure_csv_header(csvfile, header::Vector{String})
 end
 
 
-export ensure_csv_header
+function write_row(csvfile, row::Vector)
+    open(csvfile, "a") do io
+        println(io, join(row, ','))
+    end
+end
+
+
+export ensure_csv_header, write_row
 
 
 

@@ -3,55 +3,22 @@ using LinearAlgebra
 using ChainRules
 using Random, Printf, CSV
 using BenchmarkTools
+using GenericSchur
 using Revise
 
 Revise.includet(joinpath(@__DIR__,"..","src","modules","MyMpExponential.jl"))
 Revise.includet(joinpath(@__DIR__,"..","src","modules","MyHelper.jl"))
-using .MyMpExponential, .MyHelper
+Revise.includet(joinpath(@__DIR__,"..","src","modules","MyMatrixGalleries.jl"))
+using .MyMpExponential, .MyHelper, .MyMatrixGalleries
 
 Random.seed!(42)
 
 
 ## Define parameters and useful stuff
-function hadamard(n::Int)
-    ispow2(n) || throw(ArgumentError("n must be a power of 2"))
 
-    H = ones(Int, 1, 1)
-    while size(H,1) < n
-        H = [ H   H;
-              H  -H ]
-    end
-    return H
-end
-
-function create_J(n::Int, ::Type{T}=Float64) where {T<:AbstractFloat}
-    n > 0 || throw(ArgumentError("n must be positive"))
-
-    J = zeros(Complex{T}, n, n)
-    first = 1
-    remaining = n
-
-    while remaining > 0
-        block_size = rand(1:remaining)
-        λ = complex(T(100) * rand(T) - T(50), T(100) * rand(T) - T(50))
-
-        last = first + block_size - 1
-        for i in first:last
-            J[i, i] = λ
-            if i < last
-                J[i, i + 1] = one(T)
-            end
-        end
-
-        first = last + 1
-        remaining -= block_size
-    end
-
-    return J
-end
 
 ############## Files per runnare esperimenti e scrivere su CSV ##############
-csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.2alpha-5_05.csv")
+csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.2alpha-15_05.csv")
 
 const CSV_HEADER = [
     "kind", "n", "eltype",
@@ -60,25 +27,49 @@ const CSV_HEADER = [
     "eval_pade_time", "squaring_time", "total_time",
     "m", "s", "delta", "psi", "cond_q", "epsilon",
     "rel_err_F", "abs_err_1", "nrm1_Ytrue",
-    "cond_expA_F", 
+    "Ytrue_method", "cond_expA_F", 
     "condA_1", "condA_2",
     "precision"
 ]
 
 ensure_csv_header(csvfile, CSV_HEADER)
 
-function write_row(csvfile, row::Vector)
-    open(csvfile, "a") do io
-        println(io, join(row, ','))
+format_long_number(x) = isfinite(x) ? @sprintf("%.16g", x) : string(x)
+
+function compute_Ytrue(A)
+    n = LinearAlgebra.checksquare(A)
+
+    old_prec = precision(BigFloat)
+    setprecision(20 * old_prec)
+
+    Abig = convert(Matrix{big(eltype(A))}, A)
+    Y_true, method = try
+        d, V = eigen(Abig)
+        # V malcondizionata è un problema, perché limita la qualità della nostra approx.
+        # Potrebbe essere che A è "molto non-normale", o "quasi non diagonalizzabile".
+        # In ogni caso, meglio non usare la diagonalizzazione
+        cond(V, 1) < 10^10 ||    # 10 l'ho messo io arbitrariamente. 
+            error("The eigenvector matrix is too ill-conditioned")
+        isapprox(V * Diagonal(d), Abig * V, rtol=n*eps(BigFloat)) || 
+            error("The diagonalization used for the reference solution is too inaccurate")
+        V * Diagonal(exp.(d)) / V, "diag"
+    catch
+        Y_true, _, _ = exp_mp(Abig)
+        Y_true, "exp_mp"
     end
+
+    setprecision(old_prec)
+    return Y_true, method
 end
 
-format_long_number(x) = isfinite(x) ? @sprintf("%.16g", x) : string(x)
+
+
 
 
 function run_and_record(
     kind::AbstractString, 
-    A::AbstractMatrix
+    A::AbstractMatrix;
+    Y_true=nothing
 )
     n = size(A,1)
     T = eltype(A)
@@ -95,13 +86,13 @@ function run_and_record(
     squaring_time = NaN
     total_time = t_exp
 
-    # compute reference with diagonalization (and crossing our fingers)
-    Y_true = setprecision(20 * precision(BigFloat)) do 
-        Abig = convert(Matrix{big(eltype(A))}, A)
-        d, V = eigen(Abig);
-        V * diagm(d) / V ≈ A || @warn "The diagonalization used for the reference solution is too inaccurate."
-        V * diagm(exp.(d)) / V
+    # compute reference solution, if not given
+    if isnothing(Y_true)
+        Y_true, method = compute_Ytrue(A)
+    else 
+        method = "given"
     end
+    
     nrm1_Ytrue = opnorm(Y_true, 1)
 
     # errors of Base.exp
@@ -129,7 +120,7 @@ function run_and_record(
             "scaling_and_squaring", "NaN",
             schur_time, alpha_time, eval_bound_time, 
             eval_pade_time, squaring_time, total_time, 
-            NaN, NaN, NaN, NaN, NaN, eps(T_low),
+            NaN, NaN, NaN, NaN, NaN, eps(float(real(T_low))),
             format_long_number(rel_err_F), format_long_number(abs_err_1), format_long_number(nrm1_Ytrue),
             format_long_number(cond_E), 
             condA_1, condA_2,
@@ -196,7 +187,33 @@ for n in [16, 64] #[16, 64, 256]
 end
 
 
-## Third experiment: Hadamard + diagonalization (ComplexF64)
+## Third experiment: Fasi's matrices
+_, _, n_matrices = FasiMatrices(-42) 
+for k=1:n_matrices
+    A, k, _ = FasiMatrices(k)
+    run_and_record("Fasi_$k", A)
+end
+
+
+## Fourth experiment: matrices from `expm_testmats` 
+_, _, n_matrices = expm_testmats(-42)
+for k=1:n_matrices
+    if k in [11, 12, 32] # dipendono da n
+        for n in [16, 64]
+            A, Y_true, id, _ = expm_testmats(k, n)
+            run_and_record(id, A, Y_true)
+        end
+    else 
+        A, Y_true, id, _ = expm_testmats(k)
+        run_and_record(id, A, Y_true)
+    end
+end
+
+
+
+
+
+## Fourth experiment: Hadamard + diagonalization (ComplexF64)
 """I TEST QUI SOTTO SONO DA AGGIUSTARE
 """
 for n in [16, 64]   #[16, 64, 256]
@@ -208,7 +225,7 @@ for n in [16, 64]   #[16, 64, 256]
     run_and_record("hadamard_diag", A)
 end
 
-## Fourth experiment: Hadamard + diagonalization (BigFloat)
+## Fifth experiment: Hadamard + diagonalization (BigFloat)
 for n in [16, 64]   #[16, 64, 256]
     H = hadamard(n)
     H = Matrix{BigFloat}(H) / sqrt(big(n))
@@ -219,7 +236,7 @@ for n in [16, 64]   #[16, 64, 256]
 end
 
 
-## Fourth experiment: Hadamard + Jordan form (ComplexF64)
+## Sixth experiment: Hadamard + Jordan form (ComplexF64)
 """The Hadamard similarity + Jordan form test is disabled (for now)
 """
 # for n in [16, 64]
