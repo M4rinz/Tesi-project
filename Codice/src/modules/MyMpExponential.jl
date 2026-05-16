@@ -1134,7 +1134,7 @@ function exp_mp(
         Y = diagm(exp.(diag(X)))
         s, m = 0, 0
         δ, ψ = NaN, NaN
-        κ_A = 1
+        κ_A  = 1
         degrees = [0]
     else 
         degrees = opt_degs(Val(approximant), maxdegree)
@@ -1309,15 +1309,15 @@ function exp_mp(
             if s > 0
                 X ≈ (A - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(A-μI).")
             end
-        else
+        else 
             baseT = try
                 F.T
             catch UndefVarError
                 A
             end
-            X ≈ (baseT - useshift*μ*I(n)) / 2^s    || @warn("X ≈ 2^-s⋅(T-μI) è falso. $(norm(X - (baseT-μ*I(n))/2^s))")
+            X ≈ (baseT - useshift*μ*I(n)) / 2^s    || @warn("X ≈ 2^-s⋅(T-μI) è falso. $(norm(X - (F.T-μ*I(n))/2^s))")
             if s > 0
-                X ≈ (baseT - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(T-μI).")   
+                X ≈ (baseT - useshift*μ*I(n)) / 2^(2s) && @warn("X ≈ 2^-2s⋅(T-μI).")        
             end
         end
 
