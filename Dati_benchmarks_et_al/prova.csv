@@ -1,0 +1,1 @@
+kind,n,eltype,approximant,algorithm,schur_time,alpha_time,eval_bound_time,eval_pade_time,squaring_time,total_time,m,s,delta,psi,cond_q,epsilon,rel_err_F,abs_err_1,nrm1_Ytrue,Ytrue_method,cond_expA_F,condA_1,condA_2,precision
