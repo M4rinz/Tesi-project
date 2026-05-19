@@ -50,6 +50,20 @@
 	eprint = {https://doi.org/10.1137/130906118},
 }
 
+@article{higham:hf19_mpexpm,
+	title = {An Arbitrary Precision Scaling and Squaring Algorithm for the Matrix Exponential},
+	volume = {40},
+	url = {https://epubs.siam.org/doi/10.1137/18M1228876},
+	pages = {1233--1256},
+	number = {4},
+	journaltitle = {{SIAM} J. Matrix Anal. \& Appl.},
+	author = {Higham, Nicholas J. and Fasi, Massimiliano},
+	urldate = {2026-02-17},
+	date = {2019},
+	langid = {english},
+	keywords = {matrix function, matrix exponential, calcolare expm, Padé approximant, scaling and squaring},
+}
+
 @book{higham:matfun_book,
     author = {Higham, Nicholas J.},
     title = {Functions of Matrices},
@@ -72,6 +86,18 @@
 	edition   = {Second},
 	URL = {https://epubs.siam.org/doi/abs/10.1137/1.9780898718027},
 	eprint = {https://epubs.siam.org/doi/pdf/10.1137/1.9780898718027}
+}
+
+@book{demmel:book,
+	author = {Demmel, James W.},
+	title = {Applied Numerical Linear Algebra},
+	publisher = {Society for Industrial and Applied Mathematics},
+	year = {1997},
+	doi = {10.1137/1.9781611971446},
+	address = {},
+	edition   = {},
+	URL = {https://epubs.siam.org/doi/abs/10.1137/1.9781611971446},
+	eprint = {https://epubs.siam.org/doi/pdf/10.1137/1.9781611971446}
 }
 
 @article{higham:MatrixDepot,
@@ -205,20 +231,6 @@
     eprint = {https://doi.org/10.1137/24M1657250},
 }
 
-@article{higham:hf19_mpexpm,
-	title = {An Arbitrary Precision Scaling and Squaring Algorithm for the Matrix Exponential},
-	volume = {40},
-	url = {https://epubs.siam.org/doi/10.1137/18M1228876},
-	pages = {1233--1256},
-	number = {4},
-	journaltitle = {{SIAM} J. Matrix Anal. \& Appl.},
-	author = {Higham, Nicholas J. and Fasi, Massimiliano},
-	urldate = {2026-02-17},
-	date = {2019},
-	langid = {english},
-	keywords = {matrix function, matrix exponential, calcolare expm, Padé approximant, scaling and squaring},
-}
-
 @article{exptayotf18,
     title = {On-the-fly backward error estimate for matrix exponential approximation by Taylor algorithm},
     journal = {Journal of Computational and Applied Mathematics},
@@ -277,6 +289,14 @@
 	keywords = {IEEE 754 standard, Multiple-precision arithmetic, correct rounding, elementary function, floating-point arithmetic, portable software}
 }
 
+@manual{mpmath,
+	key     = {mpmath},
+	author  = {The mpmath development team},
+	title   = {mpmath: a {P}ython library for arbitrary-precision floating-point arithmetic (version 1.4.0)},
+	note    = {{\tt http://mpmath.org/}},
+	year    = {2026},
+}
+
 @article{article:BLAS,
 	title = {An updated set of basic linear algebra subprograms (BLAS)},
 	year = {2002},
@@ -296,4 +316,34 @@
 }
 
 
+@article{article:IEEE754_2019,
+	author={},
+	journal={IEEE Std 754-2019 (Revision of IEEE 754-2008)}, 
+	title={IEEE Standard for Floating-Point Arithmetic}, 
+	year={2019},
+	volume={},
+	number={},
+	pages={1-84},
+	keywords={IEEE Standards;Floating-point arithmetic;arithmetic;binary;computer;decimal;exponent;floating-point;format;IEEE 754;interchange;NaN;number;rounding;significand;subnormal.},
+	doi={10.1109/IEEESTD.2019.8766229}
+}
 
+@article{goldberg:floating_pt_arithm,
+	author = {Goldberg, David},
+	title = {What every computer scientist should know about floating-point arithmetic},
+	year = {1991},
+	issue_date = {March 1991},
+	publisher = {Association for Computing Machinery},
+	address = {New York, NY, USA},
+	volume = {23},
+	number = {1},
+	issn = {0360-0300},
+	url = {https://doi.org/10.1145/103162.103163},
+	doi = {10.1145/103162.103163},
+	abstract = {Floating-point arithmetic is considered as esoteric subject by many people. This is rather surprising, because floating-point is ubiquitous in computer systems: Almost every language has a floating-point datatype; computers from PCs to supercomputers have floating-point accelerators; most compilers will be called upon to compile floating-point algorithms from time to time; and virtually every operating system must respond to floating-point exceptions such as overflow. This paper presents a tutorial on the aspects of floating-point that have a direct impact on designers of computer systems. It begins with background on floating-point representation and rounding error, continues with a discussion of the IEEE floating point standard, and concludes with examples of how computer system builders can better support floating point.},
+	journal = {ACM Comput. Surv.},
+	month = mar,
+	pages = {5–48},
+	numpages = {44},
+	keywords = {NaN, denormalized number, exception, floating-point, floating-point standard, gradual underflow, guard digit, overflow, relative error, rounding error, rounding mode, ulp, underflow}
+}

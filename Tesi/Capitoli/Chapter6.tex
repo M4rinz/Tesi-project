@@ -4,6 +4,18 @@ In this chapter, the numerical experiments to assess and validate the \texttt{ex
 \textcolor{red}{Per citare MatrixDepot~\cite{higham:MatrixDepot}. Per citare TypedMatrices invece~\cite{fasi25:TypedMatrices}}
 
 \section{Experimental setup}
+Since the algorithm under consideration operates in arbitrary precision, the main concern is accuracy.
+In fact, multiprecision algorithms are frequently used to compute reference solutions against which lower precision methods are compared. Reliability is of paramount importance, more so than computational performance.
+
+The testing strategies must therefore be designed carefully. More generally, the assessment of numerical algorithms is already a delicate task in itself; one that demands care and awareness, as each assumption and each approximation can have a huge impact on the overall process, an impact that can easily be overlooked.
+As the working precision increases, these effects may become even more pronounced, in particular when a correspondingly higher level of accuracy is demanded. 
+
+%The problem of designing the experimental setup can be a subtle one in general, the multiprecision setting in which the algorithm operates makes it even subtler than what it seems at first.
+%Indeed, the finite-precision representation of the input and the output play an important role, more so as the precision is increased.
+
+Well estabilished and widely accepted testing practices do exist; however there is no universally accepted and codified testing procedure, as each case has its own set of nuances.
+\smallskip
+
 In~\cite{higham:hf19_mpexpm} the proposed algorithm is tested on matrices taken from many sources, most of them having elements that are explicitely specified, such as
 \begin{equation}\label{eqn:Higham_test_matrix}
 	A = \begin{pmatrix}
@@ -11,45 +23,55 @@ In~\cite{higham:hf19_mpexpm} the proposed algorithm is tested on matrices taken 
 		\mathtt{-1e{-4}} & \mathtt{0}
 	\end{pmatrix}.
 \end{equation}
-The reference solution is computed using \texttt{exp\_mct} -- the \texttt{expm} function provided by the Multiprecision Computing Toolbox -- with $2d$ the significant digits, where $d$ is the number of digits of precision that the algorithm under test is running with. 
+The reference solution is computed using \texttt{exp\_mct} -- the \texttt{expm} function provided by the Multiprecision Computing Toolbox -- with $2d$ the significant digits, where $d$ is the number of digits of precision that the algorithm under test is running with. This first testing strategy can be described as in code snippet~\ref{alg:first_test_strat} 
+\begin{algorithm}[H]
+	\caption{\emph{First testing strategy}}
+	\label{alg:first_test_strat}
+	\begin{algorithmic}[1]
+		\State $A = \mathtt{get\_from\_gallery}(\ )$ \Comment{$A$ is in double precision}
+		%\Lcomment{}
+		\State $Y_{\textup{true}} = \mathtt{ref\_sol}(A)$	%\Comment{Ciao}
+		\State $\hat{Y} = \mathtt{exp\_mp}(A)$
+		\State \Return $\norm*{Y_{\textup{true}}-\hat{Y}}/\norm{Y_{\textup{true}}}$
+	\end{algorithmic}
+	%	\begin{algorithmic}
+		%		\Function{ref\_sol}{$A$}
+		%			\State 
+		%		\EndFunction
+		%	\end{algorithmic}
+\end{algorithm}
 
-For the accuracy analysis of the algorithm proposed in~\cite{exptayotf18}, the authors use matrices of type $B=H^{\top}DH$, where $H$ is a Hadamard matrix normalized in order to be orthogonal (i.e. each entry is divided by $\sqrt{n}$), and $D$ is a diagonal matrix with entries uniformly randomly distributed in $[-50,50] + \mathtt{i}[-50,50]$. 
-\smallskip 
+\noindent For the accuracy analysis of the algorithm proposed in~\cite{exptayotf18}, the authors use matrices of the form $H^{\top}DH$, where $H$ is a Hadamard matrix normalized in order to be orthogonal (i.e. each entry is divided by $\sqrt{n}$), and $D$ is a diagonal matrix with entries uniformly randomly distributed in $[-50,50] + \mathtt{i}[-50,50]$. This second testing strategy can be described as in code snippet~\ref{alg:second_test_strat}.
+\begin{algorithm}[H]
+	\caption{\emph{Second testing strategy}}
+	\label{alg:second_test_strat}
+	\begin{algorithmic}[1]
+		\State $H = \mathtt{hadamard}(n)$
+		\State $H = H / \sqrt{n}$
+		\State $D = \operatorname{Diag}\qty(100\,\mathtt{rand}(n)\mathtt{.-}50 + \mathtt{i}\qty(100\,\mathtt{rand}(n)\mathtt{.-}50))$
+		\State $\tilde{A} = H^{\top}\!\mathtt{*}D\mathtt{*}H$ \Comment{$A\coloneqq H^{\top}\!D H$}
+		\State $Y_{\textup{true}} = H^{\top}\!\mathtt{*}\exp(D)\mathtt{*}H$
+		\State $\hat{Y} = \mathtt{exp\_mp}(\tilde{A})$
+		\State \Return $\norm*{Y_{\textup{true}}-\hat{Y}}/\norm{Y_{\textup{true}}}$
+	\end{algorithmic}
+\end{algorithm}
 
-This second kind of test looks attractive at first, as the exact exponential can be cheaply and easily computed as $H^{\top}\!\exp(D)H$, without the need to run multiprecision algorithms whose reliability is still being questioned. 
+\noindent This second kind of test looks attractive at first, as the exact exponential can be cheaply and easily computed as $H^{\top}\!\exp(D)H$, theoretically, without the need to run multiprecision algorithms whose reliability is still being questioned. 
 By contrast, one may raise two objections to the first testing strategy. Firstly, the reference is produced by an algorithm that is under scrutiny; secondly, and most importantly, the input data is in double precision and explicitely specified.
 
-How can we then hope to observe an error less than $u_{53}$? Since, as we've seen, promoting numerical expressions doesn't always improve the accuracy, \textcolor{red}{is an error being introduced at the very start}?
+How can we then hope to observe an error less than $u_{53}$, even with an algorithm that uses higher precision internally? Since, as we've seen, promoting numerical expressions doesn't always improve the accuracy, is an error being introduced at the very start?
 Is the accuracy of the computation -- whatever the precision it's being carried with -- limited by that of double precision floating point numbers? 
 \smallskip
 
-\textcolor{red}{It turns out that the first testing strategy is ok; and the second one is fine, but introduces a tiny error that doesn't have to be there. The three questions with which this section ends are fallacious. Let's try to make sense of it all}
+The latter strategy introduces a tiny error that the former one does not introduce. Furthermore, the three questions with which this section ends are misguiding and fallacious.  
 
 \subsection{The perplexities in the first testing strategy}
-%\textcolor{red}{Inizio parte da forse togliere o spostare\dots}
-%
-%If in Julia we write $\mathtt{big}(\mathtt{1e{-4}})$ we get (assuming the default \texttt{BigFloat} precision)
-%\begin{lstlisting}[language=Julia]
-%	big(1e-4) = 0.0001000000000000000047921736023
-%		85929598312941379845142364501953125
-%\end{lstlisting}
-%which has $17$ correct significant digits, but is not what one would intuitively have in mind when thinking about $\mathtt{1e{-4}}$ in higher precision. According to the documentation, Advanpix's Multiprecision Computing Toolbox~\cite{matlab_mpct} behaves in the same way.
-%
-%\begin{oss*}
-%	We remind that there are ways to obtain a value closer to $10^{-4}$ both in Julia and using the Multiprecision Computing Toolbox. \textcolor{red}{Immagino che parlerò un po' di BigFloats prima, mostrando che succede.}
-%\end{oss*}
-%
-%One may expect that $\mathtt{big}(\mathtt{1e{-4}})$ should be the higher-precision evaluation of the expression $\mathtt{1/10}$, or may at least expect it to be closer to the real number $10^{-4}$. \textcolor{red}{Both expectations are ill-posed, and contribute to the suspicion towards the experimental setup used in~\cite{higham:hf19_mpexpm}.\footnote{\textcolor{red}{Anche qui, vorrei spiegare da un'altra parte cosa succede veramente.}}}
-%
-%\textcolor{red}{\dots fine parte da forse togliere o spostare.}
-%\smallskip 
-
 When one sees $A$ as in~\eqref{eqn:Higham_test_matrix}, one is \emph{biased} to think that it comes from $A = \mathcal{A}+\Delta\mathcal{A}$, where $\mathcal{A}=\left(\begin{smallmatrix}
 	0 & 10^{-4}\\ -10^{-4} & 0
 \end{smallmatrix}\right)$ is the matrix that was supposed to be fed to the algorithm but can't be because of rounding errors. Therefore, one concludes, $A$ is not an appropriate test matrix for \texttt{exp\_mp} because the algorithm will always fail to compute $\mathcal{Y}\coloneqq\exp(\mathcal{A})$ due to intrinsic error in its input. 
-\begin{oss*}
-	\textcolor{red}{Of course the elements in $A$ reinforce this bias. But the bias is more general I would say. \`E il discorso che i dati in doppia precisione sono accompagnati dalla percezione di essere ``erronei''.}
-\end{oss*}
+%\begin{oss*}
+%	\textcolor{red}{Of course the elements in $A$ reinforce this bias. But the bias is more general I would say. \`E il discorso che i dati in doppia precisione sono accompagnati dalla percezione di essere ``erronei''.}
+%\end{oss*}
 
 Let $Y\coloneqq\exp(A)$. The algorithm \texttt{exp\_mp} will produce an approximation $\hat{Y}$.
 More formally, the (fallacious) argument is as follows: to correctly assess the quality of our algorithms, $\norm*{\hat{Y}-\mathcal{Y}}/\norm{\mathcal{Y}}$ should be measured. Except in some special cases, $\mathcal{Y}$ will never be gotten, however
@@ -61,71 +83,65 @@ More formally, the (fallacious) argument is as follows: to correctly assess the 
 		&\dot{=}\frac{\norm*{\hat{Y}-Y}}{\norm{Y}}+\frac{\norm{Y-\mathcal{Y}}}{\norm{\mathcal{Y}}}\le\frac{\norm*{\hat{Y}-Y}}{\norm{Y}}+\kappa_{\exp}(\mathcal{A})\frac{\norm{\Delta\mathcal{A}}}{\norm{\mathcal{A}}}
 \end{aligned}
 \end{equation}
-where $\dot{=}$ denotes equality up to first order terms (i.e. we dropped higher order terms \textcolor{red}{Dovrebbe avere senso, anche se l'ho fatto forse con troppa leggerezza. Comunque questa non vuol essere una dimostrazione}). A term $\norm{\Delta\mathcal{A}}/\norm{\mathcal{A}}$ appears, with $\norm{\Delta\mathcal{A}}=O(u_{53})$, and is further amplified by $\kappa_{\exp}(\mathcal{A})$. Therefore the forward error can be higher than what we should be able to get, namely something close to $\kappa_{\exp}(A)u_{256}$. The algorithm may be good, but using $A$ we will never be sure. 
+where $\dot{=}$ denotes equality up to first order terms (i.e. higher order terms have been dropped). A term $\norm{\Delta\mathcal{A}}/\norm{\mathcal{A}}$ appears, with $\norm{\Delta\mathcal{A}}=O(u_{53})$, and is further amplified by $\kappa_{\exp}(\mathcal{A})$. Therefore the forward error can be higher than what we should be able to get, namely something close to $\kappa_{\exp}(A)u_{256}$. Even when the multiprecision algorithm may seem to compute the solution accurately, the actual underlying approximation error can be bigger than what it should be. Using $A$ we will never know for sure. 
 
 \subsubsection*{Addressing the objections}
-Behind the fallacy there is the belief that only $\norm*{\mathcal{Y}-\hat{\mathcal{Y}}}/\norm{\mathcal{Y}}$ would be able to capture errors of the order of $u_{256}$, but since we're doomed to use $\hat{Y}$ instead of $\hat{\mathcal{Y}}$ our error reads will be unreliable. 
+Behind the fallacy there is the belief that only $\norm*{\mathcal{Y}-\hat{\mathcal{Y}}}/\norm{\mathcal{Y}}$ would be able to capture errors of the order of $u_{256}$, where $\hat{\mathcal{Y}}$ is the approximation of $\mathcal{Y}$ that the algorithm would compute; but since we're doomed to use $\hat{Y}$ instead of $\hat{\mathcal{Y}}$ our error reads will be unreliable. 
 
-The \textcolor{red}{steps} in~\eqref{eqn:Y_rel_err_expansion} are correct \textcolor{red}{(o almeno spero!)},  
+The steps in~\eqref{eqn:Y_rel_err_expansion} are correct,  
 the point is that although $\exp(A)$ may never be gotten exactly, $Y$ can be pushed to be arbitrarily close to it, just like with any real matrix. Thus, $\norm*{\hat{Y}-Y}/\norm{Y}$ can potentially be of the order of $u_{256}$. This forward error, and not $\norm*{\mathcal{Y}-\hat{\mathcal{Y}}}/\norm{\mathcal{Y}}$, is the appropriate measure for the quality of the approximations that our algorithm computes.
+\smallskip 
 
-\textcolor{red}{Paragrafo da revisionare (forse togliere, così come le tre domande che vengono risposte).}
-
-Returning to the three questions that introduced the ``fallacious argument'', floating point data usually comes with this notion of being ``flawed'' or ``uncertain'', \textcolor{red}{but really is just a matter of roles}. The \emph{bias} is to think that the available digits in $A$ come from a truncation that $\mathtt{big.()}$ should somehow undo. For all we know, the extra digits returned by the command are correct (whatever ``correct'' means). $A$ is the input to the algorithm, it may be affected by intrinsic error or it may not, but we will never know; the fact that is in double precision doesn't imply that it is. The point is that we don't care. 
+Returning to the three questions that introduced the ``fallacious argument'', floating point data usually comes with this notion of being ``flawed'' or ``uncertain'', but is just a matter of roles.
+The \emph{bias} is to think that the available digits in $A$ come from a truncation that $\mathtt{big.()}$ should somehow undo. For all we know, the extra digits returned by the command are correct (whatever ``correct'' means). $A$ is the input to the algorithm, it may be affected by intrinsic error or it may not, but we will never know; the fact that is in double precision doesn't imply that it is. The point is that it doesn't matter. 
 In fact, $A$ is better thought of as a real square matrix like any other, although containing double precision data. As such, it's a perfectly valid input to an algorithm running in higher precision. $\mathcal{Y}$ is just a distraction.
-%\medskip
 
-%\textcolor{red}{Eh sì bro ho capito però noi passiamo $\mathtt{big.}(A)$ alla funzione (o insomma è la prima cosa che valuta), non $A$\dots Fratm dovrebbe essere la stessa cosa perché quando uno vuole calcolare la soluzione esatta $Y$ quel che fa è diagonalizzare $\mathtt{big.}(A)$ e calcolare l'esponenziale. Ora, aumentando la precisione a muzzo (i) le prime cifre di $\mathtt{big.}(A)$ coincidono con quelle della  $\mathtt{big.}(A)$ fuori dall'ambiente setprecision (ii) siamo in grado di ``battere'' il malcondizionamento della base di autovettori, quindi sì siamo in grado di calcolare l'esponenziale della  $\mathtt{big.}(A)$ (proprio la stessa matrice che dici tu fratm) correttamente fino alla cifra decimale che vuoi fratm. Cioè fratm a un certo punto aumentando la precisione le cifre smettono di cambiare, e quando smettono di cambiare sono corrette\dots} 
+
+The documentation of the Python arbitrary precision library \textsc{mpmath}~\cite{mpmath} puts it very well:
+\begin{quotation}
+	Contrary to popular belief, floating-point \emph{numbers} do not come with an inherent ``small uncertainty'', although floating-point \emph{arithmetic} generally is inexact. Every binary floating-point number is an exact rational number. With arbitrary-precision integers used for the mantissa and exponent, floating-point numbers can be added, subtracted and multiplied \emph{exactly}. [\dots]
+	
+	Floating-point arithmetic is generally approximate because the size of the mantissa must be limited for efficiency reasons.
+\end{quotation}
 
 
 \subsection{Why the second testing strategy is (subtly) deceitful}
 Let's now consider the second testing strategy, which is summarized in the code snippet~\ref{alg:second_test_strat}.
-\begin{algorithm}[H]
-	\caption{\emph{Data creation for the second testing strategy}}
-	\label{alg:second_test_strat}
-	\begin{algorithmic}[1]
-		\State $H = \mathtt{hadamard}(n)$
-		\State $H = H / \sqrt{n}$
-		\State $D = \operatorname{Diag}\qty(100\,\mathtt{rand}(n)\mathtt{.-}50 + 100\mathtt{i}\,\mathtt{rand}(n)\mathtt{.-}50)$
-		\State $A = H^{\top}\!\mathtt{*}D\mathtt{*}H$
-		\State $Y_{\textup{true}} = H^{\top}\!\mathtt{*}\exp(D)\mathtt{*}H$
-	\end{algorithmic}
-\end{algorithm}
 
 %Similarly to the discussion of the first strategy, identifying what is the input data, which matrix exponential we really want to compute, the crucial issue
 \begin{notazione}
 	Let either the dot symbol or no symbol at all, as in $A\cdot B$ and $AB$ respectively, denote the product in exact arithmetic. Let the $\mathtt{*}$ symbol denote the same operation in floating point arithmetic.
 \end{notazione}
 
-Similarly to the first strategy, there is a bias at play here. We would like to have $A=H^{\top}\!DH$, but by doing $H^{\top}\!\mathtt{*}D\mathtt{*}H$ at line $4$ of algorithm~\ref{alg:second_test_strat} an approximation $\tilde{A}=\mathtt{fl}(A)$ is computed instead.
+Similarly to the first strategy, there is a bias at play here. We would like to have $A=H^{\top}\!DH$, but by doing $H^{\top}\!\mathtt{*}D\mathtt{*}H$ at line $4$ of algorithm~\ref{alg:second_test_strat} an approximation $\tilde{A}$ is computed instead.
 
 \begin{oss}\label{oss:A_double_prec}
 	The starting data $D$, $H$ is in double precision; $H$ is exactly representable in double precision because $H_{i,j}=\pm 1/\sqrt{n}$ and $n$ is a power of two. 	
 	However, $A=H^{\top}DH$ may not belong to the set $\mathcal{F}^{n\times n}$ of matrices with double precision elements. Let $\mathtt{round}(A)\in\mathcal{F}^{n\times n}$ be the closest matrix to $A$.
 	
-	The best that we can reasonably hope for is $\mathtt{round}(A)$, but line 4 will in general compute something different (see remark~\ref{oss:A_rel_err}). Note that by increasing the precision between lines $3$ and $4$ of algorithm~\ref{alg:second_test_strat} it is possible to obtain $\tilde{A}=\mathtt{round}(A)$\textcolor{red}{, giusto? Guardando~\cite[p.64]{higham:accuracy_book} direi di sì, anche se si riferisce al prodotto scalare.}
+	The best that we can reasonably hope for is $\mathtt{round}(A)$, but line 4 will in general compute something different (see remark~\ref{oss:A_rel_err}). Note that by increasing the precision between lines $3$ and $4$ of algorithm~\ref{alg:second_test_strat} it is possible to obtain $\tilde{A}=\mathtt{round}(A)$ (see also~\cite[p.64]{higham:accuracy_book})
 \end{oss}
 
 \begin{oss}\label{oss:A_rel_err}
-	How close will $A$ and $H^{\top}\!DH$ be, in general? $A$ will be formed in two steps as $K=H^{\top}\!\mathtt{*}D;\ A=K\mathtt{*}H$, and we know that multiplying by $H$ is a backward stable operation. For any unitarily invariant norm we have
+	How close will $\tilde{A}$ and $H^{\top}\!DH$ be, in general? $\tilde{A}$ will be formed in two steps as $K=H^{\top}\!\mathtt{*}D;\ \tilde{A}=K\mathtt{*}H$, and we know that multiplying by $H$ is a backward stable operation. For any unitarily invariant norm we have
 	\begin{equation}\label{eqn:matmul_stability}
 	\begin{aligned}
 		K &= H^{\top}\!\mathtt{*}D=H^{\top}\!(D+\Delta D)&\text{with}\ \norm{\Delta D}\le O(u)\norm{D}\\
-		A &= K\mathtt{*}H=(K+\Delta K)H&\text{with}\ \norm{\Delta K}\le O(u)\norm{K}
+		\tilde{A} &= K\mathtt{*}H=(K+\Delta K)H&\text{with}\ \norm{\Delta K}\le O(u)\norm{K}
 	\end{aligned}
 	\end{equation}
-	Now, $A=H^{\top}D\,H+H^{\top}\Delta{D}\,H+\Delta{K}\,H$, hence 
+	Now, $\tilde{A}=H^{\top}D\,H+H^{\top}\Delta{D}\,H+\Delta{K}\,H$, hence 
 	\begin{align*}
-		\norm*{A-H^{\top}\,D\,H} &= \norm*{H^{\top}\Delta{D}\,H + \Delta{K}\,H} = \norm*{H^{\top}\Delta{D} + \Delta{K}}\\
+		\norm*{\tilde{A}-H^{\top}\,D\,H} &= \norm*{H^{\top}\Delta{D}\,H + \Delta{K}\,H} = \norm*{H^{\top}\Delta{D} + \Delta{K}}\\
 		 &\le\norm{\Delta D} + \norm{\Delta{K}}\le O(u)\qty(\norm{D}+\norm{K})\\
 		 &\le O(u)\qty(\norm{D}+\norm{D+\Delta D})\le 3\,O(u)\norm{D}
 	\end{align*}
 	Note that numerous $O(u)$ factors have been incorporated into a single one, and the constant multiplying $u$ may hide a polynomial factor in $n$ of modest degree. %\textcolor{red}{direi 1. Forse 2. \`E importante?}
-	In our case, the bound can be made even be more explicit. For example, $\norm{D}_2\le 50^2$.
+	In our case, the bound can be made even be more explicit. For example, $\norm{D}_2\le 50\sqrt{2}$.
 \end{oss}
-\smallskip
+%\smallskip
 
-We would like to compare $A$ with $\exp(A)=H^{\top}\!\exp(D)H$. Reasoning as in remark~\ref{oss:A_double_prec}, we must contempt ourselves with $Y_{\textup{true}}$ being an approximation $\widetilde{\exp(A)}$ of $\exp(A)$.
+We would like to compare $A$ with $\exp(A)=H^{\top}\!\exp(D)H$. Reasoning as in remark~\ref{oss:A_double_prec}, we must settle for $Y_{\textup{true}}$ being an approximation $\widetilde{\exp(A)}$ of $\exp(A)$.
 	
 The algorithm however is fed with $\tilde{A}$, not $A$, thus it returns and approximation $\hat{Y}$ of $\exponential(\tilde{A})$, not of $\exp(A)$. Therefore $\hat{Y}$ should be compared with a good proxy of $\exponential(\tilde{A})$, not with $Y_{\textup{true}}$.
 
@@ -136,12 +152,11 @@ Image~\ref{img:plot_expm_test2} pictures the situation. The ticks on the axis re
 	\caption{\emph{Didascalia}}
 	\label{img:plot_expm_test2}
 \end{figure}
-
-\textcolor{red}{Voglio provare a descrivere la possibile obiezione che mi era venuta in mente}
+\smallskip 
 
 It may be objected that the previous argument relies on the fact that matrix multiplications are performed, causing the input to the algorithm to be different from $A$. If $\tilde{A}=H^{\top}\mathtt{*}D\mathtt{*}H$ was treated as the starting matrix, similarly to the first strategy, then the argument would not hold.   
 
-This perspective is fallacious as well; if we chose to form $\tilde{A}$ then we would have to forget about $D$ and $H$, thus $H^{\top}\mathtt{*}\exp(D)\mathtt{*}H$ wouldn't be a good approximation of $\exponential{\tilde{A}}$ anyway. 
+This perspective is fallacious as well; if we chose to form $\tilde{A}$ then we would have to forget about $D$ and $H$, thus $H^{\top}\mathtt{*}\exp(D)\mathtt{*}H$ may not be a good approximation of $\exponential(\tilde{A})$ anyway. 
 \smallskip 
 
 %This objection is better dispelled by considering another numerical example proposed in~\cite{exptayotf18}. 
@@ -159,10 +174,10 @@ By the same argument, there exists a perturbation $\Delta{E}\in\R{n}{n}$, with $
 \]
 We measure how well $Y_{\textup{true}}$ approximates $\exponential(\tilde{A})$ by means of the forward error. For any unitarily invariant matrix norm,
 \begin{align*}
-	\norm*{Y_{\textup{true}}-\exponential(\tilde{A})} & = \norm{H^{\top}\,\qty(\exp(D)+\Delta{E})\,H-H^{\top}\,(D+\Delta{D})\,H}\\
+	\norm{Y_{\textup{true}}-\exponential(\tilde{A})} & = \norm{H^{\top}\,\qty(\exp(D)+\Delta{E})\,H-H^{\top}\exp(D+\Delta{D})\,H}\\
 	 & = \norm{\exp(D) + \Delta{E} - \exp(D+\Delta{D})} \\
 	 & \le \norm{\Delta{E}} + \norm{\exp(D+\Delta{D})-\exp(D)}\\
-	 & = O(u_{53})\norm{\exp(D)}+\kappa_{\exp}(D)\frac{\norm{\Delta{D}}}{\norm{D}}\norm{\exp(D)}+O(\norm{D}^2)
+	 & \le O(u_{53})\norm{\exp(D)}+\kappa_{\exp}(D)\frac{\norm{\Delta{D}}}{\norm{D}}\norm{\exp(D)}+O(\norm{D}^2)
 \end{align*}
 where for this last equality the definition of condition number was used (see also~\cite[eq.~(3.3)]{higham:accuracy_book}). Dropping higher order terms and grouping the terms proportional to $u_{53}$ we get
 \[
@@ -175,4 +190,20 @@ where for this last equality the definition of condition number was used (see al
 \textcolor{red}{Aldilà dell'errore relativo, possiamo comunque avere un bound uniforme all'errore assoluto. Se scegliamo la norma di Frobenius, $\norm{L_{\exp}(D)}=\max_{i,j\in[n]}\abs{\exp[d_i,d_j]}$ mentre $\norm{D}=\sum_{i=1}^n\abs{d_i}$ se non sbaglio\dots}
 
 \textcolor{red}{Per $\norm{D}$ abbiamo la limitazione superiore $2500n$, e già tre ordini di grandezza sono andati. Per il differenziale di Fréchet dovrei pensarci su.}
+
+\subsection{Computing the reference solution}
+\textcolor{red}{Non lo scrivo ancora bene, perché sto continuando a fare esperimenti e \cancel{avere problemi} scoprire cose nuove.}
+
+\textcolor{red}{Idea: Fasi e Higham usano \texttt{exp\_mct}, che noi non abbiamo. La funzione \texttt{exp} di Julia non funziona in precisione arbitraria, né c'è da nessun'altra parte un algoritmo già pronto (altrimenti questa tesi che la faccio a fare\dots). Quindi ci arrangiamo nel seguente modo:}
+\textcolor{red}{
+\begin{enumerate}
+	\item Aumentiamo la precisione di un fattore 10 (e incrociamo le dita)
+	\item Proviamo a diagonalizzare $A=VDV^{-1}$
+	\item Se la diagonalizzazione fallisce, vai al punto 6
+	\item Se la matrice degli autovettori è troppo malcondizionata, vai al punto 6 
+	\item Calcola $V*\exp(D)*V^{-1}$, reset precision, \textbf{return}
+	\item Se sei arrivato a questo punto, restituisci $\mathtt{exp\_mp}(A)$ passando un valore di \texttt{working\_precision} pari a 10 volte quello standard
+\end{enumerate}
+}
+\textcolor{red}{Cose che rimangono da mettere a posto: quando rifiutare una $V$ malcondizionata? (o addirittura singolare) Che fare quando l'algoritmo per calcolare forme di Schur mi lascia a piedi?}
 
