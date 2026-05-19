@@ -1,16 +1,252 @@
-\chapter{The Matrix Exponential}\label{capitolo:1}
-\lipsum[1]
+\chapter{Floating Point Arithmetic}\label{capitolo:1}
+This chapter will be devoted to floating point arithmetic. It will start with a refresher of the well known basic principles, with the aim of presenting how arbitrary precision computation works in Julia.  
 
-Proviamo a citare~\cite{higham:matfun_book}, \cite{higham:alhi09}
+\section{Floating point number system}
+The contents of this section are based on~\cite[§~2]{higham:accuracy_book}, which may be consulted for further details. Another classic source is~\cite{goldberg:floating_pt_arithm}
 
-\section{Definition and basic properties}
-\textcolor{red}{Vorrei farla breve}
 
-\section{Conditioning}
-\textcolor{red}{Cfr.~\cite[§~3]{higham:matfun_book} and~\cite[§~10.2]{higham:matfun_book}}
+\begin{definizione}\label{def:float_pt_n_sys}
+	A \emph{floating point number system} $\mathcal{F}\subsetneq\R$ is a finite subset of the real numbers whose elements have the form 
+	\begin{equation}\label{eqn:float_pt_number}
+		x = \pm\beta^e\cdot\sum_{i=1}^{t}\frac{d_i}{\beta^{i}}\eqcolon\pm\beta^e\cdot m,
+	\end{equation}
+	with $0\le d_i\le\beta-1$ for all $i\in[t]$.
+\end{definizione}
 
-\section{Scaling and Squaring}
-\textcolor{red}{Cfr.~\cite[§~10.3]{higham:matfun_book} e gli altri articoli (vediamo un po'\dots)}
+$\mathcal{F}$ is characterized by the four integers $\beta$ (the \emph{base}), $t$ (the \emph{precision}) and the minimum and maximum exponent $e_{\min}, e_{\max}$, which are such that $e_{\min}\le e\le e_{\max}$.
+$m$ is the \emph{significand} (sometimes also called \emph{mantissa}). 
 
-\subsection{Scaling and Squaring variants}
-\textcolor{red}{L'idea sarebbe quella di riassumere, elencare i piccoli accorgimenti che negli anni sono stati fatti per migliorare l'algoritmo di base (o per lo meno quelli negli articoli che ho trovato): la tecnica di scaling diversa in~\cite{exptayotf18}, l'uso di $\norm{A^t}^{1/t}$ al posto di $\norm{A}$ nel dare una limitazione superiore all'errore analitico (proposto in~\cite{higham:alhi09_new}), il ricalcolo delle diagonali nella fase di squaring proposto in~\cite{higham:alhi09_new}.}
+The \emph{normalized} floating point numbers are those for which $d_1\ne 0$, thus $m\ge\beta^{-1}$. These have a unique representation. We note that $0\in\R$ doesn't have a normalized representation, it is included in the normalized numbers a special exception. 
+
+\begin{lemma}\label{lemma:float_range}
+	The normalized floating point numbers in $\mathcal{F}\setminus\{0\}$ are such that $\beta^{e_{\min}-1}\le\abs{x}\le\beta^{e_{\max}}(1-\beta^{-t})$.
+\end{lemma}
+\begin{proof}
+	By bounding all digits $d_i$ with $\beta-1$ we get that 
+	\[
+		m\le(\beta-1)\sum_{i=1}^t\beta^{-i}=(\beta-1)\frac{\beta^{-(t+1)}-1}{\beta^{-1}-1}=(\beta-1)\frac{\beta^{-t}-1}{1-\beta}=1-\beta^{-t}.
+	\]
+	Since $d_1\ne 0$ we have that $m\ge\beta^{-1}$. The claim immediately follows.
+\end{proof}
+Lemma~\ref{lemma:float_range} shows that there is a gap between $0$ and the smallest normalized number $\beta^{e_{\min}-1}$. This gap is filled by the \emph{denormalized} (or \emph{subnormal}) numbers, which are of the form $\pm\beta^{e_{\min}}\cdot m$ with $0<m<\beta^{-1}$, i.e. the most significant digit $d_1$ can be zero. Denormal numbers are quite controversial and can be troublesome, therefore we will not treat them any further and focus solely on normalized number systems.
+\smallskip 
+
+\noindent An important thing to point out is that the floating point numbers are not uniformly spaced. Let us fix an exponent $e_{\min}\le e<e_{\max}$ and let $x\in\mathcal{F}$ such that $\beta^e\le x<\beta^{e+1}$. Then $x$ can assume $\beta^t$ possible values. In other words, there are $\beta^t$ floating point numbers between $\beta^e$ and $\beta^{e+1}$, each corresponding to a value that the significand can assume in the expression $\beta^{e+1}\cdot m$. 
+
+These numbers are evenly spaced, the spacing between them being $\abs{\beta^{e+1}\cdot m - \beta^{e+1}\cdot(m+\beta^{-t})}=\beta^{e+1-t}$.
+
+\begin{oss*}
+	Intuitively, this behavior is natural: every floating-point number in $\mathcal{F}$ is represented using the same finite number of significant digits. When representing larger numbers, more digits are required for the integer part, leaving fewer significant digits available for the fractional part. Consequently, adjacent floating point numbers become farther apart as their magnitude increases, because the least significant digit is bigger.
+	
+	This intuitive explanation can be made more rigorous with the notion of \emph{ulp} (unit in last place). For $x\in\mathcal{F}$ as in~\eqref{eqn:float_pt_number}, $\mathtt{ulp}(x)=\beta^e\cdot m_0$ where where $m_0$ is the significand whose digits are all zero except for the least significant one, which equals 1, i.e. $\mathtt{ulp}(x)=\beta^{e-t}$.
+\end{oss*}
+
+The following definition is arguably the most important one in all numerical analysis.
+\begin{definizione}\label{def:macheps}
+	Let $\mathcal{F}$ be a floating point number system with base $\beta$ and precision $t$. The \emph{machine epsilon}, or \emph{machine precision}, of $\mathcal{F}$ is the distance between $1$ and the next larger floating point number in $\mathcal{F}$. 
+	
+	This value will be denoted as $u_t$, or simply as $u$ when the precision $t$ is clear from the context. It holds that $u_t=\beta^{1-t}$.
+\end{definizione}
+
+What has been discussed so far shows that the finiteness of $t$ is a limitation on precision, the finiteness of $e$ is a limitation on range.\footnote{As a curiosity, Google's \texttt{bfloat16} trades precision for range. More information can be found in \href{https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus}{the blog post that introduced the format}.} There are only finitely many elements in $\mathcal{F}$, thus in general any $x\in\R$ can only be approximated by a floating point number.
+Let $\mathtt{fl}(x)$ denote an element of $\mathcal{F}$ that is nearest to $x$, the mapping $x\mapsto\mathtt{fl}(x)$ is called \emph{rounding}. There are many \emph{rounding strategies}, see~\cite{higham:accuracy_book} and~\cite{article:IEEE754_2019} for details. If $x$ falls outside of the range of $\mathcal{F}$, it is said that $\mathtt{fl}(x)$ \emph{overflows} or \emph{underflows} depending on the circumstances.
+
+\begin{notazione}
+	In this document $\mathtt{fl}(x)$ will sometimes denote a (floating point) approximation of a quantity or expression $x$ \emph{as returned by a given algorithm}. To disentangle this ambiguity, the notation $\mathtt{round}(x)$ will also be used when necessary.
+\end{notazione}
+
+A quantity that is closely related to the machine precision is the \emph{unit roundoff}, whose definition is not universally accepted. The two terms are not defined in the \textsc{IEEE} 754 standard~\cite{article:IEEE754_2019}, and are often used interchangeably in the literature. There is no universal agreement on the definition of machine precision, for reasons that will be discussed shortly. This is rarely harmful, since the competing definition differ by at most a factor of $2$.	
+
+Higham defines the machine precision as in definition~\ref{def:macheps} and reserves the term unit roundoff for $\frac{1}{2}\beta^{1-t}$. In~\cite{demmel:book} Demmel, instead, defines the machine precision to be $\frac{1}{2}\beta^{1-t}$ without introducing the concept of unit roundoff.
+
+The quantity in definition~\ref{def:macheps} is useful for characterizing the distance between floating point numbers and is widely adopted as \emph{the} definition of machine precision, whereas the notion of unit roundoff can be useful for giving bounds to rounding errors in floating point approximations. This is the reason why Higham introduces the concept of unit roundoff as distinct from that of machine precision, and also explains why Demmel comes up with the definition above.\\	
+Instead we introduce the unit roundoff as the largest possible relative rounding error of the chosen rounding strategy.
+	
+The round-toward-zero strategy (also known as chopping, or truncation) yields $\beta^{1-t}=u$ as the unit roundoff. Under round-to-nearest, the unit roundoff is $\frac{1}{2}\beta^{1-t}$.
+
+Although the latter is the default rounding strategy in the \textsc{IEEE} standard 754, we will use the machine precision as defined in~\ref{def:macheps} in all further error analysis, and will refer no further to unit roundoff. 
+%Rounding strategies will not be further discussed in this dissertation.
+\smallskip
+
+The following theorem states that $u$ uniformly bounds the relative error between any representable real number $x$ and its floating point approximation.
+\begin{teorema}{(\cite[Thm.~2.2]{higham:accuracy_book})}
+	If $x\in\R$ lies in the range of $\mathcal{F}$ then 
+	\[
+		\mathtt{fl}(x)=x(1+\delta)=\frac{x}{1+\eta}\qquad\abs{\delta},\abs{\eta}\le u.
+	\]
+\end{teorema}
+
+\subsection*{Floating point operations}
+When equipped with the arithmetic operations inherited from $\R$, $\mathcal{F}$ lacks of many useful mathematical properties. %In general, $\mathcal{F}(+,\cdot)$ has no algebraic structure. In particular, associativity is not guaranteed in $\mathcal{F}$ , and 
+Indeed, for $x,y\in\mathcal{F}$, $x\,\operatorname{op}\,y$ may not belong to $\mathcal{F}$, where $\operatorname{op}=+,-,\cdot,/$. The result of any arithmetic operation has to be ``brought back'' into $\mathcal{F}$, this may introduce an error as described by the standard model~\eqref{eqn:std_mdl_float_arithm}.
+\begin{equation}\label{eqn:std_mdl_float_arithm}
+	\mathtt{fl}(x\,\operatorname{op}\,y) = (x\,\operatorname{op}\,y)(1+\delta)= \frac{x\,\operatorname{op}\,y}{1+\eta}\qquad\abs{\delta},\abs{\mu}\le u
+\end{equation}
+
+The standard model~\eqref{eqn:std_mdl_float_arithm} lies at the foundation of any error analysis. We note that $\mathcal{F}(+,\cdot)$ has no algebraic structure in general. In particular, operations between floating point numbers are not truly associative, and also the distributive property is lost.
+
+The abstract models of floating point numbers and operations between them are behind concrete implementations. The \textsc{IEEE} standard 754~\cite{article:IEEE754_2019}, lastly revised in 2019, is the most popular technical standard for floating point arithmetic. The standard specifies: formats for binary and decimal floating point data, formats for data interchange and computation, conversion rules (e.g. between floating point formats), arithmetic operations and and comparisons, rounding modes, floating point exceptions and their handling.  
+
+The standard supports single, double and quadruple precision. Lower precisions are supported as interchange formats, however they are widely used for computation in many domains such as machine learning.
+
+We will not discuss the standard further; the reader is referred to~\cite[§~2.3]{higham:accuracy_book} and~\cite{article:IEEE754_2019} for additional details.
+
+
+\section{Multiple precision arithmetic}
+The \textsc{IEEE} standard 754 specifies optional extended and extendable precision formats, which provide greater precision than the basic formats. When the precision is not bound to be within some specified thresholds, we talk about \emph{arbitrary precision} (or \emph{multiprecision}) \emph{arithmetic}. 
+
+Many programming languages have libraries for multiprecision arithmetic, such as \textsc{mpmath}~\cite{mpmath} in Python and \textsc{mpfr}~\cite{article:MPFR} in C. In this section we will focus on multiprecision arithmetic in \matlab and Julia.
+
+Before doing so, we make the important remark~\ref{oss:prec_vs_acc}.
+\begin{oss}\label{oss:prec_vs_acc}
+	Although the two terms are often confused and used interchangeably, precision and accuracy are not the same thing. Let us make a distinction between them by clarifying the terminology that will be used throughout this document.
+	
+	Following~\cite[§~1.4]{higham:accuracy_book}, \emph{accuracy} refers to the absolute or relative error of an approximate quantity. It is a measure of closeness to a given target. The concept of relative error (hence of accuracy) is connected to the notion of \emph{correct significant digit}, but the latter concept is somewhat elusive (see also~\cite[§~1.2]{higham:accuracy_book}).
+	Following the definition given in~\cite{article:IEEE754_2019}, the term \emph{precision} can refer to the maximum number of significant digits that can be represented, or the number of digits to which a result is rounded (thus, in this latter meaning, it refers to the accuracy with which the arithmetic operations are performed in $\mathcal{F}$). Of course, precision may also refer to the parameter $t$ in definition~\ref{def:float_pt_n_sys}.
+\end{oss}
+
+It's worth pointing out that often in science precision quantifies how close the measurements in a given set are to each other, accuracy quantifies how close such set of measures is to a given target (often, the true value that is being measured). In this document, however, the terms \emph{precision} and \emph{accuracy} will be used according to the definitions given above.
+
+%The literature on arbitrary precision arithmetic is immense, a brief of two possible generic implementations can be found in~\cite[§~27.9]{higham:matfun_book}.
+
+\subsection{Multiple precision arithmetic in \textsc{matlab}}
+In \matlab{}, arbitrary precision arithmetic is commonly performed via the \texttt{vpa} command. The commercial Multiprecision Computing Toolbox~\cite{matlab_mpct} provides mathematical functions that natively support the toolbox's multiprecision floating-point numeric type.
+
+%\textcolor{red}{Sarebbe anche interessante fare un breve confronto tra vpa e Advanpix (magari anche solo riassumendo quanto sta nella documentazione (per vpa), e linkando alla pagina del manuale di Advanpix). Però, se la faccio, la farei breve perché alla fine MATLAB manco lo uso. Se questo confronto/approfondimento fa emergere degli aspetti generali dell'aritmetica floating point, allora può aver senso.}
+
+The multiprecision algorithm developed by Higham and Fasi~\cite{higham:hf19_mpexpm} relies on this toolbox.
+
+\subsection{Multiple precision arithmetic in Julia}
+The Julia programming language~\cite{article:Julia} natively supports multiprecision floating-point numbers by means of the built-in data type \texttt{BigFloat}.
+
+\texttt{BigFloat}s support standard arithmetic operations as well as many mathematical functions, each of which is implemented via a corresponding call to the \textsc{mpfr}~\cite{article:MPFR} library. In addition, \texttt{BigFloat}s provide a set of dedicated methods, some of which are described in the following sections.
+
+%\subsubsection*{Basic functioning of \texttt{BigFloat}s}
+%\textcolor{red}{Forse un cappello introduttivo su come sono fatti i BigFloats grosso modo (uno struct etc), però non sono sicurissimo neanche io. Scavare in quel codice non è facile.}
+\smallskip 
+
+%\textcolor{red}{Avevo fatto qualche benchmark, in cui è emerso come il costo delle operazioni tra \texttt{BigFloat}s dipende dalla precisione (che ci si aspetta d'altronde):  maggiore è la precisione, maggiore il costo in termini di tempo e di memoria utilizzata (ovviamente). Inoltre il numero di allocazioni cresce, ma contrariamente alle due statistiche precedenti, la dipendenza non è lineare, bensì si assiste a un ``salto''. Magari è interessante metterlo qui. Però ho testato con le matmuls, quindi lo metto dopo? ripeto il test con i prodotti ``normali''?}
+
+It is worth pointing out that the cost of arithmetic operations between \texttt{BigFloat}s depends on the precision with which it is performed, as would be expected. 
+The multiplications are more expensive in terms of time and memory the higher the precision is, the dependence being roughly linear. For sums it is just the memory cost that increases, with the time cost staying roughly constant. For both operations, the number of allocations also grows with precision, although not linearly. Rather, a staircase-like behaviour can be observed; the number of allocations remains constant within certain precision ranges and increases only when a new threshold is reached.
+
+The same considerations apply for sums and products between matrices with \texttt{BigFloat} elements.
+
+
+\subsubsection*{Common pitfalls in multiprecision arithmetic}
+The \texttt{precision} and \texttt{setprecision} commands are well explained in the language documentation~\cite{link:julia_documentation}.
+Examples~\ref{es:setprecision_global} and~\ref{es:setprecision_next_ops} highlight two important aspects.
+
+\begin{esempio}\label{es:setprecision_global}
+	%The \texttt{setprecision} command changes the default precision globally.
+	The $\mathtt{setprecision}(\mathtt{T}, p)$ call sets the precision of type \texttt{T} to $p$ \emph{globally}. The \texttt{setprecision} command mutates the global state, its effects are visible even outside the local scope of the block in which the call happens.
+\begin{lstlisting}[language=Julia]
+  # precision(BigFloat) = 256 (default)
+  a = 74	
+  let 
+    a = 42
+    setprecision(BigFloat, 512)
+    print("a = $a") 	# 42
+    print("precision = $(precision(BigFloat))") # 512
+  end 
+  print("a = $a") 	# 74
+  print("precision = $(precision(BigFloat))") # 512
+\end{lstlisting}
+	$\mathtt{setprecision}(p)\ \mathtt{do}\ \dots\ \mathtt{end}$ changes the precision to $p$ for the duration of the evaluation of the \texttt{do} block.
+\end{esempio}
+
+\begin{esempio}\label{es:setprecision_next_ops}
+	The \texttt{setprecision} command doesn't retroactively change the precision of already performed computations. Instead, the effects of this command only affect the subsequent \emph{computations} throughout the program.
+\begin{lstlisting}[language=Julia]
+  # In Julia, π is a mathematical constant
+  pi = BigFloat(π) # pi = 3.1415...6198 
+        	   # (78 correct decimal digits)
+  setprecision(BigFloat, 53)
+  pi 		# still displays 78 decimal digits 
+  pi * 1.0	# 3.1415926535897931
+  precision(pi)	# 256
+\end{lstlisting}
+\end{esempio}
+\smallskip 
+
+\noindent Example~\ref{es:big_BigFloat_constructor} llustrate some subtleties in the usage of the \texttt{BigFloat()} and \texttt{big()} constructors.
+\begin{esempio}\label{es:big_BigFloat_constructor}
+	Let $\mathtt{x}$ be a variable or numerical expression of type \texttt{BigFloat}. The $\mathtt{BigFloat}(\mathtt{x})$ and $\mathtt{big}(\mathtt{x})$ constructors work slightly differently.
+	The former returns a value with the precision set to the current working precision; instead $\mathtt{big}(\mathtt{x})$ returns a maximum precision representation of $\mathtt{x}$.
+\begin{lstlisting}[language=Julia]
+  pi = BigFloat(π)
+  setprecision(53) do 
+    big(pi)	 # 3.1415...6198 (78 decimal digits)
+    BigFloat(pi) # 3.1415926535897931
+  end
+\end{lstlisting}
+\end{esempio}
+\smallskip
+
+\noindent The uncareful usage of the \texttt{big} and \texttt{BigFloat} commands can easily lead to some outcomes that may be unintuitive at first. The main one -- which underlies most of the other pitfalls when converting between double and arbitrary precision -- is illustrated in example~\ref{es:float_promotion}. 
+\begin{esempio}\label{es:float_promotion}
+	If $\mathtt{x}$ is not of type \texttt{BigFloat}, then the \texttt{big(x)} and \texttt{BigFloat(x)} constructor try to convert it. The conversion of a double precision number is conceptually simple: the significand of $\mathtt{x}$ is preserved, and the extra lower-order significand bits in the high precision representation are set to zero.  
+\begin{lstlisting}[language=Julia]
+  BigFloat(0.1) # 0.10000000000000000555111512312...
+  big(0.1)	# same as BigFloat(0.1)
+  big(0.0625)	# 1/16 is exactly representable 
+  		# in binary
+\end{lstlisting}
+\end{esempio}
+\smallskip
+
+\noindent Be aware that evaluation happens before promotion, as shown in example~\ref{es:eval_expr}.
+\begin{esempio}\label{es:eval_expr}
+	When calling \texttt{BigFloat()} or \texttt{big()} on an expression, the expression is evaluated first. 
+\begin{lstlisting}[language=Julia]
+  big(1/10) 	# only 17 decimal digits are correct 
+  1 / big(10)	# all 78 decimal digits are correct
+\end{lstlisting}
+	In the first case, since the operands are \texttt{Int64}, $1/10$ was evaluated in double precision, as this is Julia's normal behaviour, the result is then promoted. In the second case, $1$ was promoted to a \texttt{BigInt} and a division between arbitrary precision quantities was performed.
+\end{esempio}
+%\smallskip
+
+\noindent Examples~\ref{es:float_promotion} and~\ref{es:eval_expr} show that neither \texttt{big(0.1)} nor $\mathtt{big(1/10)}$ is either the high precision evaluation of the expression $\mathtt{1/10}$ or the closest \texttt{BigFloat} to the real number $10^{-1}$. 
+The latter can be obtained, in Julia, with \texttt{big(``0.1'')} (or with \texttt{BigFloat(``0.1'')}); but \texttt{big(``1/10'')} and \texttt{BigFloat(``1/10'')} fail.
+\smallskip 
+
+\noindent Example~\ref{es:convert} shows an aspect of the \texttt{convert} command's behaviour that can have a concrete impact in multiprecision computations.
+\begin{esempio}\label{es:convert}
+	The call $\mathtt{convert}(\mathtt{T},x)$ returns a copy unless $x$ is already of type $\mathtt{T}$, in which case an \emph{alias} of $x$ will be returned.
+\begin{lstlisting}[language=Julia]
+  A = rand(BigFloat, 2,2)
+  B = setprecision(53) do 
+    convert(Matrix{BigFloat}, A)
+  end
+  precision(B[1,1])	# 256
+  A === B 		# true 
+  pointer(A) == pointer(B) # true
+\end{lstlisting}
+\end{esempio}
+Much more on conversion and promotion can be found in the Julia documentation~\cite{link:julia_documentation}.
+
+\subsubsection*{Multiprecision linear algebra in Julia}
+Let $A,B\in\R{n}{n}$ such that $A, B$ have elements of type \texttt{BigFloat}. The operations $A+B$, $A\cdot B$, $A^{-1}$ and $A^n$ are natively supported for integer $n$. 
+
+\begin{oss*}
+	We make a few quick observations on the aforementioned operations:
+	\begin{itemize}
+		\item $A+B$ broadcasts the $+$ operation onto the single entries of the matrices 
+		\item Since \textsc{BLAS}~\cite{article:BLAS} for matrix multiplications are available only for single and double precision, the computation of $C=A\cdot B$ is implemented with the naive three-way for loop, using the $i,j,k$ ordering. Julia tries to exploit Instruction Level Parallelism by using the \texttt{@simd} macro on the innermost loop. $C_{i,j}$ is updated by using fused multiply-add operations, implemented by \textsc{mpfr}
+		\item $\mathtt{inv}(A)$ is doable because the $\mathtt{lu}$ command works with $\mathtt{BigFloat}$ matrices out of the box. As before, no \textsc{lapack} routine can be used; the factorization is computed using the Gaussian elimination algorithm with pivoting. The lower level arithmetic operations are performed via \textsc{mpfr} calls. 
+		\item $A^n,\ n\in\mathbb{Z}$ calls the $\mathtt{power\_by\_squaring}$ function, which essentially is an implementation of the \emph{binary powering} algorithm~\cite[Alg.~4.1]{higham:matfun_book}. For $n<0$, $\mathtt{inv}(A)^{\abs{n}}$ is computed. 
+	\end{itemize}
+\end{oss*}
+If the exponent $n$ is not an integer, $A^n$ is not doable natively. This is because $A^n$ is computed as $Q\,T^n\,T^r\,Q^{h}$, where $A=QTQ^H$ is a Schur decomposition of $A$, $T^r$ with $r=n-\lfloor n\rfloor$ is computed using the algorithm described in~\cite{higham:hili13}.
+
+The Schur decomposition of matrices with \texttt{BigFloat} elements is available through the \texttt{GenericSchur.jl}~\cite{sw:GenericSchur} library, but is not natively implemented in the language.
+The library also allows the computation of the spectrum of $A$, or in general its eigendecomposition (namely, it gives the ability to run the Julia \texttt{eigvals} and \texttt{eigen} commands). 
+
+\subsection{Errors}
+\textcolor{red}{Cose da dire: l'errore può essere analitico (truncation), algoritmico (roundoff) o inerente. C'è l'errore in avanti, e l'errore all'indietro. L'analisi all'indietro è una tecnica: di solito la si fa sull'errore algoritmico, ma questa tesi ci dà un interessante caso di analisi all'indietro di errore analitico (invece è l'errore algoritmico nella fase di squaring che è ``misterioso''). Non sempre l'analisi all'indietro si può fare. }
+
+\subsection{Conditioning}
+\textcolor{red}{Anche qui, vorrei farla breve ma tanto lo so che la cosa sfuggirà di mano\dots}
+
+\textcolor{red}{Cose da dire: definizione di numero di condizionamento (sì, anche con la derivata di Fréchet). Il condizionamento è una proprietà del problema. La ``rule of thumb'' fwerr < cond*backerr. Ricostruire come algoritmi stabili all'indietro ci diano la miglior approssimazione a cui possiamo ambire. Stabilità.}
+

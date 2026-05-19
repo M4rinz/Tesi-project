@@ -1,139 +1,16 @@
-\chapter{Floating Point Arithmetic}\label{capitolo:2}
-This chapter will be devoted to floating point arithmetic. It will start with a refresher of the well known basic principles, with the aim of presenting how arbitrary precision computation works in Julia.  
+\chapter{The Matrix Exponential}\label{capitolo:2}
+\lipsum[1]
 
-\section{Floating point number system}
-\textcolor{red}{La solita spiegazione. Si può guardare~\cite[§~2.1]{higham:accuracy_book}}
+Proviamo a citare~\cite{higham:matfun_book}, \cite{higham:alhi09}
 
-\textcolor{red}{Cose da dire: significand/mantissa. Cos'è la precisione di macchina e cosa l'unit roundoff (è importante?), introdurre la notazione $u_{53}$.}
+\section{Definition and basic properties}
+\textcolor{red}{Vorrei farla breve}
 
-\section{Multiple precision arithmetic}
-\textcolor{red}{Qualcosa si trova in~\cite[§~27.9]{higham:matfun_book}.}
-\smallskip 
+\section{Conditioning}
+\textcolor{red}{Cfr.~\cite[§~3]{higham:matfun_book} and~\cite[§~10.2]{higham:matfun_book}}
 
-\textcolor{red}{Uhm che incipit faccio?}
-\smallskip 
+\section{Scaling and Squaring}
+\textcolor{red}{Cfr.~\cite[§~10.3]{higham:matfun_book} e gli altri articoli (vediamo un po'\dots)}
 
-\textcolor{red}{Cose da dire: precision e accuracy non sono la stessa cosa.}
-
-\subsection{Multiple precision arithmetic in \textsc{matlab}}
-In \matlab{}, arbitrary precision arithmetic is commonly performed via the \texttt{vpa} command. The commercial Multiprecision Computing Toolbox~\cite{matlab_mpct} provides mathematical functions that natively support the toolbox's multiprecision floating-point numeric type.
-
-\textcolor{red}{Sarebbe anche interessante fare un breve confronto tra vpa e Advanpix (magari anche solo riassumendo quanto sta nella documentazione (per vpa), e linkando alla pagina del manuale di Advanpix). Però, se la faccio, la farei breve perché alla fine MATLAB manco lo uso. Se questo confronto/approfondimento fa emergere degli aspetti generali dell'aritmetica floating point, allora può aver senso.}
-
-\subsection{Multiple precision arithmetic in Julia}
-The Julia programming language~\cite{article:Julia} natively supports multiprecision floating-point numbers by means of the built-in data type \texttt{BigFloat}.
-
-\texttt{BigFloat}s support standard arithmetic operations as well as many mathematical functions, each of which is implemented via a corresponding call to the \textsc{mpfr}~\cite{article:MPFR} library. In addition, \texttt{BigFloat}s provide a set of dedicated methods, some of which are described in the following sections.
-
-\subsubsection*{Basic functioning of \texttt{BigFloat}s}
-\textcolor{red}{Forse un cappello introduttivo su come sono fatti i BigFloats grosso modo (uno struct etc), però non sono sicurissimo neanche io. Scavare in quel codice non è facile.}
-\smallskip 
-
-\textcolor{red}{Avevo fatto qualche benchmark, in cui è emerso come il costo delle operazioni tra \texttt{BigFloat}s dipende dalla precisione (che ci si aspetta d'altronde):  maggiore è la precisione, maggiore il costo in termini di tempo e di memoria utilizzata (ovviamente). Inoltre il numero di allocazioni cresce, ma contrariamente alle due statistiche precedenti, la dipendenza non è lineare, bensì si assiste a un ``salto''. Magari è interessante metterlo qui. Però ho testato con le matmuls, quindi lo metto dopo? ripeto il test con i prodotti ``normali''?}
-
-\subsubsection*{Common pitfalls in multiprecision arithmetic}
-The \texttt{precision} and \texttt{setprecision} commands are well explained in the language documentation~\cite{link:julia_documentation}.
-Examples~\ref{es:setprecision_global} and~\ref{es:setprecision_next_ops} highlight two important aspects.
-
-\begin{esempio}\label{es:setprecision_global}
-	%The \texttt{setprecision} command changes the default precision globally.
-	The $\mathtt{setprecision}(\mathtt{T}, p)$ call sets the precision of type \texttt{T} to $p$ \emph{globally}. The \texttt{setprecision} command mutates the global state, its effects are visible even outside the block in which the call happens.
-\begin{lstlisting}[language=Julia]
-  # precision(BigFloat) = 256 (default)
-  a = 74	
-  let 
-    a = 42
-    setprecision(BigFloat, 512)
-  end 
-  # a = 74, precision(BigFloat) = 512
-\end{lstlisting}
-	$\mathtt{setprecision}(p)\ \mathtt{do}\ \dots\ \mathtt{end}$ changes the precision to $p$ for the duration of the evaluation of the \texttt{do} block.
-\end{esempio}
-
-\begin{esempio}\label{es:setprecision_next_ops}
-	The \texttt{setprecision} command doesn't retroactively change the precision of already performed computations. Instead, the effects of this command only affect the subsequent \emph{computations} throughout the program.
-\begin{lstlisting}[language=Julia]
-  # In Julia, π is a mathematical constant
-  pi = BigFloat(π) # pi = 3.1415...6198 
-        	   # (78 correct decimal digits)
-  setprecision(BigFloat, 53)
-  pi 		# still displays 78 decimal digits 
-  pi * 1.0	# 3.1415926535897931
-  precision(pi)	# 256
-\end{lstlisting}
-\end{esempio}
-\smallskip 
-
-\noindent Example~\ref{es:big_BigFloat_constructor} llustrate some subtleties in the usage of the \texttt{BigFloat()} and \texttt{big()} constructors.
-\begin{esempio}\label{es:big_BigFloat_constructor}
-	Let $\mathtt{x}$ be a variable or numerical expression of type \texttt{BigFloat}. The $\mathtt{BigFloat}(\mathtt{x})$ and $\mathtt{big}(\mathtt{x})$ constructors work slightly differently.
-	The former returns a value with the precision set to the current working precision; instead $\mathtt{big}(\mathtt{x})$ returns a maximum precision representation of $\mathtt{x}$.
-\begin{lstlisting}[language=Julia]
-  pi = BigFloat(π)
-  setprecision(53) do 
-    big(pi)	 # 3.1415...6198 (78 decimal digits)
-    BigFloat(pi) # 3.1415926535897931
-  end
-\end{lstlisting}
-\end{esempio}
-\smallskip
-
-\noindent The uncareful usage of the \texttt{big} and \texttt{BigFloat} commands can easily lead to some outcomes that may be unintuitive at first. The main one -- which underlies most of the other pitfalls when converting between double and arbitrary precision -- is illustrated in example~\ref{es:float_promotion}. 
-\begin{esempio}\label{es:float_promotion}
-	If $\mathtt{x}$ is not of type \texttt{BigFloat}, then the \texttt{big(x)} and \texttt{BigFloat(x)} constructor try to convert it. The conversion of a double precision number is conceptually simple: the significand of $\mathtt{x}$ is preserved, and the extra lower-order significand bits in the high precision representation are set to zero.  
-\begin{lstlisting}[language=Julia]
-  BigFloat(0.1) # 0.10000000000000000555111512312...
-  big(0.1)	# same as BigFloat(0.1)
-  big(0.0625)	# 1/16 is exactly representable 
-  		# in binary
-\end{lstlisting}
-\end{esempio}
-\smallskip
-
-\noindent Be aware that evaluation happens before promotion, as shown in example~\ref{es:eval_expr}.
-\begin{esempio}\label{es:eval_expr}
-	When calling \texttt{BigFloat()} or \texttt{big()} on an expression, the expression is evaluated first. 
-\begin{lstlisting}[language=Julia]
-  big(1/10) 	# only 17 decimal digits are correct 
-  1 / big(10)	# all 78 decimal digits are correct
-\end{lstlisting}
-	In the first case, since the operands are \texttt{Int64}, $1/10$ was evaluated in double precision, as this is Julia's normal behaviour, the result is then promoted. In the second case, $1$ was promoted to a \texttt{BigInt} and a division between arbitrary precision quantities was performed.
-\end{esempio}
-%\smallskip
-
-\noindent Examples~\ref{es:float_promotion} and~\ref{es:eval_expr} show that neither \texttt{big(0.1)} nor $\mathtt{big(1/10)}$ is either the high precision evaluation of the expression $\mathtt{1/10}$ or the closest \texttt{BigFloat} to the real number $10^{-1}$. 
-The latter can be obtained, in Julia, with \texttt{big(``0.1'')} (or with \texttt{BigFloat(``0.1'')}); but \texttt{big(``1/10'')} and \texttt{BigFloat(``1/10'')} fail.
-\smallskip 
-
-\noindent Example~\ref{es:convert} shows an aspect of the \texttt{convert} command's behaviour that can have a concrete impact in multiprecision computations.
-\begin{esempio}\label{es:convert}
-	The call $\mathtt{convert}(\mathtt{T},x)$ returns a copy unless $x$ is already of type $\mathtt{T}$, in which case an \emph{alias} of $x$ will be returned.
-\begin{lstlisting}[language=Julia]
-  A = rand(BigFloat, 2,2)
-  B = setprecision(53) do 
-    convert(Matrix{BigFloat}, A)
-  end
-  precision(B[1,1])	# 256
-  A === B 		# true 
-  pointer(A) == pointer(B) # true
-\end{lstlisting}
-\end{esempio}
-Much more on conversion and promotion can be found in the Julia documentation~\cite{link:julia_documentation}.
-
-\subsubsection*{Multiprecision linear algebra in Julia}
-Let $A,B\in\R{n}{n}$ such that $A, B$ have elements of type \texttt{BigFloat}. The operations $A+B$, $A\cdot B$, $A^{-1}$ and $A^n$ are natively supported for integer $n$. 
-
-\begin{oss*}
-	We make a few quick observations on the aforementioned operations:
-	\begin{itemize}
-		\item $A+B$ broadcasts the $+$ operation onto the single entries of the matrices 
-		\item Since \textsc{BLAS}~\cite{article:BLAS} for matrix multiplications are available only for single and double precision, the computation of $C=A\cdot B$ is implemented with the naive three-way for loop, using the $i,j,k$ ordering. Julia tries to exploit Instruction Level Parallelism by using the \texttt{@simd} macro on the innermost loop. $C_{i,j}$ is updated by using fused multiply-add operations, implemented by \textsc{mpfr}
-		\item $\mathtt{inv}(A)$ is doable because the $\mathtt{lu}$ command works with $\mathtt{BigFloat}$ matrices out of the box. As before, no \textsc{lapack} routine can be used; the factorization is computed using the gaussian elimination algorithm with pivoting. The lower level arithmetic operations are performed via \textsc{mpfr} calls. 
-		\item $A^n,\ n\in\mathbb{Z}$ calls the $\mathtt{power\_by\_squaring}$ function, which essentially is an implementation of the \emph{binary powering} algorithm~\cite[Alg.~4.1]{higham:matfun_book}. For $n<0$, $\mathtt{inv}(A)^{\abs{n}}$ is computed. 
-	\end{itemize}
-\end{oss*}
-If the exponent $n$ is not an integer, $A^n$ is not doable natively. This is because $A^n$ is computed as $Q\,T^n\,T^r\,Q^{h}$, where $A=QTQ^H$ is a Schur decomposition of $A$, $T^r$ with $r=n-\lfloor n\rfloor$ is computed using the algorithm described in~\cite{higham:hili13}.
-
-The Schur decomposition of matrices with \texttt{BigFloat} elements is available through the \texttt{GenericSchur.jl}~\cite{sw:GenericSchur} library, but is not natively implemented in the language.
-The library also allows the computation of the spectrum of $A$, or in general its eigendecomposition (namely, it gives the ability to run the Julia \texttt{eigvals} and \texttt{eigen} commands). 
-
+\subsection{Scaling and Squaring variants}
+\textcolor{red}{L'idea sarebbe quella di riassumere, elencare i piccoli accorgimenti che negli anni sono stati fatti per migliorare l'algoritmo di base (o per lo meno quelli negli articoli che ho trovato): la tecnica di scaling diversa in~\cite{exptayotf18}, l'uso di $\norm{A^t}^{1/t}$ al posto di $\norm{A}$ nel dare una limitazione superiore all'errore analitico (proposto in~\cite{higham:alhi09_new}), il ricalcolo delle diagonali nella fase di squaring proposto in~\cite{higham:alhi09_new}.}
