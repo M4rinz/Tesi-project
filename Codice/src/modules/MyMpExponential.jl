@@ -1054,7 +1054,7 @@ function exp_mp(
     # precision (digits in MATLAB), ...
     old_prec = precision(BigFloat)
     # oss: se A è double, anche i BigFloats saranno in doppia precisione...
-    setprecision(BigFloat, working_precision)   
+    setprecision(BigFloat, working_precision) do   
     # oss: Taylor è in grado di funzionare anche con Float64 senza mai tirare in ballo 
     #      i BigFloats. Ma questo è un algoritmo in precisione arbitraria...
     A = T <: Real ? BigFloat.(A) : Complex{BigFloat}.(A)  
@@ -1373,9 +1373,8 @@ function exp_mp(
         Y .*= exp(μ)
     end
 
-    setprecision(BigFloat, old_prec)
-
     return Y, times, ExpMpParams(m,s,δ,ψ,κ_A,epsilon)  
+    end # setprecision
 end
 
 export exp_mp
