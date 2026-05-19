@@ -68,8 +68,74 @@ Af_B + Bf_B;
 print(msg_moral)
 
 
-## Does the matmul cost depend on the precision?
+## Does the cost of the product between BigFloat scalars depend on the precision?
 using Plots, Printf
+
+precs = range(53, 1024; length=10) .|> Int64 ∘ floor
+
+medie, stdevs = [], []
+
+for pr in precs 
+      setprecision(pr) do 
+            a = rand(BigFloat)
+            b = rand(BigFloat)
+            a + b;      # precompile
+            benchmark = @benchmark $a + $b;
+
+            push!(medie, mean(benchmark));
+            push!(stdevs, std(benchmark));
+      end
+end 
+
+y_times  = time.(medie) #./ 1e6
+y_memory = memory.(medie) #./ (2 << 19)
+y_allocs = allocs.(medie)
+
+X = [ones(length(precs)) precs];
+β_time   = X \ y_times;
+β_memory = X \ y_memory;
+β_allocs = X \ y_allocs;
+
+pl1 = plot(precs, y_times,
+     yerror=time.(stdevs) ,#./ 1e6,
+     xlabel="Precision (bits)",
+     ylabel="Time (ns)",
+     label="Measured time",
+     title="Execution time",
+     marker = :o)
+plot!(pl1, precs, X * β_time,
+      label= @sprintf("Best fit (slope = %.2f)", β_time[2]),
+      linewidth=2)
+
+pl2 = plot(precs, y_memory,
+           xlabel="Precision (bits)",
+           ylabel="Memory (Bytes)",
+           label="Measured memory usage",
+           title="Memory usage",
+           marker=:o)
+plot!(pl2, precs, X * β_memory,
+      label= @sprintf("Best fit (slope = %.2f)", β_memory[2]),
+      linewidth=2)
+
+pl3 = plot(precs, y_allocs,
+           xlabel="Precision (bits)",
+           ylabel="Allocations (n°)",
+           label="Measured allocations",
+           title="Number of Allocations",
+           marker=:o)
+plot!(pl3, precs, X * β_allocs,
+      label= @sprintf("Best fit (slope = %.2f)", β_allocs[2]),
+      linewidth=2)
+
+plot(pl1, pl2, pl3;
+     layout = (2, 2),
+     size = (1000, 900),
+     plot_title = "BigFloat sum cost",
+     left_margin = 5Plots.mm,
+     bottom_margin = 5Plots.mm)
+
+
+## Does the matmul cost depend on the precision?
 
 precs = range(53, 1024; length=10) .|> Int64 ∘ floor
 
