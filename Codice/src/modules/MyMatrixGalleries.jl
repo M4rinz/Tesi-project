@@ -4,6 +4,7 @@ using LinearAlgebra
 using TypedMatrices
 using Polynomials
 using Random
+using SparseArrays
 
 
 ############### Costruire matrici programmaticamente ###############
@@ -123,12 +124,15 @@ end
 ############### Funzioni usate da Fasi e Higham ###############
 
 """
-    A, id, n_matrices = FasiMatrices(k, T=Float64)
+    A, Y_true, id, n_matrices = FasiMatrices(k, T=Float64)
 
 Returns `A`, the `k`th matrix in a test set that has been used 
 to evaluate algorithm in [^hf19_mpexpm]. 
 `n_matrices` is the total number of matrices in such set (i.e. 18).
-`id` is an identifier of `A`: for this function, it coincides with `k`
+`id` is an identifier of `A`: for this function, it coincides with `k`.
+For some matrices, the true exponential of ``A`` is available: this is `Y_true`.
+In the other cases, `Y_true = nothing`.
+
 The original MATLAB code can be found 
 [in this repo](https://github.com/mfasi/mpexpm/blob/master/include/mymatrices.m)
 
@@ -145,9 +149,11 @@ function FasiMatrices(
     T::DataType=Float64
 )
     n_mats = 18
+
+    Y_true = nothing
     
     if k < 1 
-        return [], k, n_mats
+        return [], Y_true, k, n_mats
     end
 
     epsilon = eps(real(T))
@@ -159,10 +165,19 @@ function FasiMatrices(
     elseif k == 3
         A = [10 0 0; 0 1 1; 0 1 1 + 10 * epsilon]
     elseif k == 4
-        A = zeros(10, 10)
+        A      = zeros(10, 10)
+        Y_true = zeros(10, 10)
+
         accum = 0
         for i = 1:4
             A[accum+1:accum+i,accum+1:accum+i] = Tridiagonal(0*ones(i-1),i*ones(i),ones(i-1))
+            # we use the fact that is a Jordan block
+            for k = 1:i 
+                expλ = exp(A[accum+k,accum+k])
+                #Y_true[accum+k, accum+k] = 
+                row = [1/factorial(j) for j=0:(i-k)]
+                Y_true[accum+k, accum+k:accum+i] = expλ * row
+            end
             accum += i
         end
     elseif k == 5
@@ -182,10 +197,13 @@ function FasiMatrices(
                      vcat(16-3im, -5, zeros(n_local - 2)))
     elseif k == 10
         A = [1 1; 0 1e2]
+        Y_true = [exp(1) expm1(1e2)/99; 0 exp(1e2)]
     elseif k == 11
         A = [1 1e3; 1e3 1]
     elseif k == 12
         A = [1 2 3; 1 2 3; 1 2 3]
+        divdiff = (exp(3+2+1) - 1) / (3+2+1)
+        Y_true = I(3) + divdiff*A
     elseif k == 13
         t = -π / 2
         A = [cos(t) -sin(t); sin(t) cos(t)]
@@ -202,10 +220,10 @@ function FasiMatrices(
         A = [1 1 1 0.1; 1 1 1 10 * epsilon; 1 1 1 100 * epsilon; 1 1 1 1000 * epsilon]
     else 
         #error("k can be at most $(n_mats)")
-        return [], n_mats
+        return [], Y_true, k, n_mats
     end
     
-    return A, k, n_mats
+    return A, Y_true, k, n_mats
 end
 
 
@@ -301,7 +319,7 @@ function expm_testmats(
              -1e4 0]  # exp = [cos(x) sin(x); - sin(x) cos(x)], x = 100;
     elseif k == 11
         id = "nilpotent"
-        A = 1e2 * triu(randn(n), 1)  # Nilpotent.
+        A = 1e2 * triu(randn(n,n), 1)  # Nilpotent.
     elseif k == 12
         # log of Cholesky factor of Pascal matrix. See \cite{edst03}.
         id = "edst03_pascal_chol"
@@ -367,16 +385,16 @@ function expm_testmats(
     elseif k == 21
         # \cite[(21)]{mopa03}.
         id = "mopa03_21"
-        Thalf = [3.8235 * 60 * 24 3.10 26.8 19.9] / 60  # Half lives in seconds/
+        Thalf = [3.8235 * 60 * 24, 3.10, 26.8, 19.9] / 60  # Half lives in seconds/
         a = log.(2) ./ Thalf  # decay constant
-        A = diagm(-a) + diagm(-1 => a[1:end-1])
+        A = diagm(0=>-a, -1 => a[1:end-1])
     elseif k == 22
         # \cite[(26)]{mopa03}.
         id = "mopa03_26"
         a1 = 0.01145
         a2 = 0.2270
         A = [-a1              0  0
-             0.3594 * a1     -a2  0
+             0.3594 * a1    -a2  0
              0.6406 * a1     a2  0]
     elseif k == 23
         # \cite[Table 1]{kase99}.
@@ -438,7 +456,9 @@ function expm_testmats(
         A = 10 * [0 1 2; -0.01 0 3; 0 0 0]
     elseif k == 31
         id = "invol_13_complex"
-        A = triu(schur(Invol(13), "complex"), 1)
+        F = schur(Matrix(Involutory(13)))
+        F = Schur{Complex}(F)
+        A = triu(F.T, 1)
     elseif k == 32
         # \cite{kuda10}
         id = "kuda10"
@@ -510,13 +530,14 @@ function expm_testmats(
              -1.906345381077957e-05
              1.906345381077957e-05
              -1.212838692746004e-09])
+        A = Matrix(A)   # non ho voglia di gestire queste cose
     elseif k == 38
         # \cite[Benchmark #6]{lara17}
         # \cite[Problem 6]{zhao17}
         id = "lara17_benchmark6"
         A = sparse(
-            [1  1  2  2  2  3  3  3  4  5  5  6  6  7  7  8  8],
-            [1  4  1  2  4  2  3  4  4  4  5  5  6  6  7  7  8],
+            [1,  1,  2,  2,  2,  3,  3,  3,  4,  5,  5,  6,  6,  7,  7,  8,  8],
+            [1,  4,  1,  2,  4,  2,  3,  4,  4,  4,  5,  5,  6,  6,  7,  7,  8],
             [-2.930607054625170e-05
              1.292290622141271e-07
              2.446793135977101e-05
@@ -534,6 +555,7 @@ function expm_testmats(
              -1.000000091101239e-05
              1.000000000000000e-05
              -3.347737955438215e-12])
+        A = Matrix(A)
     else
         return [], Y_true, "EMPTY", n_mats
     end
