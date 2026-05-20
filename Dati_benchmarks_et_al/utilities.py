@@ -4,7 +4,8 @@ import seaborn as sns
 
 def produce_plot(
         df:pd.DataFrame,
-        ax
+        ax,
+        window=None
     ) -> None:
     # sort rows by value of u * k
     df_sorted = df.loc[(df["epsilon"] * df["cond_expA_F"]).sort_values(ascending=False).index]
@@ -17,10 +18,22 @@ def produce_plot(
     df_sorted["hue"] += df_sorted["approximant"].map(
             lambda a: "_"+"".join([x[0] for x in a.split("_")])
         )
+    df_sorted["err_ubound"] = df_sorted["epsilon"]*df_sorted["cond_expA_F"]
+
+    if window:
+        low, up = window
+        if up < low:
+            raise ValueError("Invalid window: upper bound is greater than lower bound")
+        df_sorted["rel_err_F"] = df_sorted["rel_err_F"].map(
+            lambda x: x if low<=x<=up else (up if x>up else low)
+        )
+        df_sorted["err_ubound"] = df_sorted["err_ubound"].map(
+            lambda x: x if low<=x<=up else (up if x>up else low)
+        )
 
     sns.scatterplot(x=range(len(df_sorted)), y=df_sorted["rel_err_F"],
                     ax=ax, hue=df_sorted["hue"], style=df_sorted["hue"])
-    ax.plot(range(len(df_sorted)), y=df_sorted["epsilon"]*df_sorted["cond_expA_F"],
+    ax.plot(range(len(df_sorted)), df_sorted["err_ubound"],
             color="teal", alpha = 0.8, label="k * u")
     
     ax.set_xlabel("Matrix", fontsize=12)
