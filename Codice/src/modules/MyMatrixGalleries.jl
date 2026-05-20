@@ -564,7 +564,7 @@ function expm_testmats(
 end
 
 """
-    A, id, n_matrices = gallery_getall_expm(k, n)
+    A, id, n_matrices = gallery_getall_expm(k, n=10)
 """
 function gallery_getall_expm(
     k::Integer,
@@ -598,26 +598,26 @@ function gallery_getall_expm(
         C = [1  1 - 2*alpha^(-1)    -2
              0      alpha^(-1)   -alpha^(-1) 
              0        0             1]
-        A = [A                  zeros(3,inner_n-3)
+        A = [C                  zeros(3,inner_n-3)
             zeros(inner_n-3,3)  I(inner_n-3)]
     elseif k == 4
         #gallery("condex", n,3) # k=3, alpha=100
-        id = "condex__$n_3_100"
+        id = "condex__$(n)_3_100"
         A = UnitLowerTriangular(-ones(n,n))
     elseif k == 5
         # condex (symmetric real)
         #gallery("condex", n,4,100)
-        id = "condex__$n_4_100"
+        id = "condex__$(n)_4_100"
         #\cite{high88f} (FORTRAN codes etc etc)
         alpha = 100
         C = create_C_condex(n)  # sicuramente non sarà il modo usato
                                 # nel MATLAB originale
         A = I(n) + alpha*C
     elseif k == 6
-        id = "dorr_$n_100.0"
+        id = "dorr_$(n)_100.0"
         A = Dorr(n, 100.0)
     elseif k == 7
-        id = "dramadah_$n_2"
+        id = "dramadah_$(n)_2"
         A = Dramadah(n, 2)
     elseif k == 8
         id = "frank_$n"
@@ -638,7 +638,7 @@ function gallery_getall_expm(
         id = "invhess_$n"
         A = Invhess(n)
     elseif k == 14
-        id = "jordbloc_$n_1"
+        id = "jordbloc_$(n)_1"
         A = JordBloc(n, 1) # (symmetric real)
     elseif k == 15
         id = "kahan_$n"
@@ -662,7 +662,7 @@ function gallery_getall_expm(
         id = "poisson_$(ceil(Int, sqrt(n)))"
         A = Poisson(ceil(Int, sqrt(n)))# (symmetric real, n^2)
     elseif k == 22
-        id = "prolate_$n_1.0"
+        id = "prolate_$(n)_1.0"
         A = Prolate(n, 1.)  # (symmetric real Toeplitz)
     elseif k == 23
         id = "randcorr_$n"
@@ -674,7 +674,7 @@ function gallery_getall_expm(
         id = "toeppd_$n"
         A = Toeppd(n)   # (symmetric real)
     elseif k == 26
-        id = "symtridiagonal_$n_2_-1"
+        id = "symtridiagonal_$(n)_2_-1"
         A = SymTridiagonal(2*ones(n), -ones(n-1))
         #A = Matrix(A)
     elseif k == 27
@@ -701,7 +701,7 @@ function gallery_getall_expm(
         v, beta = create_H_house(n) # v is 1 dimensional!
         A = I(n) .- beta * (v * v')
     elseif k == 34
-        id = "jordbloc_$n_2"
+        id = "jordbloc_$(n)_2"
         A = JordBloc(n, 2)
     elseif k == 35
         id = "kms_$n"
@@ -713,19 +713,19 @@ function gallery_getall_expm(
         id = "lotkin_$n"
         A = Lotkin(n)
     elseif k == 38
-        id = "orthog_$n_1"
+        id = "orthog_$(n)_1"
         A = Orthog(n, 1)
     elseif k == 39
-        id = "orthog_$n_2"
+        id = "orthog_$(n)_2"
         A = Orthog(n, 2)
     elseif k == 40
-        id = "orthog_$n_5"
+        id = "orthog_$(n)_5"
         A = Orthog(n, 5)
     elseif k == 41
-        id = "orthog_$n_6"
+        id = "orthog_$(n)_6"
         A = Orthog(n, 6)
     elseif k == 42
-        id = "orthog_$n_-1"
+        id = "orthog_$(n)_-1"
         A = Orthog(n, -1)
     elseif k == 43
         id = "redheff_$n"
@@ -734,13 +734,13 @@ function gallery_getall_expm(
         id = "riemann_$n"
         A = Riemann(n)
     elseif k == 45
-        id = "ris_$n_1e1"
-        A = RIS(n, 1e1)
+        id = "ris_$(n)"
+        A = RIS(n)  # nel MATLAB è gallery("ris",n,1e1) ma 1e1 non fa nulla
     elseif k == 46
         id = "wilkinson_21"
         A = Wilkinson(21)
     elseif k == 47
-        id = "clement_$n_1"
+        id = "clement_$(n)_1"
         A = Clement(n, 1)
     elseif k == 48
         id = "chebspec_$n"
@@ -759,33 +759,33 @@ function gallery_getall_expm(
         id = "cycol_$n"
         A = Cycol(n)
     elseif k == 53
-        id = "dramadah_$n_1"
+        id = "dramadah_$(n)_1"
         A = Dramadah(n, 1)
     elseif k == 54
-        id = "dramadah_$n_3"
+        id = "dramadah_$(n)_3"
         A = Dramadah(n, 3)
     elseif k == 55
         id = "forsythe_$n"
         A = Forsythe(n)
     elseif k == 56
-        id = "leslie_$n_1"
+        id = "leslie_$(n)_1"
         A = Leslie(n)
     elseif k == 57
-        id = "leslie_$n_2"
+        id = "leslie_$(n)_2"
         A = Leslie(n)
     elseif k == 58
         # uso Xoshiro(10) solo perché il codice originale
         # usa 10 come seed. 
-        id = "randn_xoshiro10_$nx$n"
+        id = "randn_xoshiro10_$(n)x$(n)"
         A = randn(Xoshiro(10), (n,n))
     elseif k == 59
-        id = "orthog_complex_$n_3"
+        id = "orthog_complex_$(n)_3"
         A = Orthog{ComplexF64}(n, 3)
     elseif k == 60
-        id = "orthog_$n_4"
+        id = "orthog_$(n)_4"
         A = Orthog(n, 4)
     elseif k == 61
-        id = "orthog_$n_-2"
+        id = "orthog_$(n)_-2"
         A = Orthog(n, -2)
     elseif k == 62
         id = "randcolu_$n"
@@ -795,45 +795,45 @@ function gallery_getall_expm(
         # LO SO, sicuramente quella che sto per restituire NON è
         # veramente una matrice di Hessenberg random (diciamo rispetto)
         # a una misura che abbia senso sulle matrici (Hessenberg)
-        A = hessenberg(rand(n,n))
+        A = hessenberg(rand(n,n)).H
     elseif k == 64
-        id = "rando_$n_1"
+        id = "rando_$(n)_1"
         A = Rando(n, 1)
     elseif k == 65
-        id = "rando_$n_2"
+        id = "rando_$(n)_2"
         A = Rando(n, 2)
     elseif k == 66
-        id = "rando_$n_3"
+        id = "rando_$(n)_3"
         A = Rando(n, 3)
     elseif k == 67
-        id = "randsvd_$n_1.0"
+        id = "randsvd_$(n)_1.0"
         A = RandSVD(n, 1.)
     elseif k == 68
-        id = "randsvd_$n_2.0"
+        id = "randsvd_$(n)_2.0"
         A = RandSVD(n, 2.)
     elseif k == 69
-        id = "randsvd_$n_3.0"
+        id = "randsvd_$(n)_3.0"
         A = RandSVD(n, 3.)
     elseif k == 70
-        id = "randsvd_$n_4.0"
-        A = Randsvd(n, 4.)
+        id = "randsvd_$(n)_4.0"
+        A = RandSVD(n, 4.)
     elseif k == 71
-        id = "randsvd_$n_5.0"
-        A = Randsvd(n, 5.)
+        id = "randsvd_$(n)_5.0"
+        A = RandSVD(n, 5.)
     elseif k == 72
         id = "smoke_$n"
         A = Smoke(n)
     elseif k == 73
-        id = "smoke_$n_1"
+        id = "smoke_$(n)_1"
         A = Smoke(n, 1)
     elseif k == 74
         id = "toeppen_$n"
         A = Toeppen(n)
     elseif k == 75
-        id = "uniformdata_$n_1000"
+        id = "uniformdata_$(n)_1000"
         # uso Xoshiro(1000) solo perché il codice originale
         # usa 1000 come seed.
-        A = rand(Xoshiro(1000), (n,n))
+        A = rand(Xoshiro(1000), n,n)
     elseif k == 76
         id = "gearmat_$n"
         A = GearMat(n)

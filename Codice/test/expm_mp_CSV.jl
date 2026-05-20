@@ -67,10 +67,10 @@ end
 
 
 ############## Files per runnare esperimenti e scrivere su CSV ##############
-csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.3alpha-19_05.csv")
+csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.3alpha-20_05.csv")
 
 const CSV_HEADER = [
-    "kind", "n", "eltype",
+    "kind", "n", "eltype", "ishermitian",
     "approximant", "algorithm",
     "schur_time", "alpha_time", "eval_bound_time",
     "eval_pade_time", "squaring_time", "total_time",
@@ -137,7 +137,7 @@ function run_and_record(
     condA_2 = cond(A_low, 2)
 
     # write data relative to Y_base
-    row = [kind, string(n), string(T), 
+    row = [kind, string(n), string(T), ishermitian(A),
             "scaling_and_squaring", "NaN",
             schur_time, alpha_time, eval_bound_time, 
             eval_pade_time, squaring_time, total_time, 
@@ -205,7 +205,7 @@ function run_and_record(
             end
 
             # write data
-            row = [kind, string(n), string(T), 
+            row = [kind, string(n), string(T), ishermitian(A),
                    string(approximant), string(alg),
                    schur_time, alpha_time, eval_bound_time, 
                    eval_pade_time, squaring_time, total_time, 
@@ -254,6 +254,17 @@ for k=1:n_matrices
         run_and_record(id, A, Y_true)
     end
 end
+
+
+## fifth experiment: matrices from `gallery_getall_expm`
+_, _, n_matrices = gallery_getall_expm(-42)
+for k=1:n_matrices 
+    A, id, _ = gallery_getall_expm(k)
+    run_and_record(id, A, nothing)
+end
+
+
+
 
 
 

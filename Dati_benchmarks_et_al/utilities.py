@@ -20,7 +20,7 @@ def produce_plot(
 
     sns.scatterplot(x=range(len(df_sorted)), y=df_sorted["rel_err_F"],
                     ax=ax, hue=df_sorted["hue"], style=df_sorted["hue"])
-    ax.plot(range(len(df_sorted)), df_sorted["epsilon"]*df_sorted["cond_expA_F"],
+    ax.plot(range(len(df_sorted)), y=df_sorted["epsilon"]*df_sorted["cond_expA_F"],
             color="teal", alpha = 0.8, label="k * u")
     
     ax.set_xlabel("Matrix", fontsize=12)
