@@ -1015,8 +1015,7 @@ end
 @inline update_epsilon(ϵ, factor, ::Val{true})  = ϵ
 
 
-
-
+@inline my_eps(::Type{T}) where {T} = eps(real(big(float(T))))
 
 
 
@@ -1052,9 +1051,10 @@ function exp_mp(
     times = zeros(5)
 
     # precision (digits in MATLAB), ...
-    old_prec = precision(BigFloat)
     # oss: se A è double, anche i BigFloats saranno in doppia precisione...
-    setprecision(BigFloat, working_precision) do   
+    old_prec = precision(BigFloat)
+    try
+    setprecision(BigFloat, working_precision)
     # oss: Taylor è in grado di funzionare anche con Float64 senza mai tirare in ballo 
     #      i BigFloats. Ma questo è un algoritmo in precisione arbitraria...
     A = T <: Real ? BigFloat.(A) : Complex{BigFloat}.(A)  
@@ -1063,7 +1063,7 @@ function exp_mp(
 
     # epsilon
     if isnothing(epsilon)
-        epsilon = eps(real(float(T)))
+        epsilon = my_eps(T)
     end
     ζ = epsilon^(-1/8)  # normqinv_bound
     use_abs_err_flag = Val(use_abs_err)
@@ -1374,7 +1374,9 @@ function exp_mp(
     end
 
     return Y, times, ExpMpParams(m,s,δ,ψ,κ_A,epsilon)  
-    end # setprecision
+    finally #
+        setprecision(BigFloat, old_prec)
+    end
 end
 
 export exp_mp
