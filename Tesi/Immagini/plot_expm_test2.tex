@@ -1,0 +1,106 @@
+\documentclass[tikz,border=5pt]{standalone}
+
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\usetikzlibrary{decorations.pathreplacing}
+
+\begin{document}
+	
+	\begin{tikzpicture}
+
+		% Function definition & plotting
+		\def\myfunc#1{0.2*exp(#1-2.)+0.3}
+		
+		\begin{axis}[
+			width=8cm,
+			height=5cm,
+			xmin=0,
+			xmax=6,
+			ymin=0,
+			ymax=5.5,
+			xtick={1.5,3,4.5},
+			ytick={0.5,2,3.5},
+			xticklabels=\empty,
+			yticklabels=\empty,
+			axis lines=middle,,
+			clip=false,
+			]
+			
+			% Plot the curve
+			\addplot[
+			domain=0:5,
+			samples=200,
+			%thick,
+			black
+			]
+			{\myfunc{x}};
+			
+			% Important points
+			\pgfmathsetmacro{\expAx}{3.85}
+			\pgfmathsetmacro{\expAy}{\myfunc{\expAx}}
+				
+			\pgfmathsetmacro{\expAtildex}{4.5}
+			\pgfmathsetmacro{\expAtildey}{\myfunc{\expAtildex}}		
+	
+			% Other y-levels	
+			\pgfmathsetmacro{\Ytrue}{2}
+			\pgfmathsetmacro{\Yhaty}{\expAtildey+0.77}
+
+		
+			% Coordinates
+			\coordinate (A)          at (\expAx,0);
+			\coordinate (Acurve)     at (\expAx,\expAy);
+			\coordinate (ExpA)       at (0,\expAy);
+			
+			\coordinate (YtrueCoord) at (0,\Ytrue);		
+					
+			\coordinate (Atilde)     at (\expAtildex,0);
+			\coordinate (AtldCurve)  at (\expAtildex,\expAtildey);
+			\coordinate (ExpAtilde)  at (0,\expAtildey);		
+			
+			\coordinate (YhatCoord)  at (0,\Yhaty);
+			\coordinate (ExpHat)	 at (\expAtildex,\Yhaty);
+		
+			
+			% Black dotted lines
+			\draw[dashed] (Atilde) -- (AtldCurve);
+			\draw[dashed] (ExpAtilde) -- (AtldCurve);
+			\draw[densely dotted] (YhatCoord) -- (\expAtildex,\Yhaty);
+			
+			% Red dotted lines
+			\draw[red,densely dotted] (A) -- (Acurve);
+			\draw[red,densely dotted] (ExpA) -- (Acurve);
+			
+			% Dots
+			\fill (ExpHat) circle (1pt);
+			%\fill[red] (A) circle (1pt);
+		
+			% Labels on x-axis and y-axis
+			\node[below, red, font=\tiny] at (A) {$A$};
+			\node[below, font=\tiny] at (Atilde) {$\tilde A$};
+					
+			\node[above left, font=\tiny] at (YhatCoord) {$\hat Y$};
+			\node[left, font=\tiny] at (ExpAtilde) {$\exp(\tilde{A})$};
+			\node[left, font=\tiny] at (YtrueCoord) {$Y_{\mathrm{true}}$};
+			\node[left, red, font=\tiny] at (ExpA) {$\exp(A)$};
+		
+		%================================================
+		% Brace and annotations
+		%================================================
+		
+		% \draw[
+		%     decorate,
+		%     decoration={brace, amplitude=7pt}
+		% ]
+		%     (0.7,\Atildey) -- (0.7,\Ytrue)
+		%     node[midway, right=8pt, align=left]
+		%     {What we measure instead};
+		
+		% \node[left, align=right] at (-0.7,3.0)
+		%     {What we\\should\\measure};
+		
+		\end{axis}
+	\end{tikzpicture}
+	
+\end{document}
