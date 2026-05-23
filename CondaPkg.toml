@@ -1,0 +1,5 @@
+
+[pip.deps]
+mpmath = ""
+[deps]
+numpy = ""
