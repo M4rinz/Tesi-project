@@ -13,6 +13,16 @@ using .MyMpExponential, .MyHelper, .MyMatrixGalleries
 
 Random.seed!(42)
 
+## Setup for Python, mpmath etc
+const Y_TRUE_PREC = 1024
+
+using PythonCall
+
+mpmath = pyimport("mpmath")
+numpy  = pyimport("numpy")
+
+mpmath.mp.prec = Y_TRUE_PREC
+
 
 ## Define parameters and useful stuff
 
@@ -65,9 +75,91 @@ end
 
 
 
+function compute_reference_solution(
+    A, 
+    target_prec=Y_TRUE_PREC;
+    max_iters=10
+)
+    target_thresh = 2.0^(-target_prec)
+    alg_precision = 256
+
+    n_iter = 0
+
+    Y_prev,_,_ = exp_mp(A, working_precision=alg_precision)
+    while n_iter < max_iters
+        Y_curr,_,_ = exp_mp(A, working_precision=2*alg_precision)
+
+        if !all(isfinite, Y_curr)
+            error("Non-finite result encountered!")
+        end
+        
+        max_componentwise_err = maximum(sym_err.(Y_prev, Y_curr))
+
+        if max_componentwise_err < target_thresh
+            break
+        end  
+
+        Y_prev = Y_curr
+        alg_precision *= 2
+        n_iter += 1
+
+        @printf("Iter=%d, prec=%d, err=%.6g\n", n_iter, alg_precision, max_componentwise_err)
+    end
+    print("Required $(n_iter) iterations.\n")
+
+    return Y_prev, "exp_mp_$(alg_precision/2)"
+end
+
+
+
+function python_matrix_from_julia(A::Matrix{T}) where {T<:Real}
+    if T == BigFloat
+        Apy = pyrowlist(mpmath.mpf.(string.(A)))
+    else 
+        Apy = pyrowlist(mpmath.mpf.(A))
+    end
+    Apy = mpmath.matrix(Apy)
+
+    return Apy
+end
+
+function python_matrix_from_julia(A::Matrix{T}) where {T<:Complex}
+    if T == BigFloat
+        Apy = pyrowlist(mpmath.mpc.(string.(real(A)), string.(imag(A))))
+    else    
+        Apy = pyrowlist(mpmath.mpc.(real(A), imag(A)))
+    end
+    Apy = mpmath.matrix(Apy)
+
+    return Apy
+end
+
+function python_matrix_from_julia end
+
+
+function compute_refsol_python(A::Matrix{T}) where {T}
+    Apy = python_matrix_from_julia(A)
+
+    Y_true_py = mpmath.expm(Apy)
+
+    #Y_true = pyconvert(Matrix, Y_true_py) #returns Matrix{Float64} unfortunately
+
+    Y_true = map(x->pyconvert(big(T),x), Y_true_py)   # converte in un array Julia
+
+    # a volte la conversione non restituisce 
+    if Y_true isa Vector
+        n = sqrt(length(Y_true)) |> Int
+        Y_true = reshape(Y_true, (n,n))
+        Y_true = permutedims(Y_true)    # necessario, credo, poiché Python è row-major
+    end
+
+    return Y_true, "mpmath_$(Y_TRUE_PREC)"
+end
+
+
 
 ############## Files per runnare esperimenti e scrivere su CSV ##############
-csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.3alpha-20_05.csv")
+csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.4alpha-23_05.csv")
 
 const CSV_HEADER = [
     "kind", "n", "eltype", "ishermitian",
@@ -108,7 +200,8 @@ function run_and_record(
     # compute reference solution, if not given
     if isnothing(Y_true)
         #print("precision before compute_Ytrue = $(precision(BigFloat))\n")
-        Y_true, Ytrue_method = compute_Ytrue(A)
+        #Y_true, Ytrue_method = compute_Ytrue(A)
+        Y_true, Ytrue_method = compute_refsol_python(Matrix(A))
         #print("precision after compute_Ytrue = $(precision(BigFloat))\n")
     else 
         Ytrue_method = "given"
@@ -232,29 +325,26 @@ for n in [8, 24] #[16, 64, 256]
     run_and_record("rand_big", A)
 end
 
-
 ## Third experiment: Fasi's matrices
 _, _, _, n_matrices = FasiMatrices(-42) 
 for k=1:n_matrices
-    A, Y_true, k, _ = FasiMatrices(k)
+    A, Y_true, k, _ = FasiMatrices(k, Y_true_precision=Y_TRUE_PREC)
     run_and_record("Fasi_$k", A, Y_true)
 end
-
 
 ## Fourth experiment: matrices from `expm_testmats` 
 _, _, _, n_matrices = expm_testmats(-42)
 for k=1:n_matrices
     if k in [11, 12, 32] # dipendono da n
         for n in [4, 24]
-            A, Y_true, id, _ = expm_testmats(k, n)
+            A, Y_true, id, _ = expm_testmats(k, n, Y_true_precision=Y_TRUE_PREC)
             run_and_record(id, A, Y_true)
         end
     else 
-        A, Y_true, id, _ = expm_testmats(k)
+        A, Y_true, id, _ = expm_testmats(k, Y_true_precision=Y_TRUE_PREC)
         run_and_record(id, A, Y_true)
     end
 end
-
 
 ## fifth experiment: matrices from `gallery_getall_expm`
 _, _, n_matrices = gallery_getall_expm(-42)

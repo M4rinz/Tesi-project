@@ -146,7 +146,8 @@ All credits to the original authors (N. J. Higham and M. Fasi).
 function FasiMatrices(
     k::Integer,
     n::Integer=10,
-    T::DataType=Float64
+    T::DataType=Float64;
+    Y_true_precision=2048
 )
     n_mats = 18
 
@@ -158,6 +159,7 @@ function FasiMatrices(
 
     epsilon = eps(real(T))
 
+    setprecision(Y_true_precision) do 
     if k == 1
         A = Tridiagonal([-1], [-2, -2], [1])
     elseif k == 2
@@ -166,27 +168,29 @@ function FasiMatrices(
         A = [10 0 0; 0 1 1; 0 1 1 + 10 * epsilon]
     elseif k == 4
         A      = zeros(10, 10)
-        Y_true = zeros(10, 10)
+        Y_true = zeros(BigFloat, 10, 10)
 
         accum = 0
         for i = 1:4
             A[accum+1:accum+i,accum+1:accum+i] = Tridiagonal(0*ones(i-1),i*ones(i),ones(i-1))
             # we use the fact that is a Jordan block
             for k = 1:i 
-                expλ = exp(A[accum+k,accum+k])
+                expλ = exp(big(A[accum+k,accum+k]))
                 #Y_true[accum+k, accum+k] = 
-                row = [1/factorial(j) for j=0:(i-k)]
+                row = [1/factorial(big.(j)) for j=0:(i-k)]
                 Y_true[accum+k, accum+k:accum+i] = expλ * row
             end
             accum += i
         end
     elseif k == 5
         n_local = 10
-        D = diagm([zeros(n_local - 1); 1])
+        D = Diagonal([zeros(n_local - 1); 1])
         Q = triu(ones(n_local, n_local))
         A = Q * D / Q
+        #Y_true = Q * exp(big.(D)) / Q
     elseif k == 6
         A = diagm([0, 1, 1e6])
+        Y_true = exp(Diagonal([0, 1, big(1e6)]))
     elseif k == 7
         A = [1e-4 0; 0 1e4]
     elseif k == 8
@@ -197,13 +201,14 @@ function FasiMatrices(
                      vcat(16-3im, -5, zeros(n_local - 2)))
     elseif k == 10
         A = [1 1; 0 1e2]
-        Y_true = [exp(1) expm1(1e2)/99; 0 exp(1e2)]
+        Y_true = [exp(big(1)) expm1(big(1e2))/99 
+                    0           exp(big(1e2))]
     elseif k == 11
         A = [1 1e3; 1e3 1]
     elseif k == 12
         A = [1 2 3; 1 2 3; 1 2 3]
-        divdiff = (exp(3+2+1) - 1) / (3+2+1)
-        Y_true = I(3) + divdiff*A
+        divdiff = (expm1(big(3)+2+1)) / (3+2+1)
+        Y_true = I(3) + divdiff*big.(A)
     elseif k == 13
         t = -π / 2
         A = [cos(t) -sin(t); sin(t) cos(t)]
@@ -222,8 +227,8 @@ function FasiMatrices(
         #error("k can be at most $(n_mats)")
         return [], Y_true, k, n_mats
     end
-    
     return A, Y_true, k, n_mats
+    end # setprecision
 end
 
 
@@ -252,7 +257,8 @@ All credits to the original authors (N. J. Higham, M. Fasi and A. Al Mohy).
 """
 function expm_testmats(
     k::Integer, 
-    n::Integer=10
+    n::Integer=10;
+    Y_true_precision=2048
 )
     n_mats = 38
 
@@ -262,10 +268,18 @@ function expm_testmats(
         return [], Y_true, "EMPTY", n_mats
     end
 
+    setprecision(Y_true_precision) do 
     if k == 1
         # \cite[Test 1]{ward77}.
         id = "ward77_test1"
         A = [4 2 0; 1 4 1; 1 1 4]
+        V = [-2 4 1; 1 -3 1; 1 0 1]
+        #J = [3 1 0; 0 3 0; 0 0 6]
+        el = exp(big(3))
+        expJ = [el el 0
+                0  el 0
+                0  0  exp(6)]
+        Y_true = V * expJ / V
     elseif k == 2
         # \cite[Test 2]{ward77}.
         id = "ward77_test2"
@@ -278,6 +292,9 @@ function expm_testmats(
         A = [-131 19 18;
              -390 56 54;
              -387 57 52]
+        #V = [1 1 1; 3 3 4; 3 4 3]
+        #D = Diagonal([-20, -2, -1])
+        #Y_true = V * exp(big.(D)) / V
     elseif k == 4
         # \cite[Test 4]{ward77}.
         id = "ward77_test4"
@@ -286,12 +303,15 @@ function expm_testmats(
         # \cite[p. 370]{naha95}.
         id = "naha95_p370"
         T = [1 10 100; 1 9 100; 1 11 99]
-        A = T * [0.001 0 0; 0 1 0; 0 0 100] / T
+        D = [0.001 0 0; 0 1 0; 0 0 100] 
+        A = T * D / T
+        #Y_true = T * exp(big.(Diagonal(D))) / T
     elseif k == 6
         # \cite[Ex.~2]{kela98}.
         id = "kela98_ex2"
         A = [0.1 1e6; 0 0.1]
-        Y_true = [exp(0.1) 1e6*exp(0.1); 0 exp(0.1)]
+        el = exp(big(0.1))
+        Y_true = [el 1e6*el; 0 el]
     elseif k == 7
         # \cite[p.~655]{kela98}.
         id = "kela98_p655"
@@ -561,6 +581,7 @@ function expm_testmats(
     end
 
     return A, Y_true, id, n_mats
+    end #setprecision
 end
 
 """
