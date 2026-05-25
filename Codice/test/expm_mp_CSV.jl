@@ -66,7 +66,10 @@ function compute_Ytrue(A)
         Y_true, _, _ = exp_mp(A, working_precision=Y_TRUE_PREC)
         method = "exp_mp_$(Y_TRUE_PREC)"
     end
-
+    #if isnothing(Y_true)
+    #    Y_true, method = compute_reference_solution(A)
+    #end
+    
     #print("precision before returning = $(precision(BigFloat))\n")
 
     return Y_true, method
@@ -77,36 +80,45 @@ end
 function compute_reference_solution(
     A, 
     target_prec=Y_TRUE_PREC;
-    max_iters=10
+    max_iters=nothing
 )
-    target_thresh = 2.0^(-target_prec)
+    #target_thresh = 2.0^(-target_prec)
+    target_digits = target_prec*log10(2) |> ceil |> Int
     alg_precision = 256
 
+    if isnothing(max_iters)
+        max_iters = 2*cld(target_prec - alg_precision, 100)
+    end
     n_iter = 0
 
     Y_prev,_,_ = exp_mp(A, working_precision=alg_precision)
     while n_iter < max_iters
-        Y_curr,_,_ = exp_mp(A, working_precision=2*alg_precision)
+        alg_precision += 100 # si traduce in 100*log10(2) ≈ 30 cifre decimali in più
+        Y_curr,_,_ = exp_mp(A, working_precision=alg_precision)
 
         if !all(isfinite, Y_curr)
             error("Non-finite result encountered!")
         end
         
         max_componentwise_err = maximum(sym_err.(Y_prev, Y_curr))
+        matching_digits = log10(max_componentwise_err) |> abs |> floor #|> Int
 
-        if max_componentwise_err < target_thresh
+        Y_prev = Y_curr
+        n_iter += 1
+
+        @printf("Iter=%d, prec=%d, err=%.6g, digits=%d\n", 
+            n_iter, alg_precision, 
+            max_componentwise_err, matching_digits)
+
+        #if max_componentwise_err < target_thresh
+        if matching_digits > target_digits
             break
         end  
 
-        Y_prev = Y_curr
-        alg_precision *= 2
-        n_iter += 1
-
-        @printf("Iter=%d, prec=%d, err=%.6g\n", n_iter, alg_precision, max_componentwise_err)
     end
     print("Required $(n_iter) iterations.\n")
 
-    return Y_prev, "exp_mp_$(alg_precision/2)"
+    return Y_prev, "exp_mp_$(alg_precision)"
 end
 
 
@@ -123,7 +135,7 @@ function python_matrix_from_julia(A::Matrix{T}) where {T<:Real}
 end
 
 function python_matrix_from_julia(A::Matrix{T}) where {T<:Complex}
-    if T == BigFloat
+    if real(T) == BigFloat
         Apy = pyrowlist(mpmath.mpc.(string.(real(A)), string.(imag(A))))
     else    
         Apy = pyrowlist(mpmath.mpc.(real(A), imag(A)))
@@ -136,29 +148,74 @@ end
 function python_matrix_from_julia end
 
 
-function compute_refsol_python(A::Matrix{T}) where {T}
+function julia_matrix_from_python(
+    Apy,
+    ::Val{false},    # Real version
+    target_precision=Y_TRUE_PREC
+)
+    # ciascun elemento subisce la trasformazione:
+    #   mp.mpf -> str (di python) -> String (di Julia) -> BigFloat
+    A = setprecision(target_precision) do 
+        map(x -> 
+            string(mpmath.nstr(x, mpmath.mp.dps + 2)), 
+        Apy) .|> x -> parse(BigFloat, x)
+    end
+    if A isa Vector
+        n = sqrt(length(A)) |> Int
+        A = reshape(A, (n,n))
+        A = permutedims(A)
+    end
+
+    return A
+end
+
+function julia_matrix_from_python(
+    Apy,
+    ::Val{true},     # Complex version
+    target_precision=Y_TRUE_PREC,
+)
+    # ciascun elemento subisce la trasformazione:
+    #   mp.mpf -> str (di python) -> String (di Julia) -> BigFloat
+    Areal, Aimag = setprecision(target_precision) do 
+        Areal = map(x -> 
+            string(mpmath.nstr(x.real, mpmath.mp.dps + 2)), 
+        Apy) .|> x -> parse(BigFloat, x)
+        Aimag = map(x -> 
+            string(mpmath.nstr(x.imag, mpmath.mp.dps + 2)), 
+        Apy) .|> x -> parse(BigFloat, x)
+        Areal, Aimag
+    end
+    A = complex.(Areal, Aimag)
+    if A isa Vector
+        n = sqrt(length(A)) |> Int
+        A = reshape(A, (n,n))
+        A = permutedims(A)
+    end
+
+    return A
+end
+
+function julia_matrix_from_python end
+
+
+
+function compute_refsol_python(
+    A::Matrix{T},
+    target_precision=Y_TRUE_PREC
+) where {T}
     Apy = python_matrix_from_julia(A)
 
     Y_true_py = mpmath.expm(Apy)
 
-    #Y_true = pyconvert(Matrix, Y_true_py) #returns Matrix{Float64} unfortunately
-    Y_true = setprecision(Y_TRUE_PREC) do
-        map(x->pyconvert(big(float(T)),x), Y_true_py)   # converte in un array Julia
-    end
-    # a volte la conversione non restituisce una Matrix
-    if Y_true isa Vector
-        n = sqrt(length(Y_true)) |> Int
-        Y_true = reshape(Y_true, (n,n))
-        Y_true = permutedims(Y_true)    # necessario, credo, poiché Python è row-major
-    end
+    Y_true = julia_matrix_from_python(Y_true_py, Val(T <: Complex))
 
-    return Y_true, "mpmath_$(Y_TRUE_PREC)"
+    return Y_true, "mpmath_$(target_precision)"
 end
 
 
 
 ############## Files per runnare esperimenti e scrivere su CSV ##############
-csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.4alpha-23_05.csv")
+csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.4alpha-25_05-exp_mp_ref.csv")
 
 const CSV_HEADER = [
     "kind", "n", "eltype", "ishermitian",
@@ -199,8 +256,9 @@ function run_and_record(
     # compute reference solution, if not given
     if isnothing(Y_true)
         #print("precision before compute_Ytrue = $(precision(BigFloat))\n")
-        #Y_true, Ytrue_method = compute_Ytrue(A)
-        Y_true, Ytrue_method = compute_refsol_python(Matrix(A))
+        Y_true, Ytrue_method = compute_reference_solution(A)
+        #Y_true, Ytrue_method = compute_Ytrue(A)                     # uses diag. and exp_mp
+        #Y_true, Ytrue_method = compute_refsol_python(Matrix(A))    # uses mpmath
         #print("precision after compute_Ytrue = $(precision(BigFloat))\n")
     else 
         Ytrue_method = "given"
