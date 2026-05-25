@@ -215,7 +215,7 @@ end
 
 
 ############## Files per runnare esperimenti e scrivere su CSV ##############
-csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.4alpha-25_05-exp_mp_ref.csv")
+csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.4alpha-25_05-mpmath_ref.csv")
 
 const CSV_HEADER = [
     "kind", "n", "eltype", "ishermitian",
@@ -256,9 +256,9 @@ function run_and_record(
     # compute reference solution, if not given
     if isnothing(Y_true)
         #print("precision before compute_Ytrue = $(precision(BigFloat))\n")
-        Y_true, Ytrue_method = compute_reference_solution(A)
+        #Y_true, Ytrue_method = compute_reference_solution(A)       # uses exp_mp, refining the precision
         #Y_true, Ytrue_method = compute_Ytrue(A)                     # uses diag. and exp_mp
-        #Y_true, Ytrue_method = compute_refsol_python(Matrix(A))    # uses mpmath
+        Y_true, Ytrue_method = compute_refsol_python(Matrix(A))    # uses mpmath
         #print("precision after compute_Ytrue = $(precision(BigFloat))\n")
     else 
         Ytrue_method = "given"
