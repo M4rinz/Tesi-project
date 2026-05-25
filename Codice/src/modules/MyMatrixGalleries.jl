@@ -201,7 +201,7 @@ function FasiMatrices(
                      vcat(16-3im, -5, zeros(n_local - 2)))
     elseif k == 10
         A = [1 1; 0 1e2]
-        Y_true = [exp(big(1)) expm1(big(1e2))/99 
+        Y_true = [exp(big(1)) (exp(big(1e2))-exp(big(1)))/99 
                     0           exp(big(1e2))]
     elseif k == 11
         A = [1 1e3; 1e3 1]
@@ -378,6 +378,7 @@ function expm_testmats(
         # \cite[Ex.~5]{kela89}.
         id = "kela89_ex5"
         A = [0 1e6; 0 0]  # Same as case 6 but with ei'val 0.1 -> 0.
+        Y_true = [big(1) big(1e6); 0 big(1)]
     elseif k == 18
         # \cite[(52)]{jemc05}.
         id = "jemc05_52"

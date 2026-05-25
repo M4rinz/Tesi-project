@@ -14,7 +14,7 @@ using .MyMpExponential, .MyHelper, .MyMatrixGalleries
 Random.seed!(42)
 
 ## Setup for Python, mpmath etc
-const Y_TRUE_PREC = 1024
+const Y_TRUE_PREC = 1792
 
 using PythonCall
 
@@ -34,7 +34,7 @@ function compute_Ytrue(A)
 
     #print("Precision at the beginning = $(precision(BigFloat))\n")
 
-    Y_true, method = setprecision(20*precision(BigFloat)) do 
+    Y_true, method = setprecision(Y_TRUE_PREC) do 
         Abig = convert(Matrix{big(eltype(A))}, A)
 
         #print("eigensolving...\n")
@@ -63,9 +63,8 @@ function compute_Ytrue(A)
     #print("Prec after the setprecision = $(precision(BigFloat))\n")
     if isnothing(Y_true)
         #print("exp_mp start...\n")
-        wrk_prc = 20*precision(BigFloat)
-        Y_true, _, _ = exp_mp(A, working_precision=wrk_prc)
-        method = "exp_mp_$(wrk_prc)"
+        Y_true, _, _ = exp_mp(A, working_precision=Y_TRUE_PREC)
+        method = "exp_mp_$(Y_TRUE_PREC)"
     end
 
     #print("precision before returning = $(precision(BigFloat))\n")
@@ -143,10 +142,10 @@ function compute_refsol_python(A::Matrix{T}) where {T}
     Y_true_py = mpmath.expm(Apy)
 
     #Y_true = pyconvert(Matrix, Y_true_py) #returns Matrix{Float64} unfortunately
-
-    Y_true = map(x->pyconvert(big(T),x), Y_true_py)   # converte in un array Julia
-
-    # a volte la conversione non restituisce 
+    Y_true = setprecision(Y_TRUE_PREC) do
+        map(x->pyconvert(big(float(T)),x), Y_true_py)   # converte in un array Julia
+    end
+    # a volte la conversione non restituisce una Matrix
     if Y_true isa Vector
         n = sqrt(length(Y_true)) |> Int
         Y_true = reshape(Y_true, (n,n))
