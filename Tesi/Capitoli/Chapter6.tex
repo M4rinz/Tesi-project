@@ -214,7 +214,10 @@ The experimental data contains the same matrices that have been used for the exp
 \textcolor{red}{Mettere: (i) quante sono Hermitiane e quante no. (ii) Distribuzione delle taglie $n$ delle matrici. (iii) Disclaimer sul fatto che le matrici sono piccoline perché (a) non è colpa mia e (b) sennò mi esplode il computer.}
 
 \subsection{Computing the reference solution}
-Three strategies had initially been devised for the computation of the reference solution $Y_{\textup{true}}$. Ultimately, the chosen one was the last one. It is interesting, however, to briefly describe them all.
+\textcolor{red}{Aggiusta. Forse metti dopo?} The closed formula of the exponential of some test matrices $A$ is known, but the methods that will be shortly described struggle to compute $\exp(A)$. Thus, for a minority of the test matrices, $Y_{\textup{true}}$ was computed in advance, by evaluating the closed formula for the elements of $\exp(A)$ in high precision.
+\smallskip 
+
+\noindent Three strategies had initially been devised for the computation of the reference solution $Y_{\textup{true}}$. Ultimately, the chosen one was the last one. It is interesting, however, to briefly describe them all.
 
 In an earlier phase of testing, $Y_{\textup{true}}$ was being computed via diagonalization, i.e. as $Y_{\textup{true}}=\mathtt{V}*\exp(\mathtt{D})\,/\,\mathtt{V}$, where $\mathtt{V}$ and $\mathtt{D}$ are, respectively, the eigenvector and eigenvalue matrices returned by a high precision eigendecomposition. 
 This strategy was not viable in many cases, though, because of the conditioning of the returned $\mathtt{V}$. 
@@ -267,6 +270,31 @@ Being a Python library, this had to be done with Python calls from within Julia.
 One thing to notice is that \texttt{mpmath.expm} internally increases the precision. \texttt{exp\_mp} does so as well.
 \bigskip
 
+\section{Experimental results}
+Figure~\ref{fig:exp_mp_fwerrs} displays, for various working precisions, the forward errors achieved by \texttt{exp\_mp}in its possible configurations, namely:
+\begin{itemize}
+	\item \texttt{exp\_d}: transformation-free variant of \texttt{exp\_mp}, with diagonal Padé approximant. 
+	\item \texttt{exp\_t}: transformation-free variant of \texttt{exp\_mp}, with Taylor approximant.
+	\item \texttt{exp\_sp\_d}: Schur-Padé variant of \texttt{exp\_mp}, with diagonal Padé approximant. 
+	\item \texttt{exp\_sp\_t}: Schur-Padé variant of \texttt{exp\_mp}, with Taylor approximant.
+\end{itemize}
+Furthermore, \texttt{exp\_sas} denotes the standard Julia $\mathtt{exp}(A)$ algorithm. The continuous line marks $\kappa_{\exp}(A)\cdot u$. 
 
+\begin{figure}[hbp]
+	\includegraphics[width=\textwidth]{Immagini/errors_restricted-mpmath_ref}
+	\caption{\emph{Forward errors of \texttt{exp\_mp}, for various parametric configurations.}}
+	\label{fig:exp_mp_fwerrs}
+\end{figure}
+\textcolor{red}{Da spiegare:
+\begin{itemize}
+	\item Spiegare come è stato calcolato il numero di condizionamento
+	\item La linea tratteggiata grigia
+\end{itemize}
+}
 
-
+\textcolor{red}{Here is the same plot, hued by strategy to compute the reference solution.}
+\begin{figure}[hbp]
+	\includegraphics[width=\textwidth]{Immagini/errors_restricted-mpmath_ref-hued_by_strat}
+	\caption{\emph{Forward errors of \texttt{exp\_mp}, colored by method to compute $Y_{\textup{true}}$.}}
+	\label{fig:exp_mp_fwerrs_byStrat}
+\end{figure}
