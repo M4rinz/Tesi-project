@@ -67,6 +67,12 @@
 	% COMANDI CUSTOM
 \newcommand{\matlab}{\mbox{\textsc{matlab}\textsuperscript{\textregistered}}}
 	
+% blocco custom in algpseudocodex
+% AGGIUSTA
+\algblockdefx[WITH]{With}{EndWith}%
+	[1]{\textbf{with} #1 \algorithmicdo}%
+	{\textbf{end}}
+
 	
 	% COLORI CUSTOM (per il codice e non solo)
 \definecolor{ForestGreen}{RGB}{18, 159, 87}
@@ -121,6 +127,7 @@
 \tableofcontents		% Indice
 \listoffigures			% Indice delle tabelle
 \listoftables			% Indice delle figure
+\listofalgorithms 		% Indice degli algoritmi
 \lstlistoflistings		% Indice dei listati di codice
 
 

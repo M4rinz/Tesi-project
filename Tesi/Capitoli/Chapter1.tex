@@ -242,7 +242,7 @@ If the exponent $n$ is not an integer, $A^n$ is not doable natively. This is bec
 The Schur decomposition of matrices with \texttt{BigFloat} elements is available through the \texttt{GenericSchur.jl}~\cite{sw:GenericSchur} library, but is not natively implemented in the language.
 The library also allows the computation of the spectrum of $A$, or in general its eigendecomposition (namely, it gives the ability to run the Julia \texttt{eigvals} and \texttt{eigen} commands). 
 
-\subsection{Errors}
+\section{Errors}
 The concept of error is central in all Numerical Analysis. As real problems are solved using finite means, the presence of some sort of error is unavoidable. It is important to understand and analyze them.
 
 We remind that there are three main sources of error:
@@ -275,7 +275,8 @@ The forward error measures the distance between the approximate solution $\hat{y
 	\]
 \end{definizione}
 
-When evaluating the quality of $\hat{y}$, we would like the relative error to be of the order of machine precision. For reasons that have to do with the sensitivity of the problem, as it will be explained shortly, this can't always be achieved. Nevertheless, the computed solution $\hat{y}$ can be ``as good as it can get''. This is why the \emph{backward error analysis} can be sometimes helpful.
+When evaluating the quality of $\hat{y}$, we would like the relative error to be of the order of machine precision. For reasons that have to do with the sensitivity of the problem, as it will be explained shortly, this can't always be achieved. This doesn't mean that there are no good solutions at all. 
+The \emph{backward error analysis} can be sometimes helpful.
 
 \begin{definizione}
 	An algorithm is \emph{backward stable} if the computed solutions $\hat{y}$ satisfies
@@ -285,7 +286,7 @@ When evaluating the quality of $\hat{y}$, we would like the relative error to be
 \end{definizione}
  A backward stable algorithm returns the exact solution to a nearby problem.
 
-In backward error analysis, the error is being interpreted as perturbations in the input. Since the data may be affected by tiny errors anyways, the solution returned by a backward stable algorithm can hardly be criticized.
+In backward error analysis, the error is being interpreted as perturbations in the input. Since the data may be affected by tiny errors anyways, a solution $\hat{y}$ returned by a backward stable algorithm is often more than enough; $\hat{y}$ is ``as good as it can be''.
 
 \begin{oss*}
 	A backward error analysis can't always be performed. A famous example is the computation of the outer product $xy^{\top}$, for $x,y\in\R{n}$. In fact
@@ -302,7 +303,7 @@ In backward error analysis, the error is being interpreted as perturbations in t
 	It is often the roundoff error that is analyzed by means of the backward error, an example being the QR factorization of a square matrix. As we will see \textcolor{red}{in some paragraph}, the Scaling and Squaring method to compute the matrix exponential, a central topic of this essay, gives a prominent example of backward error analysis on the truncation error. 
 \end{oss*}
 
-\subsection{Conditioning}
+\section{Conditioning}
 %\textcolor{red}{Anche qui, vorrei farla breve ma tanto lo so che la cosa sfuggirà di mano\dots}
 
 %\textcolor{red}{Cose da dire: definizione di numero di condizionamento (sì, anche con la derivata di Fréchet). Il condizionamento è una proprietà del problema. Introdurre notazione. La ``rule of thumb'' fwerr < cond*backerr. Ricostruire come algoritmi stabili all'indietro ci diano la miglior approssimazione a cui possiamo ambire. Stabilità.}

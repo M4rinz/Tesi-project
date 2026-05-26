@@ -28,7 +28,7 @@ The reference solution is computed using \texttt{exp\_mct} -- the \texttt{expm} 
 	\begin{algorithmic}[1]
 		\State $A = \mathtt{get\_from\_gallery}(\ )$ \Comment{$A$ is in double precision}
 		%\Lcomment{}
-		\State $Y_{\textup{true}} = \mathtt{ref\_sol}(A)$	%\Comment{Ciao}
+		\State $Y_{\textup{true}} = \mathtt{ref\_sol}(A)$	\Comment{Computes the reference solution}
 		\State $\hat{Y} = \mathtt{exp\_mp}(A)$
 		\State \Return $\norm*{Y_{\textup{true}}-\hat{Y}}/\norm{Y_{\textup{true}}}$
 	\end{algorithmic}
@@ -97,9 +97,9 @@ In fact, $A$ is better thought of as a real square matrix like any other, althou
 
 The documentation of the Python arbitrary precision library \textsc{mpmath}~\cite{mpmath} puts it very well:
 \begin{quotation}
-	Contrary to popular belief, floating-point \emph{numbers} do not come with an inherent ``small uncertainty'', although floating-point \emph{arithmetic} generally is inexact. Every binary floating-point number is an exact rational number. With arbitrary-precision integers used for the mantissa and exponent, floating-point numbers can be added, subtracted and multiplied \emph{exactly}. [\dots]
+	Contrary to popular belief, floating-point \emph{numbers} do not come with an inherent ``small uncertainty'', although floating-point \emph{arithmetic} generally is inexact. Every binary floating-point number is an exact rational number. With arbitrary-precision integers used for the mantissa and exponent, floating-point numbers can be added, subtracted and multiplied \emph{exactly}. $\qty[\ldots]$
 	
-	Floating-point arithmetic is generally approximate because the size of the mantissa must be limited for efficiency reasons.
+	Floating-point arithmetic is generally approximate because the size of the mantissa must be limited for efficiency reasons $\qty[\ldots]$.
 \end{quotation}
 
 
@@ -185,19 +185,88 @@ The bound for $\norm*{\exponential(\tilde{A})-Y_{\textup{true}}}$ depends on the
 	Note that the argument against the second testing strategy does not rely on the fact that matrix multiplications are performed, rather it relies on the fact that the output of the algorithm, $\hat{Y}$, is compared against an approximation of the exponential of a matrix that is (ever so slightly) different from the input to the algorithm. 
 \end{oss*}
 
-\subsection{Computing the reference solution}
-\textcolor{red}{Non lo scrivo ancora bene, perché sto continuando a fare esperimenti e \cancel{avere problemi} scoprire cose nuove.}
+\subsubsection{Experimental setup, in conclusion}
+Let us finally describe the experimental setup. The algorithm has been tested in all its configurations of possible approximants (Taylor and diagonal Padé) and algorithms (i.e. Scaling and Squaring preceded by a real Schur decomposition, preceded by a complex Schur decomposition, or without any preprocessing), with internal (binary) precision values of $53$, $256$ and $851$. The first value matches double precision, the second one is the default \texttt{BigFloat} precision, the third one roughly corresponds to $256$ decimal digits. Higher precisions haven't been tested for performance reasons. 
 
-\textcolor{red}{Idea: Fasi e Higham usano \texttt{exp\_mct}, che noi non abbiamo. La funzione \texttt{exp} di Julia non funziona in precisione arbitraria, né c'è da nessun'altra parte un algoritmo già pronto (altrimenti questa tesi che la faccio a fare\dots). Quindi ci arrangiamo nel seguente modo:}
-\textcolor{red}{
-\begin{enumerate}
-	\item Aumentiamo la precisione di un fattore 10 (e incrociamo le dita)
-	\item Proviamo a diagonalizzare $A=VDV^{-1}$
-	\item Se la diagonalizzazione fallisce, vai al punto 6
-	\item Se la matrice degli autovettori è troppo malcondizionata, vai al punto 6 
-	\item Calcola $V*\exp(D)*V^{-1}$, reset precision, \textbf{return}
-	\item Se sei arrivato a questo punto, restituisci $\mathtt{exp\_mp}(A)$ passando un valore di \texttt{working\_precision} pari a 10 volte quello standard
-\end{enumerate}
-}
-\textcolor{red}{Cose che rimangono da mettere a posto: quando rifiutare una $V$ malcondizionata? (o addirittura singolare) Che fare quando l'algoritmo per calcolare forme di Schur mi lascia a piedi?}
+\begin{oss*}
+	We remark that \texttt{exp\_mp} automatically selects a factor $\mu$, the input matrix is shifted as $A\gets A-\mu I$. \texttt{exp\_mp} does no internal balancing other than what the Schur decomposition algorithm may internally do.
+\end{oss*}
+
+The experiments have been conducted on a laptop equipped with a \textsc{AMD} Ryzen\textsuperscript{\texttrademark}~5 5600H CPU, with 6 cores and 2 threads per core. The memory hierarchy is as follows: \SI{16}{\giga\byte} DDR4 RAM, \SI{16}{\mega\byte} L3 cache, \SI{3}{\mega\byte} L2 cache (private per core), \SI{384}{\kilo\byte} L1 cache equally split between data and instruction (private per core). 
+The main software specifications are summarized in table~\ref{tab:sw_specs}.
+\begin{table}[htp]
+	\centering
+	\caption{\emph{Main software specifications.}}
+	\label{tab:sw_specs}
+	\begin{tabular}{rcccc}
+	\toprule
+		\multirow{2}*{\textbf{Software}} & Ubuntu  & \multirow{2}*{Julia} & \multirow{2}*{\texttt{GenericSchur.jl}} & \multirow{2}*{\texttt{MatrixEquations.jl}} \\
+		 				  & (OS)	& & & \\
+	\midrule
+		\multirow{2}*{\textbf{Version}} & 24.04.03 & \multirow{2}*{1.12.4} & \multirow{2}*{v0.5.6} & \multirow{2}*{v2.5.7}\\
+		 & \textsc{LTS} &  & & \\
+	\bottomrule
+	\end{tabular}
+\end{table}
+
+The experimental data contains the same matrices that have been used for the experiments in~\cite{higham:hf19_mpexpm}. Many of these matrices are available, in Julia, thanks to the \texttt{TypedMatrices.jl} library~\cite{fasi25:TypedMatrices}. 
+
+\textcolor{red}{Mettere: (i) quante sono Hermitiane e quante no. (ii) Distribuzione delle taglie $n$ delle matrici. (iii) Disclaimer sul fatto che le matrici sono piccoline perché (a) non è colpa mia e (b) sennò mi esplode il computer.}
+
+\subsection{Computing the reference solution}
+Three strategies had initially been devised for the computation of the reference solution $Y_{\textup{true}}$. Ultimately, the chosen one was the last one. It is interesting, however, to briefly describe them all.
+
+In an earlier phase of testing, $Y_{\textup{true}}$ was being computed via diagonalization, i.e. as $Y_{\textup{true}}=\mathtt{V}*\exp(\mathtt{D})\,/\,\mathtt{V}$, where $\mathtt{V}$ and $\mathtt{D}$ are, respectively, the eigenvector and eigenvalue matrices returned by a high precision eigendecomposition. 
+This strategy was not viable in many cases, though, because of the conditioning of the returned $\mathtt{V}$. 
+In fact, many matrices are badly scaled or severely non-normal, thus yielding eigenvector matrices so ill-conditioned that a numerically accurate reconstruction of $A$ as $\mathtt{V}*\mathtt{D}\,/\,\mathtt{V}$ could not be obtained. Even worse, many test matrices are not diagonalizable; a consequence of this was that the condition number of the computed $\mathtt{V}$ grew, as the working precision was increased.
+
+Therefore, diagonalization alone was not sufficient, a ``fallback method'' had to be present alongside it. 
+The most immediate choice would have been a Taylor series expansion, but Scaling and Squaring would have been better. However, currently -- to the best of our knowledge -- there are no Julia libraries that implement Scaling and Squaring for the matrix exponential in arbitrary precision. Thus, the ``fallback method'' of choice was \texttt{exp\_mp}, the algorithm under test. Since preliminary tests and comparisons with diagonalization suggested that \texttt{exp\_mp} was accurate and reliable, this choice was not entirely unjustified.
+\smallskip 
+
+The second procedure to produce reference solutions avoided diagonalization altogether. Instead, \texttt{exp\_mp} was executed at progressively higher values of working precision, until the computed digits stabilized. More precisely, suppose that the goal is to compute $Y_{\textup{true}}$ with binary precision $\hat{p}$. Then $\norm{\exp(A)-Y_{\textup{true}}}/\norm{\exp(A)}$ should be roughly of order $2^{-\hat{p}}$, i.e. $Y_{\textup{true}}$ and $\exp(A)$ should match up to approximately $\hat{p}\cdot\log_{10}(2)$ significant digits. \textcolor{red}{\`E utile questa specifica? Inutile? Dannosa, addirittura?}
+
+A sequence of approximants $Y_p=\mathtt{exp\_mp}(A, \mathtt{working\_precision}=p)$ is computed at progressively higher values of $p$. This process is terminated when $\max_{i,j\in[n]}\abs{(Y_p-Y_{p-1})_{i,j}}$ falls below the tolerance value $2^{-\hat{p}}$, at which point $Y_p$ is kept as reference solution. 
+
+The rationale behind this strategy is that \textcolor{red}{Spiegare.}
+
+Again, the underlying assumption is that \texttt{exp\_mp} is able to approximate the exact matrix exponential up to (potentially) any level of precision. \textcolor{red}{Idea: le cifre che calcola, sono corrette}.
+
+\textcolor{red}{Comunque, il fatto che si usi l'algoritmo che si sta testando non è proprio il massimo\dots Resta discutibile\dots}
+\smallskip 
+
+The third method to compute $Y_{\textup{true}}$ consisted in using \textsc{mpmath}~\cite{mpmath}. 
+Being a Python library, this had to be done with Python calls from within Julia. There are many libraries that allow this, such as \texttt{PythonCall.jl}. Version $0.9.31$ was used in the proposed numerical experiments; the library is still actively maintained at the time of writing.
+
+\textsc{mpmath} uses Scaling and Squaring with Taylor or diagonal Padé approximant to compute the matrix exponential. The chosen approximant was the former, which is the default one. The algorithm is described, in pseudocode, in code snippet~\ref{alg:mpmath_expm} \textcolor{red}{\`E indentato male perché al momento ho un po' di problemi con il pacchetto \texttt{algpseudocodex}, ma risolverò quanto prima.}
+\begin{algorithm}[H]
+	\caption{\emph{Pseudocode for \texttt{mpmath.expm}, Taylor version}}
+	\label{alg:mpmath_expm}
+	\begin{algorithmic}
+		\Function{mpmath.expm}{$A$}
+			\State $p\gets\mathtt{precision}(\ )$	\Comment{Gets the binary precision}
+			\State $s\gets\max\qty{1,\lfloor\log_2(\norm{A}_{\infty})\rfloor}+\lfloor\frac{\sqrt{p}}{2}\rfloor$	\Comment{Scaling factor}
+			\State $\mathtt{setprecision}(p+10+2s)$ \textbf{do}
+				\State $\qquad A\gets 2^{-s}A$
+				\State $\qquad T\gets A$
+				\State $\qquad Y \gets I + T$
+				\State $\qquad k\gets 2$
+				\While{$\norm{T}_{\infty}<u_p$}
+					\State $T\gets T\cdot\frac{A}{k}$
+					\State $Y\gets Y+T$
+					\State $k\gets k+1$
+				\EndWhile
+			\State \textbf{end} \Comment{setprecision}
+			\State $Y\gets Y^{2^s}$
+			\State \Return $Y$
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+\textcolor{red}{Serve anche lo pseudocodice per la versione con approssimante di Padé? O una descrizione grosso modo del suo funzionamento?}
+
+One thing to notice is that \texttt{mpmath.expm} internally increases the precision. \texttt{exp\_mp} does so as well.
+\bigskip
+
+
+
 
