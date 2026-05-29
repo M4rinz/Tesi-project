@@ -20,7 +20,7 @@ def produce_plot(
                 lambda a: "_sp" if a in ["realschur", "complexschur"] else ""
             )
         df_sorted["hue"] += df_sorted["approximant"].map(
-                lambda a: "_"+"".join([x[0] for x in a.split("_")])
+                lambda a: "_"+"".join([x.lower()[0] for x in a.split("_")])
             )
     
     df_sorted["err_ubound"] = df_sorted["epsilon"]*df_sorted["cond_expA_F"]
@@ -49,3 +49,23 @@ def produce_plot(
     ax.legend()
     ax.grid(True)
     
+
+def produce_perfprof(
+        ax,
+        taus,
+        solver_vals:dict,
+        solvers
+    ) -> None:
+    for solver in solvers:
+        label = "exp"
+        alg, *appx_parts = solver.split("_")
+        appx = "_".join(appx_parts)
+        label += "_sp" if "schur" in alg.lower() else ""
+        label += "_"+"".join([x.lower()[0] for x in appx.split("_")])
+        ax.step(taus, solver_vals[solver], where="post", label=label)
+
+    ax.set_xlabel("Tau", fontsize=12)
+    ax.set_ylabel("Fraction of problems", fontsize=12)
+    ax.set_xlim(1, max(taus))
+    ax.legend()
+    ax.grid(True)

@@ -6,7 +6,7 @@ from math import isclose
 import matplotlib.pyplot as plt
 
 
-def calc_perprof(df, problem_def, perf_meas, solver_char, inv_perf_meas=False, tau_val=None):
+def calc_perprof(df, problem_def, perf_meas, solver_char, inv_perf_meas=False, tau_val=None, safe_divisions=False):
     """Generate array for performance profiles.
 
     Notes
@@ -28,13 +28,19 @@ def calc_perprof(df, problem_def, perf_meas, solver_char, inv_perf_meas=False, t
     solver_char : list
         Label that defines the unique solvers.
         The use of multiple labels is supported.
-    inv_perf_meas : bool, optional
+    inv_perf_meas : bool, optional )defaults to False)
         Indicating if the assigned performance measure is the 
         value divided by the smallest value (standard), or the
         inverse of this operation.
-    tau_val : numpy.ndarray, optional
+    tau_val : numpy.ndarray, optional (defaults to None)
         If supplied, the number of problems the unique solvers
         have solved are checked at these values of tau.
+    safe_divisions : bool, optional (defaults to False)
+        Whether to divide the performance measure by its minimum value 
+        according to the following extra rules: `0/0=1`, `Inf/0=Inf`, 
+        `x/0=inf` 
+        This may make sense, for example, when the best value is 0, 
+        and another solver achieves 0 as well.
 
     Returns
     -------
@@ -108,6 +114,16 @@ def calc_perprof(df, problem_def, perf_meas, solver_char, inv_perf_meas=False, t
             raise ValueError('Problem group lengths not equal! Problem gr:', prob)
 
         try:
+            def _safe_division(num, den):
+                if den == 0:
+                    if num == 0:    #0/0 = 1
+                        return 1.
+                    elif not np.isfinite(num):  # Inf/0 = Inf
+                        return np.inf
+                    else:
+                        return np.inf   # x/0 = Inf
+                return num / den
+
             # Normalizing and penalizing infeasible designs
             # If feasibility is satisfied, the performance measure is compared to
             # the minimum value among all methods that are feasible.
@@ -117,27 +133,32 @@ def calc_perprof(df, problem_def, perf_meas, solver_char, inv_perf_meas=False, t
             # This value is added to be able to differentiate between the solvers
             # that terminated with the maximum value that are feasible from
             # the solvers that did not return a feasible point
-            true_min = gr.loc[gr['feas'] == True][perf_meas].min()[0]
+            true_min = gr.loc[gr['feas'] == True][perf_meas].min().iloc[0]
             if inv_perf_meas == False:
-                data.set_value(gr.loc[gr['feas'] == True].index, perf_meas,
-                               gr[perf_meas] / true_min)
-                data.set_value(gr.loc[gr['feas'] == False].index, perf_meas,
-                               gr[perf_meas].max()[0] / true_min + .05)
+                data.loc[gr.loc[gr['feas'] == True].index, perf_meas] = \
+                    gr[perf_meas].map(lambda x: _safe_division(x, true_min)) if safe_divisions else gr[perf_meas] / true_min
+                data.loc[gr.loc[gr['feas'] == False].index, perf_meas] = \
+                    gr[perf_meas].map(lambda x: _safe_division(x, true_min)) + .05 if safe_divisions else gr[perf_meas] / true_min +.05
+            
             else:
                 if i == 0:
                     warnings.warn('Performance ratio calculated using inverse.')
-                data.set_value(gr.loc[gr['feas'] == True].index, perf_meas,
-                               true_min / gr[perf_meas])
-                data.set_value(gr.loc[gr['feas'] == False].index, perf_meas,
-                               true_min / gr[perf_meas].max()[0] + .05)
-
+                data.loc[gr.loc[gr['feas'] == True].index, perf_meas] = \
+                    gr[perf_meas].map(lambda x: _safe_division(true_min, x)) if safe_divisions \
+                                    else true_min / gr[perf_meas]
+                data.loc[gr.loc[gr['feas'] == False].index, perf_meas] = \
+                    gr[perf_meas].map(lambda x: _safe_division(true_min, x)) + .05 if safe_divisions \
+                                    else true_min / gr[perf_meas] +.05
+                
+            #if turn_nan_into_one:
+            #        data.loc[gr.index, perf_meas] = data.loc[gr.index, perf_meas].fillna(1)
         except KeyError:
             if not inv_perf_meas:
-                data.set_value(gr.index, perf_meas, gr[perf_meas] / gr[perf_meas].min()[0])
+                data.loc[gr.index, perf_meas] = gr[perf_meas] / gr[perf_meas].min().iloc[0]
             else:
                 if i == 0:
                     warnings.warn('Performance ratio calculated using inverse.')
-                data.set_value(gr.index, perf_meas, gr[perf_meas].min()[0] / gr[perf_meas])
+                data.loc[gr.index, perf_meas] = gr[perf_meas].min().iloc[0] / gr[perf_meas]
 
     # Generate array for plot
     if (df[perf_meas[0]] < 0).any():
@@ -159,16 +180,18 @@ def calc_perprof(df, problem_def, perf_meas, solver_char, inv_perf_meas=False, t
         unique_taus = tau_val
 
     # Finding the fraction of problems that each solver solved within tau
-    solver_taus = np.zeros((len(grouped_by_solver), len(unique_taus)))
+    solver_taus = {solver: np.zeros(len(unique_taus)) for solver in solvers}
     for n, tau in enumerate(unique_taus):
-        for i, (_, gr) in enumerate(grouped_by_solver):
+        for i, (solver, gr) in enumerate(grouped_by_solver):
+            solver_key = solver[0] #dovrebbe bastare perché la prima colonna è sovrascritta col nome completo (?)
             if i == 0 and n == 0:
                 print('Number of problems per solver: ', len(gr))
-            solver_taus[i, n] = len(gr.loc[gr[perf_meas[0]] <= tau]) / len(grouped_by_problem)
+            solver_taus[solver_key][n] = len(gr.loc[gr[perf_meas[0]] <= tau]) / len(grouped_by_problem)
             
-    if not isclose(solver_taus[:, 0].sum(), 1, rel_tol=1e-3):
+    solved_at_first_tau = sum(vals[0] for vals in solver_taus.values())
+    if not isclose(solved_at_first_tau, 1, rel_tol=1e-3):
         warnings.warn('Solvers do not solve 100% of problems. '
-                      'Total amount of problems solved: {}'.format(100 * solver_taus[:, 0].sum()))
+                      'Total amount of problems solved: {}'.format(100 * solved_at_first_tau))
 
     return unique_taus, solver_taus, solvers, data
 
@@ -193,7 +216,7 @@ def draw_simple_pp(taus, solver_vals, solvers):
         ax.step(taus, solver_vals[n, :], where='post', label=solver)
         
     plt.legend(loc=4)
-    plt.xlim(1, taus.max())
+    plt.xlim(1, max(taus))
     ax.set_xlabel('Tau')
     ax.set_ylabel('Fraction of problems')
     
