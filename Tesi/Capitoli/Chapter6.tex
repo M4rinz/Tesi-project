@@ -97,9 +97,9 @@ In fact, $A$ is better thought of as a real square matrix like any other, althou
 
 The documentation of the Python arbitrary precision library \textsc{mpmath}~\cite{mpmath} puts it very well:
 \begin{quotation}
-	Contrary to popular belief, floating-point \emph{numbers} do not come with an inherent ``small uncertainty'', although floating-point \emph{arithmetic} generally is inexact. Every binary floating-point number is an exact rational number. With arbitrary-precision integers used for the mantissa and exponent, floating-point numbers can be added, subtracted and multiplied \emph{exactly}. $\qty[\ldots]$
+	Contrary to popular belief, floating-point \emph{numbers} do not come with an inherent ``small uncertainty'', although floating-point \emph{arithmetic} generally is inexact. Every binary floating-point number is an exact rational number. With arbitrary-precision integers used for the mantissa and exponent, floating-point numbers can be added, subtracted and multiplied \emph{exactly}. \elide
 	
-	Floating-point arithmetic is generally approximate because the size of the mantissa must be limited for efficiency reasons $\qty[\ldots]$.
+	Floating-point arithmetic is generally approximate because the size of the mantissa must be limited for efficiency reasons \elide.
 \end{quotation}
 
 
@@ -119,7 +119,7 @@ Similarly to the first strategy, some confusion may arise by the fact that, by p
 	The starting data $D$, $H$ is in double precision; $H$ is exactly representable in double precision because $H_{i,j}=\pm 1/\sqrt{n}$ and $n$ is a power of two. 	
 	However, $A=H^{\top}DH$ may not belong to the set $\mathcal{F}^{n\times n}$ of matrices with double precision elements. Let $\mathtt{fl}(A)\in\mathcal{F}^{n\times n}$ be the closest matrix to $A$.
 	
-	The best that we can reasonably hope for is $\mathtt{fl}(A)$, but line 4 will in general compute something different (see remark~\ref{oss:A_rel_err}). Note that by increasing the precision between lines $3$ and $4$ of algorithm~\ref{alg:second_test_strat} it is possible to obtain $\tilde{A}=\mathtt{fl}(A)$ (see also~\cite[p.64]{higham:accuracy_book}).
+	The best that we can reasonably hope for is $\mathtt{fl}(A)$, but line 4 will in general compute something different (see Remark~\ref{oss:A_rel_err}). Note that by increasing the precision between lines $3$ and $4$ of algorithm~\ref{alg:second_test_strat} it is possible to obtain $\tilde{A}=\mathtt{fl}(A)$ (see also~\cite[p.64]{higham:accuracy_book}).
 \end{oss}
 
 \begin{oss}\label{oss:A_rel_err}
@@ -141,7 +141,7 @@ Similarly to the first strategy, some confusion may arise by the fact that, by p
 \end{oss}
 %\smallskip
 
-Ideally, one would like to compare $A$ with $\exp(A)=H^{\top}\!\exp(D)H$. Reasoning as in remark~\ref{oss:A_double_prec}, we must settle for $Y_{\textup{true}}$ being an approximation $\widetilde{\exp(A)}$ of $\exp(A)$.
+Ideally, one would like to compare $A$ with $\exp(A)=H^{\top}\!\exp(D)H$. Reasoning as in Remark~\ref{oss:A_double_prec}, we must settle for $Y_{\textup{true}}$ being an approximation $\widetilde{\exp(A)}$ of $\exp(A)$.
 The algorithm however is fed with $\tilde{A}$, not $A$, thus it returns and approximation $\hat{Y}$ of $\exponential(\tilde{A})$, not of $\exp(A)$. Therefore $\hat{Y}$ should be compared with a good proxy of $\exponential(\tilde{A})$, not with $Y_{\textup{true}}$.
 
 Image~\ref{img:plot_expm_test2} pictures the situation. The ticks on the axis represent floating point data, they're widely spaced apart for illustration purposes. \textcolor{red}{Ovviamente poi il disegno lo farò a modo con \LaTeX{} e tutto.}
@@ -217,19 +217,19 @@ The experimental data contains the same matrices that have been used for the exp
 \textcolor{red}{Aggiusta. Forse metti dopo?} The closed formula of the exponential of some test matrices $A$ is known, but the methods that will be shortly described struggle to compute $\exp(A)$. Thus, for a minority of the test matrices, $Y_{\textup{true}}$ was computed in advance, by evaluating the closed formula for the elements of $\exp(A)$ in high precision.
 \smallskip 
 
-\noindent Three strategies had initially been devised for the computation of the reference solution $Y_{\textup{true}}$. Ultimately, the chosen one was the last one. It is interesting, however, to briefly describe them all.
+\noindent Three strategies had initially been devised for the computation of the reference solution $Y_{\textup{true}}$. Ultimately, the chosen one was the third. It is interesting, however, to briefly describe them all.
 
 In an earlier phase of testing, $Y_{\textup{true}}$ was being computed via diagonalization, i.e. as $Y_{\textup{true}}=\mathtt{V}*\exp(\mathtt{D})\,/\,\mathtt{V}$, where $\mathtt{V}$ and $\mathtt{D}$ are, respectively, the eigenvector and eigenvalue matrices returned by a high precision eigendecomposition. 
 This strategy was not viable in many cases, though, because of the conditioning of the returned $\mathtt{V}$. 
-In fact, many matrices are badly scaled or severely non-normal, thus yielding eigenvector matrices so ill-conditioned that a numerically accurate reconstruction of $A$ as $\mathtt{V}*\mathtt{D}\,/\,\mathtt{V}$ could not be obtained. Even worse, many test matrices are not diagonalizable; a consequence of this was that the condition number of the computed $\mathtt{V}$ grew, as the working precision was increased.
+In fact, many matrices are badly scaled or severely non-normal, thus yielding eigenvector matrices so ill-conditioned that a numerically accurate reconstruction of $A$ as $\mathtt{V}*\mathtt{D}\,/\,\mathtt{V}$ could not be obtained. Even worse, many test matrices are defective, thus they don't have a full set of linearly independent eigenvectors. Consequently, the condition number of the computed $\mathtt{V}$ grew, as the working precision was increased.
 
 Therefore, diagonalization alone was not sufficient, a ``fallback method'' had to be present alongside it. 
 The most immediate choice would have been a Taylor series expansion, but Scaling and Squaring would have been better. However, currently -- to the best of our knowledge -- there are no Julia libraries that implement Scaling and Squaring for the matrix exponential in arbitrary precision. Thus, the ``fallback method'' of choice was \texttt{exp\_mp}, the algorithm under test. Since preliminary tests and comparisons with diagonalization suggested that \texttt{exp\_mp} was accurate and reliable, this choice was not entirely unjustified.
 \smallskip 
 
-The second procedure to produce reference solutions avoided diagonalization altogether. Instead, \texttt{exp\_mp} was executed at progressively higher values of working precision, until the computed digits stabilized. More precisely, suppose that the goal is to compute $Y_{\textup{true}}$ with binary precision $\hat{p}$. Then $\norm{\exp(A)-Y_{\textup{true}}}/\norm{\exp(A)}$ should be roughly of order $2^{-\hat{p}}$, i.e. $Y_{\textup{true}}$ and $\exp(A)$ should match up to approximately $\hat{p}\cdot\log_{10}(2)$ significant digits. \textcolor{red}{\`E utile questa specifica? Inutile? Dannosa, addirittura?}
+The second procedure to produce reference solutions avoided diagonalization altogether. Instead, \texttt{exp\_mp} was executed at progressively higher values of working precision, until the computed digits stabilized. More precisely, suppose that the goal was to compute $Y_{\textup{true}}$ with binary precision $\hat{p}$. Then $\norm{\exp(A)-Y_{\textup{true}}}/\norm{\exp(A)}$ should have roughly been of order $2^{-\hat{p}}$, i.e. $Y_{\textup{true}}$ and $\exp(A)$ should have matched up to approximately $\hat{p}\cdot\log_{10}(2)$ significant digits. \textcolor{red}{\`E utile questa specifica? Inutile? Dannosa, addirittura?}
 
-A sequence of approximants $Y_p=\mathtt{exp\_mp}(A, \mathtt{working\_precision}=p)$ is computed at progressively higher values of $p$. This process is terminated when $\max_{i,j\in[n]}\abs{(Y_p-Y_{p-1})_{i,j}}$ falls below the tolerance value $2^{-\hat{p}}$, at which point $Y_p$ is kept as reference solution. 
+A sequence of approximants $Y_p=\mathtt{exp\_mp}(A, \mathtt{working\_precision}=p)$ was computed at progressively higher values of $p$. This process was terminated when $\max_{i,j\in[n]}\abs{(Y_p-Y_{p-1})_{i,j}}$ falled below the tolerance value $2^{-\hat{p}}$, at which point $Y_p$ was kept as reference solution. 
 
 The rationale behind this strategy is that \textcolor{red}{Spiegare.}
 
@@ -267,11 +267,10 @@ Being a Python library, this had to be done with Python calls from within Julia.
 \end{algorithm}
 \textcolor{red}{Serve anche lo pseudocodice per la versione con approssimante di Padé? O una descrizione grosso modo del suo funzionamento?}
 
-One thing to notice is that \texttt{mpmath.expm} internally increases the precision. \texttt{exp\_mp} does so as well.
-\bigskip
+One thing to notice is that \texttt{mpmath.expm} internally increases the precision. Recall that \texttt{exp\_mp} does it too.
 
 \section{Experimental results}
-Figure~\ref{fig:exp_mp_fwerrs} displays, for various working precisions, the forward errors achieved by \texttt{exp\_mp}in its possible configurations, namely:
+Figure~\ref{fig:exp_mp_fwerrs} displays, for various working precisions, the forward errors achieved by \texttt{exp\_mp} in its possible configurations, namely:
 \begin{itemize}
 	\item \texttt{exp\_d}: transformation-free variant of \texttt{exp\_mp}, with diagonal Padé approximant. 
 	\item \texttt{exp\_t}: transformation-free variant of \texttt{exp\_mp}, with Taylor approximant.
@@ -289,10 +288,11 @@ Furthermore, \texttt{exp\_sas} denotes the standard Julia $\mathtt{exp}(A)$ algo
 \begin{itemize}
 	\item Spiegare come è stato calcolato il numero di condizionamento
 	\item La linea tratteggiata grigia
+	\item \texttt{exp\_mp} è concorrenziale con \texttt{Base.exp}
 \end{itemize}
 }
 
-\textcolor{red}{Here is the same plot, hued by strategy to compute the reference solution.}
+\textcolor{red}{The same plot, hued by strategy to compute the reference solution, is in figure~\ref{fig:exp_mp_fwerrs_byStrat}.}
 \begin{figure}[hbp]
 	\includegraphics[width=\textwidth]{Immagini/errors_restricted-mpmath_ref-hued_by_strat}
 	\caption{\emph{Forward errors of \texttt{exp\_mp}, colored by method to compute $Y_{\textup{true}}$.}}

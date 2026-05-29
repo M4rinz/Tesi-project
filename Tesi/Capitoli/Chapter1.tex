@@ -57,9 +57,9 @@ Let $\mathtt{fl}(x)$ denote an element of $\mathcal{F}$ that is nearest to $x$, 
 
 A quantity that is closely related to the machine precision is the \emph{unit roundoff}, whose definition is not universally accepted. The two terms are not defined in the \textsc{IEEE} 754 standard~\cite{article:IEEE754_2019}, and are often used interchangeably in the literature. There is no universal agreement on the definition of machine precision, for reasons that will be discussed shortly. This is rarely harmful, since the competing definition differ by at most a factor of $2$.	
 
-Higham defines the machine precision as in definition~\ref{def:macheps} and reserves the term unit roundoff for $\frac{1}{2}\beta^{1-t}$. In~\cite{demmel:book} Demmel, instead, defines the machine precision to be $\frac{1}{2}\beta^{1-t}$ without introducing the concept of unit roundoff.
+Higham defines the machine precision as in Definition~\ref{def:macheps} and reserves the term unit roundoff for $\frac{1}{2}\beta^{1-t}$. In~\cite{demmel:book} Demmel, instead, defines the machine precision to be $\frac{1}{2}\beta^{1-t}$ without introducing the concept of unit roundoff.
 
-The quantity in definition~\ref{def:macheps} is useful for characterizing the distance between floating point numbers and is widely adopted as \emph{the} definition of machine precision, whereas the notion of unit roundoff can be useful for giving bounds to rounding errors in floating point approximations. This is the reason why Higham introduces the concept of unit roundoff as distinct from that of machine precision, and also explains why Demmel comes up with the definition above.\\	
+The quantity in Definition~\ref{def:macheps} is useful for characterizing the distance between floating point numbers and is widely adopted as \emph{the} definition of machine precision, whereas the notion of unit roundoff can be useful for giving bounds to rounding errors in floating point approximations. This is the reason why Higham introduces the concept of unit roundoff as distinct from that of machine precision, and also explains why Demmel comes up with the definition above.\\	
 Instead we introduce the unit roundoff as the largest possible relative rounding error of the chosen rounding strategy.
 	
 The round-toward-zero strategy (also known as chopping, or truncation) yields $\beta^{1-t}=u$ as the unit roundoff. Under round-to-nearest, the unit roundoff is $\frac{1}{2}\beta^{1-t}$.
@@ -97,12 +97,12 @@ The \textsc{IEEE} standard 754 specifies optional extended and extendable precis
 
 Many programming languages have libraries for multiprecision arithmetic, such as \textsc{mpmath}~\cite{mpmath} in Python and \textsc{mpfr}~\cite{article:MPFR} in C. In this section we will focus on multiprecision arithmetic in \matlab and Julia.
 
-Before doing so, we make the important remark~\ref{oss:prec_vs_acc}.
+Before doing so, we make the important Remark~\ref{oss:prec_vs_acc}.
 \begin{oss}\label{oss:prec_vs_acc}
-	Although the two terms are often confused and used interchangeably, precision and accuracy are not the same thing. Let us make a distinction between them by clarifying the terminology that will be used throughout this document.
+	Although the two terms are often confused and used interchangeably, precision and accuracy are not the same thing. Let us make a distinction between them by clarifying the terminology that will be used throughout this eaasy.
 	
 	Following~\cite[§~1.4]{higham:accuracy_book}, \emph{accuracy} refers to the absolute or relative error of an approximate quantity. It is a measure of closeness to a given target. The concept of relative error (hence of accuracy) is connected to the notion of \emph{correct significant digit}, but the latter concept is somewhat elusive (see also~\cite[§~1.2]{higham:accuracy_book}).
-	Following the definition given in~\cite{article:IEEE754_2019}, the term \emph{precision} can refer to the maximum number of significant digits that can be represented, or the number of digits to which a result is rounded (thus, in this latter meaning, it refers to the accuracy with which the arithmetic operations are performed in $\mathcal{F}$). Of course, precision may also refer to the parameter $t$ in definition~\ref{def:float_pt_n_sys}.
+	Following the definition given in~\cite{article:IEEE754_2019}, the term \emph{precision} can refer to the maximum number of significant digits that can be represented, or the number of digits to which a result is rounded (thus, in this latter meaning, it refers to the accuracy with which the arithmetic operations are performed in $\mathcal{F}$). Of course, precision may also refer to the parameter $t$ in Definition~\ref{def:float_pt_n_sys}.
 \end{oss}
 
 It's worth pointing out that often, in science, precision quantifies how close the measurements in a given set are to each other; accuracy quantifies how close such set of measures is to a given target (often, the true value that is being measured). In this document, however, the terms \emph{precision} and \emph{accuracy} will be used according to the definitions given above.
@@ -114,7 +114,7 @@ In \matlab{}, arbitrary precision arithmetic is commonly performed via the \text
 
 %\textcolor{red}{Sarebbe anche interessante fare un breve confronto tra vpa e Advanpix (magari anche solo riassumendo quanto sta nella documentazione (per vpa), e linkando alla pagina del manuale di Advanpix). Però, se la faccio, la farei breve perché alla fine MATLAB manco lo uso. Se questo confronto/approfondimento fa emergere degli aspetti generali dell'aritmetica floating point, allora può aver senso.}
 
-The multiprecision algorithm developed by Higham and Fasi~\cite{higham:hf19_mpexpm} relies on this toolbox.
+The multiprecision algorithm developed by Fasi and Higham~\cite{higham:hf19_mpexpm} relies on this toolbox.
 
 \subsection{Multiple precision arithmetic in Julia}
 The Julia programming language~\cite{article:Julia} natively supports multiprecision floating-point numbers by means of the built-in data type \texttt{BigFloat}.
@@ -207,7 +207,7 @@ Examples~\ref{es:setprecision_global} and~\ref{es:setprecision_next_ops} highlig
 %\smallskip
 
 \noindent Examples~\ref{es:float_promotion} and~\ref{es:eval_expr} show that neither \texttt{big(0.1)} nor $\mathtt{big(1/10)}$ is either the high precision evaluation of the expression $\mathtt{1/10}$ or the closest \texttt{BigFloat} to the real number $10^{-1}$. 
-The latter can be obtained, in Julia, with \texttt{big(``0.1'')} (or with \texttt{BigFloat(``0.1'')}); but \texttt{big(``1/10'')} and \texttt{BigFloat(``1/10'')} fail.
+The latter can be obtained, in Julia, with \texttt{big\,``0.1''} (or with \texttt{BigFloat(``0.1'')}); but \texttt{big\,``1/10''} and \texttt{BigFloat(``1/10'')} fail.
 \smallskip 
 
 \noindent Example~\ref{es:convert} shows an aspect of the \texttt{convert} command's behaviour that can have a concrete impact in multiprecision computations.
@@ -232,7 +232,7 @@ Let $A,B\in\R{n}{n}$ such that $A, B$ have elements of type \texttt{BigFloat}. T
 	We make a few quick observations on the aforementioned operations:
 	\begin{itemize}
 		\item $A+B$ broadcasts the $+$ operation onto the single entries of the matrices 
-		\item Since \textsc{BLAS}~\cite{article:BLAS} for matrix multiplications are available only for single and double precision, the computation of $C=A\cdot B$ is implemented with the naive three-way for loop, using the $i,j,k$ ordering. Julia tries to exploit Instruction Level Parallelism by using the \texttt{@simd} macro on the innermost loop. $C_{i,j}$ is updated by using fused multiply-add operations, implemented by \textsc{mpfr}
+		\item Since \textsc{blas}~\cite{article:BLAS} subroutines for matrix multiplications are available only for single and double precision, the computation of $C=A\cdot B$ is implemented with the naive three-way for loop, using the $i,j,k$ ordering. Julia tries to exploit Instruction Level Parallelism by using the \texttt{@simd} macro on the innermost loop. $C_{i,j}$ is updated by using fused multiply-add operations, implemented by \textsc{mpfr}
 		\item $\mathtt{inv}(A)$ is doable because the $\mathtt{lu}$ command works with $\mathtt{BigFloat}$ matrices out of the box. As before, no \textsc{lapack} routine can be used; the factorization is computed using the Gaussian elimination algorithm with pivoting. The lower level arithmetic operations are performed via \textsc{mpfr} calls. 
 		\item $A^n,\ n\in\mathbb{Z}$ calls the $\mathtt{power\_by\_squaring}$ function, which essentially is an implementation of the \emph{binary powering} algorithm~\cite[Alg.~4.1]{higham:matfun_book}. For $n<0$, $\mathtt{inv}(A)^{\abs{n}}$ is computed. 
 	\end{itemize}
@@ -251,18 +251,18 @@ We remind that there are three main sources of error:
 	\item Many mathematical functions or problems contain a limiting process of some sort. Numerical methods are bound to work with finite quantities, thus the infinite process has to be replaced with a finite one. This approximation introduces an error that is called \emph{analytic} (or \emph{truncation}, or \emph{discretization}) \emph{error}. 
 	
 	For example, the (scalar) exponential function $e^x$ is defined by its Taylor series. The function can be computed by summing the first $N$ terms, i.e. by truncating the infinite series. The truncation error can be estimated by estimating the remainder. 
-	\item The \emph{algorithmic} or \emph{roundoff} \emph{error} is the error introduced by the fact that the algorithm is running in finite precision.% As we've seen in section~\ref{sect:floatingpoint}, floating-point arithmetic operations are inexact, in general; therefore all intermediate quantities are computed approximately. 
+	\item The \emph{algorithmic} or \emph{roundoff} \emph{error} is the error introduced by the fact that the algorithm is running in finite precision.% As we've seen in Section~\ref{sect:floatingpoint}, floating-point arithmetic operations are inexact, in general; therefore all intermediate quantities are computed approximately. 
 \end{itemize}
 Some common misconceptions about roundoff errors are discussed in~\cite[§~1.19]{higham:accuracy_book}.
 
 \begin{definizione}\label{def:error}
-	Let $\hat{y}\in\R{n}$ be a computed approximation to the quantity $y\in\R{n}$. The \emph{absolute} and \emph{relative} \emph{errors} in the computation of $y$ are given by
+	Let $\hat{y}\in\R{n}$ be a computed approximation to the quantity $y\in\R{n}$, let $\norm{\cdot}$ be a norm on $\R{n}$. The \emph{absolute} and \emph{relative} \emph{errors} in the computation of $y$ are given by
 	\[
 		E_{\textup{abs}}(\hat{y}) = \norm{\hat{y}-y}, \qquad E_{\textup{rel}}(\hat{y}) = \frac{\norm{\hat{y}-y}}{\norm{y}}.
 	\]
 	These are also called \emph{forward errors}.
 \end{definizione}
-The scope of definition~\ref{def:error} is that of the computation of real quantities, but the definition can be easily generalized.
+The scope of Definition~\ref{def:error} is that of the computation of real quantities, but the definition can be easily generalized.
 
 \subsubsection*{Backward error}
 Let $\hat{y}$ be a computed approximation of $y=f(x)$.
@@ -303,7 +303,9 @@ In backward error analysis, the error is being interpreted as perturbations in t
 	It is often the roundoff error that is analyzed by means of the backward error, an example being the QR factorization of a square matrix. As we will see \textcolor{red}{in some paragraph}, the Scaling and Squaring method to compute the matrix exponential, a central topic of this essay, gives a prominent example of backward error analysis on the truncation error. 
 \end{oss*}
 
-\section{Conditioning}
+\section{Conditioning}\label{sect:conditioning_general}
+\textcolor{red}{Sono stato sloppy. Ho messo tutto in $\R$ perché più semplice, ma dovrei cambiare con $\C$\dots Ma un po' tutto il capitolo è così\dots Dovrei rettificare\dots}
+
 %\textcolor{red}{Anche qui, vorrei farla breve ma tanto lo so che la cosa sfuggirà di mano\dots}
 
 %\textcolor{red}{Cose da dire: definizione di numero di condizionamento (sì, anche con la derivata di Fréchet). Il condizionamento è una proprietà del problema. Introdurre notazione. La ``rule of thumb'' fwerr < cond*backerr. Ricostruire come algoritmi stabili all'indietro ci diano la miglior approssimazione a cui possiamo ambire. Stabilità.}
@@ -330,6 +332,21 @@ The most famous example of condition number is that of matrix inversion, $\kappa
 	Throughout the document, the relative condition number of $f$ at $x$ will be denoted as $\kappa_{f}(x)$, the used norm will be desumed by the context \textcolor{red}{devo ricordarmi di parlare della norma della derivata di Fréchet. Questo dovrebbe sistemare la cosa}. When $A$ is a matrix, $\kappa(A)$ will denote its condition number.
 \end{notazione}
 
+%If $f\colon\R{n}\to\R{n}$ is differentiable, an explicit expression of the condition number can be given in terms of its differential at $x$, $\dd{f}(x)$:
+%\[
+%	\operatorname{Cond}_{\text{abs}}(f,x)=\norm{\dd{f}(x)}\qquad\operatorname{Cond}_{\text{rel}}(f,x)=\frac{\norm{\dd{f}(x)}\norm{x}}{\norm{f(x)}}
+%\]
+%where $\norm{\dd{f}(x)}$ denotes the norm of the differential, which is defined as
+%\[
+%	\norm{\dd{f}(x)}\coloneqq\max_{v\ne 0}\frac{\norm{\dd{f}(x)[v]}}{\norm{v}}
+%\]
+%
+%The norm of the differential i
+
+
+
+
+
 If $f\colon\R{n}\to\R{n}$ is differentiable, an explicit expression of the condition number can be given in terms of its Jacobian matrix $\mathbb{J}(x)\in\R{n}{n}$:
 \[
 	\operatorname{Cond}_{\text{abs}}(f,x)=\norm{\mathbb{J}(x)}\qquad\operatorname{Cond}_{\text{rel}}(f,x)=\frac{\norm{\mathbb{J}(x)}\norm{x}}{\norm{f(x)}}
@@ -337,7 +354,7 @@ If $f\colon\R{n}\to\R{n}$ is differentiable, an explicit expression of the condi
 \textcolor{red}{We will generalize these expressions to matrix functions using the Fréchet derivative.}
 \smallskip 
 
-By using definition~\ref{def:cond_number}, we get the important relation
+By using Definition~\ref{def:cond_number}, we get the important relation
 \begin{equation}\label{eqn:backerr_fwerr_cond_relation}
 	\frac{\norm{f(x+\Delta{x})-f(x)}}{\norm{f(x)}}\le\kappa_f(x)\frac{\norm{\Delta{x}}}{\norm{x}}+o(\norm{\Delta{x}}).
 \end{equation}

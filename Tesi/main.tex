@@ -19,14 +19,9 @@
 \usepackage{listings}					% Per scrivere codice in LaTeX...
 %\usepackage{minted}
 
-\usepackage{siunitx}					% Unità di misura
-\let\svqty\qty
-\usepackage{physics}		%physics conflicts with siunitx
-\let\qty\svqty
-
 %\usepackage[all,cmtip]{xy}				% xymatrix. Per fare diagrammi
 %\usepackage{arydshln}					% Linee 
-%\usepackage{nicematrix}				% Tabelle, array e matrici (molto potenti)
+\usepackage{nicematrix}				% Tabelle, array e matrici (molto potenti)
 
 %\usepackage[norules]{frontespizio}		% Per creare il frontespizio
 
@@ -142,8 +137,9 @@
 \include{Varie/Introduction}	
 
 \include{Capitoli/Chapter1}		% Aritmetica di macchina, precisione arbitraria
-\include{Capitoli/Chapter2}		% Esponenziale di matrice
-\include{Capitoli/Chapter3}		% Algoritmo di Higham e Fasi
+\include{Capitoli/Chapter2}		% Funzioni di matrice
+\include{Capitoli/Chapter3}		% Esponenziale di matrice
+\include{Capitoli/Chapter4}		% Algoritmo di Higham e Fasi
 
 
 \include{Capitoli/Chapter6}		% Sperimentazioni numeriche
