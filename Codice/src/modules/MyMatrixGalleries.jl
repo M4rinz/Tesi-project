@@ -275,11 +275,13 @@ function expm_testmats(
         A = [4 2 0; 1 4 1; 1 1 4]
         V = [-2 4 1; 1 -3 1; 1 0 1]
         #J = [3 1 0; 0 3 0; 0 0 6]
+        #Mi sa che è meglio se non la restituisco...
         el = exp(big(3))
         expJ = [el el 0
                 0  el 0
-                0  0  exp(6)]
-        Y_true = V * expJ / V
+                0  0  exp(big(6))]
+        Vb = big.(V)
+        Y_true = Vb * expJ / Vb
     elseif k == 2
         # \cite[Test 2]{ward77}.
         id = "ward77_test2"

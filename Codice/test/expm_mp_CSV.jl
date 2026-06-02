@@ -215,7 +215,7 @@ end
 
 
 ############## Files per runnare esperimenti e scrivere su CSV ##############
-csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.4alpha-25_05-mpmath_ref.csv")
+csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.5alpha-02_06-mpmath_ref.csv")
 
 const CSV_HEADER = [
     "kind", "n", "eltype", "ishermitian",
@@ -373,13 +373,13 @@ end
 ## First experiment: Float64 random 
 for n in [8, 24] #[16, 64, 256]
     A = rand(n,n);
-    run_and_record("rand", A)
+    run_and_record("rand_$n", A)
 end
 
 ## Second experiment: BigFloat random
 for n in [8, 24] #[16, 64, 256]
     A = rand(BigFloat, n,n)
-    run_and_record("rand_big", A)
+    run_and_record("rand_$(n)_big", A)
 end
 
 ## Third experiment: Fasi's matrices
