@@ -21,10 +21,10 @@ Matrix functions can be defined in three equivalent ways.
 \subsection*{Jordan form definition}
 The first definition we introduce makes use of the Jordan form of $A$.
 
-\begin{notazione}
+\begin{notazione*}
 	Let $\mu_g(\lambda)$ and $\mu_a(\lambda)$ denote, respectively, the geometric and arithmetic multiplicity of an eigenvalue $\lambda$.
 	Let $\mathbb{C}\supset\hat{\Lambda}(A)=\qty{\lambda_1,\dots,\lambda_s}$ be the \emph{spectrum} of $A$ with the convention that the eigenvalues are repeated with \emph{geometric multiplicity}. 
-\end{notazione}
+\end{notazione*}
 Then $A$ can be written in \emph{Jordan canonical form} as
 \begin{equation}\label{eqn:jordan_A}
 	A = V\,\operatorname{Blkdiag}\qty(J_{n_1}(\lambda_1),\dots,J_{n_s}(\lambda_s))\,V^{-1}
@@ -77,7 +77,6 @@ We can finally give the definition of matrix function via Jordan form.
 		\end{pNiceMatrix}\in\C{n_k}{n_k}.
 	\end{equation}
 \end{definizione}
-
 Definition~\ref{def:matfun_Jordan} comes natural if $f$ is a polynomial, in fact~\eqref{eqn:f_Jordan_block} can be proven by a simple computation.
 
 \textcolor{red}{Dire: anche se a prima vista non sembra, è una buona definizione.}
@@ -114,10 +113,10 @@ The function of a matrix can also be defined via a generalization of Cauchy's in
 		f(A)\coloneqq\frac{1}{2\pi i}\oint_{\Gamma}f(z)(zI-A)^{-1}\dd{z}.
 	\]
 \end{definizione}
-In Definition~\ref{def:matfun_integral}, the integral is defined on a element-by-element basis.  
+\noindent The integral in Definition~\ref{def:matfun_integral}is defined on a element-by-element basis.  
 
 \section{Basic properties of matrix functions}
-Many properties follow from the definition of matrix function. Some of the most useful ones will be listed here, the reader is referred to~\cite[§~1.3]{higham:matfun_book} for further readings. \textcolor{red}{Properties more specific to the matrix exponential will be listed later.}
+Many properties follow from the definition of matrix function. Some of the most useful ones will be listed here, for further readings one can refer to~\cite[§~1.3]{higham:matfun_book}. \textcolor{red}{Properties more specific to the matrix exponential will be listed later.}
 
 \begin{lemma}\label{lemma:matfun_trivial_properties}
 	Let $A\in\C{n}{n}$ and let $f$ be a function defined on the spectrum of $A$. The following properties hold:
@@ -150,7 +149,7 @@ Many properties follow from the definition of matrix function. Some of the most 
 	\end{enumerate}
 \end{lemma}
 \begin{proof}
-	The first two properties follow from the polynomial interpolation definition of matrix function, see~\cite[Thm.~1.15]{higham:matfun_book}. The full proof of the third property -- which still follows from the polynomial definition as well, but is slighly more involved -- can be found in~\cite[Thm.~1.17]{higham:matfun_book}.
+	The first two properties follow from the polynomial interpolation definition of matrix function, see~\cite[Thm.~1.15]{higham:matfun_book}. The full proof of the third property -- which still follows from the polynomial interpolation definition, but is slighly more involved -- can be found in~\cite[Thm.~1.17]{higham:matfun_book}.
 \end{proof}
 
 The property in Lemma~\ref{lemma:matfun_f_continuity} trivially follows from the Jordan block definition of matrix function, but has important consequences.
@@ -174,7 +173,7 @@ The property in Lemma~\ref{lemma:matfun_f_continuity} trivially follows from the
 		f(A)=\lim_d\sum_{k=0}^{d}c_k(A-\alpha I)^k.
 	\]
 \end{corollario_lemma}
-The assumption $\rho(A-\alpha I)<r$ can be also loosened to match those of Lemma~\ref{lemma:matfun_f_continuity} when an eigenvalue lies on the border of the disk of convergence. See also~\cite[Thm.~4.7]{higham:matfun_book}.
+The assumption $\rho(A-\alpha I)<r$ can also be loosened to $\rho(A-\alpha I)\le r$, paired with the differentiability assumption of Lemma~\ref{lemma:matfun_f_continuity} when an eigenvalue lies on the border of the risk of convergence. See also~\cite[Thm.~4.7]{higham:matfun_book}.
 \smallskip 
 
 \noindent Lemma~\ref{lemma:matfun_A_continuity} states that, under appropriate assumptions (which are satisfied, in the complex case, if the function is holomorphic), matrix functions are continuous functions.
@@ -182,15 +181,15 @@ The assumption $\rho(A-\alpha I)<r$ can be also loosened to match those of Lemma
 	Let $\Omega$ be an open subset of $\R$ or $\C$, let $f$ be $n-1$ times differentiable on $\Omega$. Then $\lim_{m}f(A_m)=f(A)$ for any sequence $\qty{A_m}_{m\in\mathbb{N}}\subseteq\qty{A\in\C{n}{n}\mid\Lambda(A)\subseteq\Omega}$ such that $A_m\xlongrightarrow{m\to\infty}A$.
 \end{lemma}
 \begin{proof}
-	The proof can be found in~\cite[Thm.~1.19]{higham:matfun_book} and the references therein. Note that the property can't be proven as a straightforward outcome of the polynomial interpolation definition; i.e. $\lim_{m}f(A_k)=\lim_{m}p(A_k)=p(\lim_{m}A_k)$ is \emph{not} a valid proof, because the interpolating polynomial $p$ depends on $A_m$.
+	The proof can be found in~\cite[Thm.~1.19]{higham:matfun_book} and the references therein. Note that the property can't be proven as a straightforward outcome of the polynomial interpolation definition; i.e. $\lim_{m}f(A_k)=\lim_{m}p(A_m)=p(\lim_{m}A_m)$ is \emph{not} a valid proof, because the interpolating polynomial $p$ depends on $A_m$.
 \end{proof}
 
 
-\section{Conditioning of matrix functions}
-The general definitions of absolute and relative condition numbers have been given in Definition~\ref{def:cond_number}, in Section~\ref{sect:conditioning_general}. These definitions can also be \textcolor{red}{applied, \emph{mutatis mutandis},} to matrix functions. 
+\section{Conditioning of matrix functions}\label{sect:cond_matfun}
+The general definitions of absolute and relative condition numbers have been given in Definition~\ref{def:cond_number}, in Section~\ref{sect:conditioning_general}. Apart from choosing appropriate norms, nothing prevents us from applying those same definitions to matrix functions. 
 
-However, in that same section, we discussed how there are explicit formulas for the condition number, for vector valued functions, that involve the norm of the Jacobian matrix. A more practical formula would be welcome even in this case.
-To obtain it, a reasonable notion of derivative is needed. The \textcolor{red}{definition of Fréchet derivative is the one we are looking for.}
+In that same section we discussed explicit formulas for the condition number of vectorvalued functions that involve the norm of the Jacobian matrix. More practical formulas would be welcome even in the case at hand.
+To obtain it, a reasonable notion of derivative is needed. To this end, we introduce the \emph{Fréchet derivative} of a matrix function.
 
 \begin{definizione}\label{def:frechet_derivative}
 	The \emph{Fréchet differential} (often also called \emph{Fréchet derivative}) of  $f\colon\C{n}{n}\to\C{n}{n}$ at the point $A\in\C{n}{n}$ is a linear mapping 
@@ -200,11 +199,99 @@ To obtain it, a reasonable notion of derivative is needed. The \textcolor{red}{d
 					& E & \longmapsto & L_f(A)[E]
 		\end{array}
 	\]
-	such that $f(A+E) = f(A) + L_f(A)[E] + o(\norm{E})$ for all $E\in\C{n}{n}$
+	such that $f(A+E) = f(A) + L_f(A)[E] + o(\norm{E})$ for all $E\in\C{n}{n}$.
 \end{definizione}
-Definition~\ref{def:frechet_derivative} should be regarded as a specialization of the more general notion of Fréchet differential that can be encountered in real analysis or differential geometry. Nevertheless, it is entirely sufficient for the purposes of this work.
+The Fréchet differential definition can be generalized to functions between Banach spaces. For the purposes of this essay, Definition~\ref{def:frechet_derivative} is sufficient.
 
-The Fréchet derivative of $f$ at $A$ may not exist, but if it exists then it is unique. 
+The Fréchet derivative of $f$ at $A$ may not exist, but if it exists then it is unique.  
+
+\begin{notazione*}
+	The notation $L_{f}(A)[E]$ can be read as ``the (Fréchet) derivative of $f$, in $A$, applied to $E$'', or ``the (Fréchet) derivative of $f$, computed in $A$, along the direction $E$''. 
+	$L(A)$ denotes the linear operator $E\mapsto L(A)[E]$.
+	
+	\textcolor{red}{Forse introdurre notazione $\dd{f}(A)$?}
+\end{notazione*}
+
+\begin{oss}\label{oss:frechet_generalizza}
+	Notice that if, in Definition~\ref{def:frechet_derivative}, the function $f$ had different domain and range, the usual notions of derivative known from real analysis would be obtained. Namely:
+	\begin{itemize}
+		\item For $f\colon\R\to\R$, $L_f(x_0)[x]=f'(x_0)\,x$, i.e. $L_f(x)=f'(x)\dd{x}$
+		\item For $f\colon\R{n}\to\R$, $L_f(x_0)[x]=\langle\grad{f}(x_0),x\rangle$, i.e. $L_f(x_0)=\sum_{i=1}^n\pdv{f(x_0)}{x_i}\dd{x_i}$.
+		\item For $f\colon\R{n}\to\R{n}$, $L_f(x_0)[x]=\mathbb{J}(x_0)\cdot x$
+	\end{itemize}
+\end{oss}
+
+\noindent Through Definition~\ref{def:frechet_derivative}, the absolute and relative condition numbers of a matrix function can be defined as
+\begin{equation}\label{eqn:cond_frechet}
+	\operatorname{Cond}_{\text{abs}}(f,A)=\norm{L_f(A)}\qquad\operatorname{Cond}_{\text{rel}}(f,A)=\frac{\norm{L_f(A)}\norm{A}}{\norm{f(A)}}
+\end{equation}
+with the same notational convention~\ref{notaz:kappa_f}.
+
+In equation~\eqref{eqn:cond_frechet}, the norm of the Fréchet differential at $A$ appears. This norm is defined analogously to the norm of any linear operator (including matrices) as
+\[
+	\norm{L_f(A)}\coloneqq\max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{L_f(A)[E]}}{\norm{E}}.
+\] 
+The norm of the operator $L_f(A)$ is the one induced by the norms of the input and output vector spaces. Being them $\C{n}{n}$, these norms are matrix norms. 
+\smallskip 
+
+\textcolor{red}{Note that from Remark~\ref{oss:frechet_generalizza} it follows that the~\eqref{eqn:cond_frechet} generalize the definitions of condition numbers for differentiable functions that we already know.}
+\smallskip 
+
+The differential $\dd{f}(x)$ of a function $f\colon\R{n}\to\R{n}$ at a point $x\in\R{n}$ is a linear map from $\R{n}$ to $\R{n}$ which is represented in the canonical basis by the Jacobian matrix. An analogous phenomenon happens for matrix functions: the action of the Fréchet derivative can closely related to the multiplication by a matrix. Unlike the $\R{n}$ case however, the isomorphism is not the identity.
+
+\begin{definizione}
+	Let $\operatorname{Vec}\colon\C{n}{n}\to\C{n^2}$ be the function that ``stacks all the columns of a matrix'', i.e. let it be defined as 
+	\[
+		\begin{array}{rccl}
+			\operatorname{Vec}\colon & \C{n}{n} & \longrightarrow & \C{n^2}\\
+				& (X_{i,j})_{i,j\in[n]} & \longmapsto & \qty(\operatorname{Vec}X)_{(j-1)n+i}.
+		\end{array}
+	\]
+\end{definizione}
+\noindent Now consider the diagram 
+\[
+\xymatrix{
+	\C{n^2} \ar[r]^{\psi_A} & \C{n^2} \\
+	\C{n}{n} \ar[u]^{\operatorname{Vec}} \ar[r]_{L_f(A)} & \C{n}{n} \ar[u]^{\operatorname{Vec}}
+}
+\]
+which commutes since $\operatorname{Vec}$ is an isomorphism. The linear function $\psi_A$ is represented by a square matrix $K=K(A)\in\C{n^2}{n^2}$. In other terms, for all directions $E\in\C{n}{n}$ it holds that
+\begin{equation}\label{eqn:frechet_vec}
+	\operatorname{Vec}\qty(L_f(A)[E])=K(A)\cdot\operatorname{Vec}(E).
+\end{equation}
+Equation~\eqref{eqn:frechet_vec} not only very useful for deriving properties of the Fréchet derivative, but can also be exploited by algorithms.
+
+\subsection{Properties of the Fréchet derivative}
+The Fréchet derivative enjoys most of the usual properties of derivatives. The sum, product, inverse and chain rules are all satisfied. We write the latter two properties for clarity. The inverse rule can be written as
+\begin{equation*}
+	L_{f^{-1}}(f(A)) = L_f(A)^{-1},\ \text{or equivalently}\ L_f(A)\big[L_{f^{-1}}\qty(f(A))[E]\big]=E%\qquad\forall\,X\in\C{n}{n}\ \forall\,E\in\C{n}{n}
+\end{equation*}
+\noindent The chain rule can be written as 
+\begin{equation*}
+	L_{f\circ g}(A) = L_f(g(A))\circ L_g(A)
+\end{equation*}
+\noindent or equivalently as 
+\begin{equation*}
+	L_{f\circ g}(A)[E]=L_f\qty(g(A))\big[L_g\qty(A)\qty[E]\big].
+\end{equation*}
+\smallskip 
+
+\noindent If $f\colon\Omega\subseteq\C{n}\to\C{n}$ is $2n-1$ times continuously differentiable on $\Omega$, then 
+\begin{equation}\label{eqn:mathias_trick}
+	f\left(\begin{array}{c|c}
+		A & E \\ \hline & A
+	\end{array}\right)=
+	\left(\begin{array}{c|c}
+		f(A) & L_f(A)[E] \\ \hline & f(A)
+	\end{array}\right)
+\end{equation}
+holds for any $A\in\C{n}{n}$ such that $\Lambda(A)\subseteq\Omega$ and for any direction $E\in\C{n}{n}$ for which $L_f(A)$ is defined.
+
+Thanks to formula~\eqref{eqn:mathias_trick}, the problem of evaluating the Fréchet derivative is converted to that of computing the function on a matrix of twice the size. This computation returns both $f(A)$ and $L_f(A)[E]$\textcolor{red}{, similarly to what happens in forward mode automatic differentiation.}
+However, the cost of evaluating a function on a matrix of size $n$ is usually $O(n^3)$, so the cost of computing $f(A)$ and $L_f(A)[E]$ using~\eqref{eqn:mathias_trick} is $8$ times that of computing $f(A)$ alone.
+
+\subsection{Computing or estimating the condition number}
+
 
 \section{Computational techniques for matrix functions}
 \textcolor{red}{Le menziono, perché è giusto così. Schur-Parlett per funzioni generiche (in~\cite[§~9]{higham:matfun_book}). Per funzioni specifiche ci sono tecniche specifiche, che però possono essere raggruppate sotto un ``ombrello più grande''. Ad esempio metodo di Newton. }

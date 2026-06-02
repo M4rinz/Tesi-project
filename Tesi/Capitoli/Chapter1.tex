@@ -1,5 +1,5 @@
 \chapter{Floating Point Arithmetic}\label{capitolo:1}
-This chapter will be devoted to floating point arithmetic. It will start with a refresher of the well known basic principles, with the aim of presenting how arbitrary precision computation works in Julia.  
+In this first chapter the classic topic of floating point arithmetic is presented. It will start with a refresher of the well known basic principles, with the aim of presenting how arbitrary precision computation works in Julia.  
 
 \section{Floating point number system}\label{sect:floatingpoint}
 The contents of this section are based on~\cite[§~2]{higham:accuracy_book}, which may be consulted for further details. Another classic source is~\cite{goldberg:floating_pt_arithm}.
@@ -51,11 +51,11 @@ The following definition is arguably the most important one in all numerical ana
 What has been discussed so far shows that the finiteness of $t$ is a limitation on precision, the finiteness of $e$ is a limitation on range.\footnote{As a curiosity, Google's \texttt{bfloat16} trades precision for range. More information can be found in \href{https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus}{the blog post that introduced the format}.} There are only finitely many elements in $\mathcal{F}$, thus in general any $x\in\R$ can only be approximated by a floating point number.
 Let $\mathtt{fl}(x)$ denote an element of $\mathcal{F}$ that is nearest to $x$, the mapping $x\mapsto\mathtt{fl}(x)$ is called \emph{rounding}. There are many \emph{rounding strategies}, see~\cite{higham:accuracy_book} and~\cite{article:IEEE754_2019} for details. If $x$ falls outside of the range of $\mathcal{F}$, it is said that $\mathtt{fl}(x)$ \emph{overflows} or \emph{underflows} depending on the circumstances.
 
-\begin{notazione}
-	In this document $\mathtt{fl}(x)$ will sometimes denote a (floating point) approximation of a quantity or expression $x$ \emph{as returned by a given algorithm}. To disentangle this ambiguity, the notation $\mathtt{round}(x)$ will also be used when necessary.
-\end{notazione}
+%\begin{notazione}
+%	In this document $\mathtt{fl}(x)$ will sometimes denote a (floating point) approximation of a quantity or expression $x$ \emph{as returned by a given algorithm}. To disentangle this ambiguity, the notation $\mathtt{round}(x)$ will also be used when necessary.
+%\end{notazione}
 
-A quantity that is closely related to the machine precision is the \emph{unit roundoff}, whose definition is not universally accepted. The two terms are not defined in the \textsc{IEEE} 754 standard~\cite{article:IEEE754_2019}, and are often used interchangeably in the literature. There is no universal agreement on the definition of machine precision, for reasons that will be discussed shortly. This is rarely harmful, since the competing definition differ by at most a factor of $2$.	
+A quantity that is closely related to the machine precision is the \emph{unit roundoff}. The two terms are not defined in the \textsc{IEEE} 754 standard~\cite{article:IEEE754_2019}, and are often used interchangeably in the literature. There is no universal agreement on the definition of the two terms, for reasons that will be discussed shortly. This is rarely harmful, since the competing definitions differ by at most a factor of $2$.	
 
 Higham defines the machine precision as in Definition~\ref{def:macheps} and reserves the term unit roundoff for $\frac{1}{2}\beta^{1-t}$. In~\cite{demmel:book} Demmel, instead, defines the machine precision to be $\frac{1}{2}\beta^{1-t}$ without introducing the concept of unit roundoff.
 
@@ -77,15 +77,15 @@ The following theorem states that $u$ uniformly bounds the relative error betwee
 \end{teorema}
 
 \subsection*{Floating point operations}
-When equipped with the arithmetic operations inherited from $\R$, $\mathcal{F}$ lacks of many useful mathematical properties. %In general, $\mathcal{F}(+,\cdot)$ has no algebraic structure. In particular, associativity is not guaranteed in $\mathcal{F}$ , and 
+When equipped with the arithmetic operations inherited from $\R$, $\mathcal{F}$ lacks many useful mathematical properties. %In general, $\mathcal{F}(+,\cdot)$ has no algebraic structure. In particular, associativity is not guaranteed in $\mathcal{F}$ , and 
 Indeed, for $x,y\in\mathcal{F}$, $x\,\operatorname{op}\,y$ may not belong to $\mathcal{F}$, where $\operatorname{op}=+,-,\cdot,/$. The result of any arithmetic operation has to be ``brought back'' into $\mathcal{F}$, this may introduce an error as described by the standard model~\eqref{eqn:std_mdl_float_arithm}.
 \begin{equation}\label{eqn:std_mdl_float_arithm}
 	\mathtt{fl}(x\,\operatorname{op}\,y) = (x\,\operatorname{op}\,y)(1+\delta)= \frac{x\,\operatorname{op}\,y}{1+\eta}\qquad\abs{\delta},\abs{\mu}\le u
 \end{equation}
 
-The standard model~\eqref{eqn:std_mdl_float_arithm} lies at the foundation of any error analysis. We note that $\mathcal{F}(+,\cdot)$ has no algebraic structure in general. In particular, operations between floating point numbers are not truly associative, and also the distributive property is lost.
+The standard model~\eqref{eqn:std_mdl_float_arithm} lies at the foundation of any error analysis. We note that $\mathcal{F}(+,\cdot)$ has no algebraic structure in general. In particular, operations between floating point numbers are not associative, and also the distributive property is lost.
 
-The abstract models of floating point numbers and operations between them are behind concrete implementations. The \textsc{IEEE} standard 754~\cite{article:IEEE754_2019}, lastly revised in 2019, is the most popular technical standard for floating point arithmetic. The standard specifies: formats for binary and decimal floating point data, formats for data interchange and computation, conversion rules (e.g. between floating point formats), arithmetic operations and and comparisons, rounding modes, floating point exceptions and their handling.  
+The abstract models of floating point numbers and operations between them are behind concrete implementations. The \textsc{IEEE} standard 754~\cite{article:IEEE754_2019}, lastly revised in 2019, is the most popular technical standard for floating point arithmetic. The standard specifies: formats for binary and decimal floating point data, formats for data interchange and computation, conversion rules (e.g. between floating point formats), arithmetic operations and comparisons, rounding modes, floating point exceptions and their handling.  
 
 The standard supports single, double and quadruple precision. Lower precisions are supported as interchange formats, however they are widely used for computation in many domains such as machine learning.
 
@@ -99,7 +99,7 @@ Many programming languages have libraries for multiprecision arithmetic, such as
 
 Before doing so, we make the important Remark~\ref{oss:prec_vs_acc}.
 \begin{oss}\label{oss:prec_vs_acc}
-	Although the two terms are often confused and used interchangeably, precision and accuracy are not the same thing. Let us make a distinction between them by clarifying the terminology that will be used throughout this eaasy.
+	Although the two terms are often confused and used interchangeably, precision and accuracy are not the same thing. Let us make a distinction between them by clarifying the terminology that will be used throughout this essay.
 	
 	Following~\cite[§~1.4]{higham:accuracy_book}, \emph{accuracy} refers to the absolute or relative error of an approximate quantity. It is a measure of closeness to a given target. The concept of relative error (hence of accuracy) is connected to the notion of \emph{correct significant digit}, but the latter concept is somewhat elusive (see also~\cite[§~1.2]{higham:accuracy_book}).
 	Following the definition given in~\cite{article:IEEE754_2019}, the term \emph{precision} can refer to the maximum number of significant digits that can be represented, or the number of digits to which a result is rounded (thus, in this latter meaning, it refers to the accuracy with which the arithmetic operations are performed in $\mathcal{F}$). Of course, precision may also refer to the parameter $t$ in Definition~\ref{def:float_pt_n_sys}.
@@ -110,11 +110,11 @@ It's worth pointing out that often, in science, precision quantifies how close t
 %The literature on arbitrary precision arithmetic is immense, a brief of two possible generic implementations can be found in~\cite[§~27.9]{higham:matfun_book}.
 
 \subsection{Multiple precision arithmetic in \textsc{matlab}}
-In \matlab{}, arbitrary precision arithmetic is commonly performed via the \texttt{vpa} command. The commercial Multiprecision Computing Toolbox~\cite{matlab_mpct} provides mathematical functions that natively support the toolbox's multiprecision floating-point numeric type.
+In \matlab{}, arbitrary precision arithmetic is commonly performed via the \texttt{vpa} command. A popular alternative is the commercial Multiprecision Computing Toolbox~\cite{matlab_mpct}. The toolbox introduces a floating-point numeric type, and provides mathematical functions that support it.
 
 %\textcolor{red}{Sarebbe anche interessante fare un breve confronto tra vpa e Advanpix (magari anche solo riassumendo quanto sta nella documentazione (per vpa), e linkando alla pagina del manuale di Advanpix). Però, se la faccio, la farei breve perché alla fine MATLAB manco lo uso. Se questo confronto/approfondimento fa emergere degli aspetti generali dell'aritmetica floating point, allora può aver senso.}
 
-The multiprecision algorithm developed by Fasi and Higham~\cite{higham:hf19_mpexpm} relies on this toolbox.
+The \matlab{} implementation of the multiprecision algorithm developed by Fasi and Higham~\cite{higham:hf19_mpexpm}, which the authors themselves propose, relies on this toolbox.
 
 \subsection{Multiple precision arithmetic in Julia}
 The Julia programming language~\cite{article:Julia} natively supports multiprecision floating-point numbers by means of the built-in data type \texttt{BigFloat}.
@@ -144,7 +144,7 @@ Examples~\ref{es:setprecision_global} and~\ref{es:setprecision_next_ops} highlig
   # precision(BigFloat) = 256 (default)
   a = 74	
   let 
-    a = 42
+    a = 42	# the variable a is being reassigned
     setprecision(BigFloat, 512)
     print("a = $a") 	# 42
     print("precision = $(precision(BigFloat))") # 512
@@ -169,29 +169,31 @@ Examples~\ref{es:setprecision_global} and~\ref{es:setprecision_next_ops} highlig
 \end{esempio}
 \smallskip 
 
-\noindent Example~\ref{es:big_BigFloat_constructor} llustrate some subtleties in the usage of the \texttt{BigFloat()} and \texttt{big()} constructors.
-\begin{esempio}\label{es:big_BigFloat_constructor}
-	Let $\mathtt{x}$ be a variable or numerical expression of type \texttt{BigFloat}. The $\mathtt{BigFloat}(\mathtt{x})$ and $\mathtt{big}(\mathtt{x})$ constructors work slightly differently.
-	The former returns a value with the precision set to the current working precision; instead $\mathtt{big}(\mathtt{x})$ returns a maximum precision representation of $\mathtt{x}$.
-\begin{lstlisting}[language=Julia]
-  pi = BigFloat(π)
-  setprecision(53) do 
-    big(pi)	 # 3.1415...6198 (78 decimal digits)
-    BigFloat(pi) # 3.1415926535897931
-  end
-\end{lstlisting}
-\end{esempio}
-\smallskip
+%\noindent Example~\ref{es:big_BigFloat_constructor} shows some subtleties in the usage of the \texttt{BigFloat()} and \texttt{big()} constructors.
+%\begin{esempio}\label{es:big_BigFloat_constructor}
+%	Let $\mathtt{x}$ be a variable or numerical expression of type \texttt{BigFloat}. The $\mathtt{BigFloat}(\mathtt{x})$ and $\mathtt{big}(\mathtt{x})$ constructors work slightly differently.
+%	The former returns a value with the precision set to the current working precision; instead $\mathtt{big}(\mathtt{x})$ returns a maximum precision representation of $\mathtt{x}$.
+%\begin{lstlisting}[language=Julia]
+%  pi = BigFloat(π)
+%  setprecision(53) do 
+%    big(pi)	 # 3.1415...6198 (78 decimal digits)
+%    BigFloat(pi) # 3.1415926535897931
+%  end
+%\end{lstlisting}
+%\end{esempio}
+%\smallskip
 
 \noindent The uncareful usage of the \texttt{big} and \texttt{BigFloat} commands can easily lead to some outcomes that may be unintuitive at first. The main one -- which underlies most of the other pitfalls when converting between double and arbitrary precision -- is illustrated in example~\ref{es:float_promotion}. 
 \begin{esempio}\label{es:float_promotion}
-	If $\mathtt{x}$ is not of type \texttt{BigFloat}, then the \texttt{big(x)} and \texttt{BigFloat(x)} constructor try to convert it. The conversion of a double precision number is conceptually simple: the significand of $\mathtt{x}$ is preserved, and the extra lower-order significand bits in the high precision representation are set to zero.  
+	If $\mathtt{x}$ is not of type \texttt{BigFloat}, then the \texttt{big(x)} and \texttt{BigFloat(x)} constructor try to convert it. 
+	The conversion of a double precision number is conceptually simple: the significand of $\mathtt{x}$ is preserved, and the extra lower-order significand bits in the high precision representation are set to zero.  
 \begin{lstlisting}[language=Julia]
   BigFloat(0.1) # 0.10000000000000000555111512312...
   big(0.1)	# same as BigFloat(0.1)
   big(0.0625)	# 1/16 is exactly representable 
   		# in binary
 \end{lstlisting}
+	This example shows that $\texttt{BigFloat}(0.1)$ and $\texttt{big}(0.1)$ create a high precision approximation (the default precision is 256 binary digits) of $\mathtt{fl}(0.1)$, not of $0.1\in\R$
 \end{esempio}
 \smallskip
 
@@ -208,22 +210,22 @@ Examples~\ref{es:setprecision_global} and~\ref{es:setprecision_next_ops} highlig
 
 \noindent Examples~\ref{es:float_promotion} and~\ref{es:eval_expr} show that neither \texttt{big(0.1)} nor $\mathtt{big(1/10)}$ is either the high precision evaluation of the expression $\mathtt{1/10}$ or the closest \texttt{BigFloat} to the real number $10^{-1}$. 
 The latter can be obtained, in Julia, with \texttt{big\,``0.1''} (or with \texttt{BigFloat(``0.1'')}); but \texttt{big\,``1/10''} and \texttt{BigFloat(``1/10'')} fail.
-\smallskip 
+%\smallskip 
 
-\noindent Example~\ref{es:convert} shows an aspect of the \texttt{convert} command's behaviour that can have a concrete impact in multiprecision computations.
-\begin{esempio}\label{es:convert}
-	The call $\mathtt{convert}(\mathtt{T},x)$ returns a copy unless $x$ is already of type $\mathtt{T}$, in which case an \emph{alias} of $x$ will be returned.
-\begin{lstlisting}[language=Julia]
-  A = rand(BigFloat, 2,2)
-  B = setprecision(53) do 
-    convert(Matrix{BigFloat}, A)
-  end
-  precision(B[1,1])	# 256
-  A === B 		# true 
-  pointer(A) == pointer(B) # true
-\end{lstlisting}
-\end{esempio}
-Much more on conversion and promotion can be found in the Julia documentation~\cite{link:julia_documentation}.
+%\noindent Example~\ref{es:convert} shows an aspect of the \texttt{convert} command's behaviour that can have a concrete impact in multiprecision computations.
+%\begin{esempio}\label{es:convert}
+%	The call $\mathtt{convert}(\mathtt{T},x)$ returns a copy unless $x$ is already of type $\mathtt{T}$, in which case an \emph{alias} of $x$ will be returned.
+%\begin{lstlisting}[language=Julia]
+%  A = rand(BigFloat, 2,2)
+%  B = setprecision(53) do 
+%    convert(Matrix{BigFloat}, A)
+%  end
+%  precision(B[1,1])	# 256
+%  A === B 		# true 
+%  pointer(A) == pointer(B) # true
+%\end{lstlisting}
+%\end{esempio}
+%Much more on conversion and promotion can be found in the Julia documentation~\cite{link:julia_documentation}.
 
 \subsubsection*{Multiprecision linear algebra in Julia}
 Let $A,B\in\R{n}{n}$ such that $A, B$ have elements of type \texttt{BigFloat}. The operations $A+B$, $A\cdot B$, $A^{-1}$ and $A^n$ are natively supported for integer $n$. 
@@ -232,12 +234,12 @@ Let $A,B\in\R{n}{n}$ such that $A, B$ have elements of type \texttt{BigFloat}. T
 	We make a few quick observations on the aforementioned operations:
 	\begin{itemize}
 		\item $A+B$ broadcasts the $+$ operation onto the single entries of the matrices 
-		\item Since \textsc{blas}~\cite{article:BLAS} subroutines for matrix multiplications are available only for single and double precision, the computation of $C=A\cdot B$ is implemented with the naive three-way for loop, using the $i,j,k$ ordering. Julia tries to exploit Instruction Level Parallelism by using the \texttt{@simd} macro on the innermost loop. $C_{i,j}$ is updated by using fused multiply-add operations, implemented by \textsc{mpfr}
-		\item $\mathtt{inv}(A)$ is doable because the $\mathtt{lu}$ command works with $\mathtt{BigFloat}$ matrices out of the box. As before, no \textsc{lapack} routine can be used; the factorization is computed using the Gaussian elimination algorithm with pivoting. The lower level arithmetic operations are performed via \textsc{mpfr} calls. 
+		\item Since \textsc{blas}~\cite{article:BLAS} subroutines for matrix multiplications are available only for single and double precision, the computation of $C=A\cdot B$ is implemented with the naive three-way for loop, using the $i,j,k$ ordering. Julia tries to exploit Instruction Level Parallelism by using the \texttt{@simd} macro on the innermost loop. $C_{i,j}$ is updated by using fused multiply-add operations, implemented by \textsc{mpfr}.
+		\item $\mathtt{inv}(A)$ is implemented because the $\mathtt{lu}$ command works with $\mathtt{BigFloat}$ matrices out of the box. As before, no \textsc{lapack} routine can be used; the factorization is computed using the Gaussian elimination algorithm with pivoting. The lower level arithmetic operations are performed via \textsc{mpfr} calls. 
 		\item $A^n,\ n\in\mathbb{Z}$ calls the $\mathtt{power\_by\_squaring}$ function, which essentially is an implementation of the \emph{binary powering} algorithm~\cite[Alg.~4.1]{higham:matfun_book}. For $n<0$, $\mathtt{inv}(A)^{\abs{n}}$ is computed. 
 	\end{itemize}
 \end{oss*}
-If the exponent $n$ is not an integer, $A^n$ is not doable natively. This is because $A^n$ is computed as $Q\,T^n\,T^r\,Q^{h}$, where $A=QTQ^H$ is a Schur decomposition of $A$, $T^r$ with $r=n-\lfloor n\rfloor$ is computed using the algorithm described in~\cite{higham:hili13}.
+If the exponent $n$ is not an integer, the computation of the matrix power $A^n$ is not natively available. This is because $A^n$ is computed as $Q\,T^n\,T^r\,Q^{h}$, where $A=QTQ^H$ is a Schur decomposition of $A$, $T^r$ with $r=n-\lfloor n\rfloor$ is computed using the algorithm described in~\cite{higham:hili13}.
 
 The Schur decomposition of matrices with \texttt{BigFloat} elements is available through the \texttt{GenericSchur.jl}~\cite{sw:GenericSchur} library, but is not natively implemented in the language.
 The library also allows the computation of the spectrum of $A$, or in general its eigendecomposition (namely, it gives the ability to run the Julia \texttt{eigvals} and \texttt{eigen} commands). 
@@ -269,7 +271,7 @@ Let $\hat{y}$ be a computed approximation of $y=f(x)$.
 The forward error measures the distance between the approximate solution $\hat{y}$ and the true solution $y=f(x)$. The backward error, instead, tells us how much the input must be perturbed to obtain $\hat{y}$.
 
 \begin{definizione}
-	The \emph{backward error} in the computation of $y$ is the smallest perturbation $\Delta{x}$ such that $\hat{y}=f(x+\Delta{x})$. More precisely -- as there may be many $\Delta{x}$ which satisfy the relation,
+	The \emph{backward error} in the computation of $y$ is the smallest perturbation $\Delta{x}$ such that $\hat{y}=f(x+\Delta{x})$. There may be many $\Delta{x}$ that satisfy the relation, or there may be none at all. We therefore define the backward error more precisely as
 	\[
 		E_{\textup{back}}(\hat{y})=\min\qty{\frac{\norm{\Delta{x}}}{\norm{x}}\mid\hat{y}=f(x+\Delta{x})}
 	\]
@@ -289,16 +291,15 @@ The \emph{backward error analysis} can be sometimes helpful.
 In backward error analysis, the error is being interpreted as perturbations in the input. Since the data may be affected by tiny errors anyways, a solution $\hat{y}$ returned by a backward stable algorithm is often more than enough; $\hat{y}$ is ``as good as it can be''.
 
 \begin{oss*}
-	A backward error analysis can't always be performed. A famous example is the computation of the outer product $xy^{\top}$, for $x,y\in\R{n}$. In fact
+	A backward error analysis can't always be performed. A famous example is the computation of the outer product $xy^{\top}$, for $x,y\in\R{n}$. In fact the computed $\widehat{xy^{\top}}$ satisfies
 	\[
 		\qty(\widehat{xy^{\top}})_{i,j}=x_iy_j(1+\delta_{i,j})\qquad\abs{\delta_{i,j}}\le u\quad\forall\,i,j\in[n],
 	\]
-	therefore the computed $\widehat{xy^{\top}}=xy^{\top}+\Delta$ will not be a rank 1 matrix in general.
-	Instead, $\tilde{x}\tilde{y}^{\top}=(x+\Delta{x})(y+\Delta{y})^{\top}$ will be of rank 1.
+	therefore it will not be a rank 1 matrix in general. Instead, if we consider the exact outer product of two perturbations $\tilde{x}$ and $\tilde{y}$ of $x$ and $y$ respectiverly, we have that $\tilde{x}\tilde{y}^{\top}=(x+\Delta{x})(y+\Delta{y})^{\top}$ will be of rank 1.
 \end{oss*}
 
 \begin{oss*}
-	We remark that, in principle, the backward error analysis is a technique that can be applied to any source of error. \textcolor{red}{Ho scritto una cosa sbagliata?}
+	We remark that, in principle, the backward error analysis is a technique that can be applied to any source of error, albeit not always successfully. 
 	
 	It is often the roundoff error that is analyzed by means of the backward error, an example being the QR factorization of a square matrix. As we will see \textcolor{red}{in some paragraph}, the Scaling and Squaring method to compute the matrix exponential, a central topic of this essay, gives a prominent example of backward error analysis on the truncation error. 
 \end{oss*}
@@ -310,7 +311,7 @@ In backward error analysis, the error is being interpreted as perturbations in t
 
 %\textcolor{red}{Cose da dire: definizione di numero di condizionamento (sì, anche con la derivata di Fréchet). Il condizionamento è una proprietà del problema. Introdurre notazione. La ``rule of thumb'' fwerr < cond*backerr. Ricostruire come algoritmi stabili all'indietro ci diano la miglior approssimazione a cui possiamo ambire. Stabilità.}
 
-The (better yet, \emph{a}) \emph{condition number} of a problem measures the sensitivity of the solution to small perturbations in the input data. Strictly speaking, the condition number depends on the problem (which can be thought of as a function $f$), on the input point $x$ and on the norm used to measure it. Furthermore, there is the distinction between absolute and relative condition number
+The (better yet, \emph{a}) \emph{condition number} of a problem measures the sensitivity of the solution to small perturbations in the input data. Strictly speaking, the condition number depends on the problem (which can be thought of as a function $f$), on the input point $x$ and on the norm used to measure it. Furthermore, there is the distinction between absolute and relative condition number.
 
 \begin{definizione}\label{def:cond_number}
 	Let $f\colon\R^{n}\to\R{n}$, let $x\in\R{n}$, let $\norm{\cdot}$ be a norm on $\R{n}$. The \emph{absolute condition number} of $f$ at $x$ is 
@@ -320,39 +321,23 @@ The (better yet, \emph{a}) \emph{condition number} of a problem measures the sen
 	The \emph{relative condition number} of $f$ at $x$ is 
 	\begin{align*}\label{eqn:rel_cond_def}
 		\operatorname{Cond}_{\text{rel}}(f,x)&\coloneqq\limsup_{\frac{\norm{\Delta{x}}}{\norm{x}}\to0}\frac{\frac{\norm{f(x+\Delta{x})-f(x)}}{\norm{f(x)}}}{\frac{\norm{\Delta{x}}}{\norm{x}}}\\
-		 & = \lim_{\epsilon\to0}\sup_{\frac{\norm{\Delta{x}}}{\norm{x}}\le\epsilon}\frac{\norm{f(x+\Delta{x})-f(x)}}{\epsilon\norm{f(x)}}
+		 & = \lim_{\epsilon\to0}\sup_{\frac{\norm{\Delta{x}}}{\norm{x}}\le\epsilon}\frac{\norm{f(x+\Delta{x})-f(x)}}{\epsilon\norm{f(x)}}.
 	\end{align*}
 	Note that $\operatorname{Cond}_{\text{rel}}(f,x)=\operatorname{Cond}_{\text{abs}}(f,x)\frac{\norm{x}}{\norm{f(x)}}$.
 \end{definizione}
-Definition~\ref{def:cond_number} can be easily adapted to other contexts such as real functions of a real variable. In particular, it will be adapted to the context of matrix functions \textcolor{red}{somewhere, maybe here}.
+Definition~\ref{def:cond_number} can be easily adapted to other contexts such as real functions of a real variable. In particular, it will be adapted to the context of matrix functions in Section~\ref{sect:cond_matfun}.
 
 The most famous example of condition number is that of matrix inversion, $\kappa(A)=\norm{A}\norm*{A^{-1}}$, often called \emph{the} condition number of $A\in\R{n}{n}$.
 
-\begin{notazione}
-	Throughout the document, the relative condition number of $f$ at $x$ will be denoted as $\kappa_{f}(x)$, the used norm will be desumed by the context \textcolor{red}{devo ricordarmi di parlare della norma della derivata di Fréchet. Questo dovrebbe sistemare la cosa}. When $A$ is a matrix, $\kappa(A)$ will denote its condition number.
+\begin{notazione}\label{notaz:kappa_f}
+	Throughout the document, the relative condition number of $f$ at $x$ will be denoted as $\kappa_{f}(x)$. The used norm will be desumed by the context, even in the more delicate case in which $f$ is a function of a matrix (see equation~\eqref{eqn:cond_frechet} and the discussion thereafter). When $A$ is a matrix, $\kappa(A)$ will denote its condition number.
 \end{notazione}
-
-%If $f\colon\R{n}\to\R{n}$ is differentiable, an explicit expression of the condition number can be given in terms of its differential at $x$, $\dd{f}(x)$:
-%\[
-%	\operatorname{Cond}_{\text{abs}}(f,x)=\norm{\dd{f}(x)}\qquad\operatorname{Cond}_{\text{rel}}(f,x)=\frac{\norm{\dd{f}(x)}\norm{x}}{\norm{f(x)}}
-%\]
-%where $\norm{\dd{f}(x)}$ denotes the norm of the differential, which is defined as
-%\[
-%	\norm{\dd{f}(x)}\coloneqq\max_{v\ne 0}\frac{\norm{\dd{f}(x)[v]}}{\norm{v}}
-%\]
-%
-%The norm of the differential i
-
-
-
-
 
 If $f\colon\R{n}\to\R{n}$ is differentiable, an explicit expression of the condition number can be given in terms of its Jacobian matrix $\mathbb{J}(x)\in\R{n}{n}$:
 \[
 	\operatorname{Cond}_{\text{abs}}(f,x)=\norm{\mathbb{J}(x)}\qquad\operatorname{Cond}_{\text{rel}}(f,x)=\frac{\norm{\mathbb{J}(x)}\norm{x}}{\norm{f(x)}}
 \]
-\textcolor{red}{We will generalize these expressions to matrix functions using the Fréchet derivative.}
-\smallskip 
+By using the \emph{Fréchet derivative}, these expressions will be generalized to matrix functions in Section~\ref{sect:cond_matfun} (see equation~\eqref{eqn:cond_frechet})
 
 By using Definition~\ref{def:cond_number}, we get the important relation
 \begin{equation}\label{eqn:backerr_fwerr_cond_relation}
@@ -366,6 +351,6 @@ This is a bound on the forward error in terms of the backward error. This bound 
 
 Notice however that the same bound~\eqref{eqn:backerr_fwerr_cond_relation} describes the effect of a (relative) perturbation on the input data of the order of machine precision.
 
-From equation~\eqref{eqn:backerr_fwerr_cond_relation}, we get the useful rule of thumb $E_{\text{back}}\lesssim\kappa\cdot E_{\text{rel}}$.
+From equation~\eqref{eqn:backerr_fwerr_cond_relation}, we get the useful rule of thumb $E_{\text{rel}}\lesssim\kappa\cdot E_{\text{back}}$.
 This shows that, in backward error analysis, the task of bounding the forward error amounts to studying the sensitivity of the problem to perturbations. The effect of perturbations on a given problem needs to be studied only once, as it is not related to a specific numerical method. However, the conditioning of many problems -- including the computation of the matrix exponential -- is still not fully understood.
 

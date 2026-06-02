@@ -1,5 +1,6 @@
 \documentclass[tikz,border=5pt]{standalone}
 
+\usepackage{AndreaStyle}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
 
@@ -37,68 +38,87 @@
 			{\myfunc{x}};
 			
 			% Important points
-			\pgfmathsetmacro{\expAx}{3.85}
-			\pgfmathsetmacro{\expAy}{\myfunc{\expAx}}
+			\pgfmathsetmacro{\expAcalx}{3.9}
+			\pgfmathsetmacro{\expAcaly}{\myfunc{\expAcalx}}
 				
-			\pgfmathsetmacro{\expAtildex}{4.5}
-			\pgfmathsetmacro{\expAtildey}{\myfunc{\expAtildex}}		
+			\pgfmathsetmacro{\expAx}{4.5}
+			\pgfmathsetmacro{\expAy}{\myfunc{\expAx}}		
 	
 			% Other y-levels	
 			\pgfmathsetmacro{\Ytrue}{2}
-			\pgfmathsetmacro{\Yhaty}{\expAtildey+0.77}
+			\pgfmathsetmacro{\Yhaty}{\expAy+0.77}
 
 		
 			% Coordinates
-			\coordinate (A)          at (\expAx,0);
-			\coordinate (Acurve)     at (\expAx,\expAy);
-			\coordinate (ExpA)       at (0,\expAy);
+			\coordinate (Acal)       at (\expAcalx,0);
+			\coordinate (Acalcurve)     at (\expAcalx,\expAcaly);
+			\coordinate (ExpAcal)       at (0,\expAcaly);
 			
 			\coordinate (YtrueCoord) at (0,\Ytrue);		
 					
-			\coordinate (Atilde)     at (\expAtildex,0);
-			\coordinate (AtldCurve)  at (\expAtildex,\expAtildey);
-			\coordinate (ExpAtilde)  at (0,\expAtildey);		
+			\coordinate (A)     at (\expAx,0);
+			\coordinate (ACurve)  at (\expAx,\expAy);
+			\coordinate (ExpA)  at (0,\expAy);		
 			
 			\coordinate (YhatCoord)  at (0,\Yhaty);
-			\coordinate (ExpHat)	 at (\expAtildex,\Yhaty);
+			\coordinate (ExpHat)	 at (\expAx,\Yhaty);
 		
 			
 			% Black dotted lines
-			\draw[dashed] (Atilde) -- (AtldCurve);
-			\draw[dashed] (ExpAtilde) -- (AtldCurve);
-			\draw[densely dotted] (YhatCoord) -- (\expAtildex,\Yhaty);
+			\draw[dashed] (A) -- (ACurve);
+			\draw[dashed] (ExpA) -- (ACurve);
+			\draw[densely dotted] (YhatCoord) -- (\expAx,\Yhaty);
 			
 			% Red dotted lines
-			\draw[red,densely dotted] (A) -- (Acurve);
-			\draw[red,densely dotted] (ExpA) -- (Acurve);
+			\draw[red,densely dotted] (Acal) -- (Acalcurve);
+			\draw[red,densely dotted] (ExpAcal) -- (Acalcurve);
 			
 			% Dots
 			\fill (ExpHat) circle (1pt);
 			%\fill[red] (A) circle (1pt);
 		
 			% Labels on x-axis and y-axis
-			\node[below, red, font=\tiny] at (A) {$A$};
-			\node[below, font=\tiny] at (Atilde) {$\tilde A$};
+			\node[below, red, font=\tiny] at (Acal) {$\mathcal{A}$};
+			\node[below, font=\tiny] at (A) {$A$};
 					
-			\node[above left, font=\tiny] at (YhatCoord) {$\hat Y$};
-			\node[left, font=\tiny] at (ExpAtilde) {$\exp(\tilde{A})$};
-			\node[left, font=\tiny] at (YtrueCoord) {$Y_{\mathrm{true}}$};
-			\node[left, red, font=\tiny] at (ExpA) {$\exp(A)$};
+			\node[left, xshift=1pt, font=\tiny] at (YhatCoord) {$\hat Y$};
+			\node[left, xshift=2pt, font=\tiny] at (ExpA) {$\exp(A)$};
+			\node[left, xshift=1pt, font=\tiny] at (YtrueCoord) {$Y_{\mathrm{true}}$};
+			\node[left, xshift=2pt, red, font=\tiny] at (ExpAcal) {$\exp(\mathcal{A})$};
 		
 		%================================================
 		% Brace and annotations
 		%================================================
 		
-		% \draw[
-		%     decorate,
-		%     decoration={brace, amplitude=7pt}
-		% ]
-		%     (0.7,\Atildey) -- (0.7,\Ytrue)
-		%     node[midway, right=8pt, align=left]
-		%     {What we measure instead};
+		\draw[
+			decorate,
+			decoration={brace, amplitude=3pt}
+		] (0.15,\Yhaty) -- (0.15,\expAy);
+		%	node[midway, right=2pt, align=right, font=\tiny]
+		%	{absolute error};
 		
-		% \node[left, align=right] at (-0.7,3.0)
-		%     {What we\\should\\measure};
+		\draw[
+		    decorate,
+		    decoration={brace, amplitude=3pt}
+		]
+		   (0.11,\expAy) -- (0.11,\Ytrue)
+		   node[midway, right=2pt, align=right, font=\tiny]
+		   {$\mathsmaller{\approx \norm{L_{\exp}(\mathcal{A})}O(u)}$};
+		     %{What we measure instead};
+		     
+%		\draw[
+%			decorate,
+%			decoration={brace, amplitude=8pt}
+%		]
+%			(-0.65,\Ytrue) -- (-0.65,\Yhaty);
+			
+		\draw
+			(-0.65,\Ytrue) -- (-0.8,\Ytrue)
+			-- (-0.8,\expAy-0.12) -- (-0.89,\expAy-0.02)
+			-- (-0.8,\expAy+0.08) -- (-0.8, \Yhaty)
+			-- (-0.6,\Yhaty);
+		
+
 		
 		\end{axis}
 	\end{tikzpicture}
