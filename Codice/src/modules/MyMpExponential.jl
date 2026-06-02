@@ -981,6 +981,9 @@ function isschur(
     n = LinearAlgebra.checksquare(A)
     istriu(A) && return true 
 
+    # return false if there are nonzero elements below the 1st subdiagonal
+    tril(A, -2) == zeros(n,n) || return false
+
     # check 2×2 block structure 
     i = 2
     while i ≤ n
@@ -1009,6 +1012,8 @@ function isschur(
 
     return true
 end
+
+export isschur
 
 # 
 @inline update_epsilon(ϵ, factor, ::Val{false}) = ϵ * factor   

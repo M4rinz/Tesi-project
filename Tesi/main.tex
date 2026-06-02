@@ -13,13 +13,14 @@
 % This won't work in Overleaf, until the AndreaStyle.sty file is added to the project
 
 \usepackage{algorithm}                  % Definisce l'ambiente algorithm (ha numero e didascalia)
-\usepackage[beginLComment=//~,endLComment=~]{algpseudocodex} % Per scrivere pseudocodice
+\usepackage{algpseudocode}				% Ambiente dove scrivere pseudocodice, con layout customizzabile
+%\usepackage[beginLComment=//~,endLComment=~]{algpseudocodex} % Per scrivere pseudocodice 
 
 %\usepackage{beramono}
 \usepackage{listings}					% Per scrivere codice in LaTeX...
 %\usepackage{minted}
 
-%\usepackage[all,cmtip]{xy}				% xymatrix. Per fare diagrammi
+\usepackage[all,cmtip]{xy}				% xymatrix. Per fare diagrammi
 %\usepackage{arydshln}					% Linee 
 \usepackage{nicematrix}				% Tabelle, array e matrici (molto potenti)
 
@@ -36,13 +37,17 @@
 \theoremstyle{definition}				% Definisce ambienti per Teoremi, esercizi, corollari... Con lo stile adeguato
 \newtheorem{definizione}{Definition}[section]
 \newtheorem*{proposizione*}{Proposition}
+
 \newtheorem{proposizione}{Proposition}[section]
 \newtheorem{teorema}{Theorem}[section]
 
 \theoremstyle{remark}
 \newtheorem{oss}{Remark}[section]
 \newtheorem*{oss*}{Remark}
-\newtheorem*{notazione}{Notation}
+
+\newtheorem{notazione}{Notation}[section]
+\newtheorem*{notazione*}{Notation}
+
 \newtheorem{esempio}{Example}
 \newtheorem*{esempio*}{Example}
 
@@ -61,13 +66,12 @@
 
 	% COMANDI CUSTOM
 \newcommand{\matlab}{\mbox{\textsc{matlab}\textsuperscript{\textregistered}}}
-	
+%\algrenewcommand{\algorithmiccomment}[1]{// \textit{#1}}	
+
 % blocco custom in algpseudocodex
-% AGGIUSTA
 \algblockdefx[WITH]{With}{EndWith}%
 	[1]{\textbf{with} #1 \algorithmicdo}%
-	{\textbf{end}}
-
+	{\textbf{end with}}
 	
 	% COLORI CUSTOM (per il codice e non solo)
 \definecolor{ForestGreen}{RGB}{18, 159, 87}
