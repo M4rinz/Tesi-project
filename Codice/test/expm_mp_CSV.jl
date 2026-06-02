@@ -207,7 +207,7 @@ function compute_refsol_python(
 
     Y_true_py = mpmath.expm(Apy)
 
-    Y_true = julia_matrix_from_python(Y_true_py, Val(T <: Complex))
+    Y_true = julia_matrix_from_python(Y_true_py, Val(T <: Complex), target_precision)
 
     return Y_true, "mpmath_$(target_precision)"
 end
