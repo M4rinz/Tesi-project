@@ -1,6 +1,18 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+
+suffixes = {
+    "schur"        : "_sp",     # Algorithms
+    "realschur"    : "_[r]sp", 
+    "complexschur" : "_[c]sp",
+    "transfree"    : "",   
+    "taylor"               : "_t",  # Approximants
+    "scaling_and_squaring" : "_sas",
+    "diagonalcheap"        : "_d"
+}
+
 
 def produce_plot(
         df:pd.DataFrame,
@@ -17,10 +29,12 @@ def produce_plot(
     else:
         df_sorted["hue"]  = "exp" 
         df_sorted["hue"] += df_sorted["algorithm"].map(
-                lambda a: "_sp" if a in ["realschur", "complexschur"] else ""
+                #lambda a: "_sp" if a in ["realschur", "complexschur"] else ""
+                lambda a: suffixes.get(a, "")
             )
         df_sorted["hue"] += df_sorted["approximant"].map(
-                lambda a: "_"+"".join([x.lower()[0] for x in a.split("_")])
+                #lambda a: "_"+"".join([x.lower()[0] for x in a.split("_")])
+                lambda a: suffixes.get(a, "")
             )
     
     df_sorted["err_ubound"] = df_sorted["epsilon"]*df_sorted["cond_expA_F"]
@@ -54,14 +68,39 @@ def produce_perfprof(
         ax,
         taus,
         solver_vals:dict,
-        solvers
+        solvers,
+        unify_schur:None|str=None
     ) -> None:
+
+    if unify_schur:
+        if unify_schur in ["mean", "average", "avg", "media"]:
+            combfun = np.average
+        elif unify_schur in ["max", "maximum", "massimo"]:
+            combfun = np.max
+        elif unify_schur in ["min", "minimum", "minimo"]:
+            combfun = np.min
+        else: ValueError(f"unify_schur option {unify_schur} not valid! (use None for no unification)")
+        
+        # combiniamo i "realschur" e "complexschur" in un unico "schur"
+        solver_vals["schur_diagonalcheap"] = np.array(
+            [combfun([c,r]) for c,r in zip(
+                    solver_vals["realschur_diagonalcheap"],
+                    solver_vals["complexschur_diagonalcheap"])])
+        solver_vals["schur_taylor"] = np.array(
+            [combfun([c,r]) for c,r in zip(
+                    solver_vals["realschur_taylor"],
+                    solver_vals["complexschur_taylor"])])  
+        # escludiamo i "realschur" e "complexschur" dai solvers
+        solvers = [s for s in solver_vals.keys() if not ("realschur" in s or "complexschur" in s)]
+
     for solver in solvers:
         label = "exp"
         alg, *appx_parts = solver.split("_")
         appx = "_".join(appx_parts)
-        label += "_sp" if "schur" in alg.lower() else ""
-        label += "_"+"".join([x.lower()[0] for x in appx.split("_")])
+        #label += "_sp" if "schur" in alg.lower() else ""
+        label += suffixes.get(alg, "")
+        #label += "_"+"".join([x.lower()[0] for x in appx.split("_")])
+        label += suffixes.get(appx, "")
         ax.step(taus, solver_vals[solver], where="post", label=label)
 
     ax.set_xlabel("Tau", fontsize=12)
