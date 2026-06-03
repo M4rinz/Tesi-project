@@ -123,8 +123,14 @@ end
 
 
 
-function python_matrix_from_julia(A::Matrix{T}) where {T<:Real}
+function python_matrix_from_julia(
+    A::Matrix{T},
+    target_precision=Y_TRUE_PREC
+) where {T<:Real}
     if T == BigFloat
+        A = setprecision(target_precision) do 
+            BigFloat.(A)
+        end
         Apy = pyrowlist(mpmath.mpf.(string.(A)))
     else 
         Apy = pyrowlist(mpmath.mpf.(A))
@@ -134,8 +140,14 @@ function python_matrix_from_julia(A::Matrix{T}) where {T<:Real}
     return Apy
 end
 
-function python_matrix_from_julia(A::Matrix{T}) where {T<:Complex}
+function python_matrix_from_julia(
+    A::Matrix{T},
+    target_precision=Y_TRUE_PREC
+) where {T<:Complex}
     if real(T) == BigFloat
+        A = setprecision(target_precision) do 
+            complex.(BigFloat.(real(M)), BigFloat.(imag(M)))
+        end
         Apy = pyrowlist(mpmath.mpc.(string.(real(A)), string.(imag(A))))
     else    
         Apy = pyrowlist(mpmath.mpc.(real(A), imag(A)))
@@ -215,7 +227,7 @@ end
 
 
 ############## Files per runnare esperimenti e scrivere su CSV ##############
-csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.5alpha-02_06-mpmath_ref.csv")
+csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.5alpha-03_06-mpmath_ref.csv")
 
 const CSV_HEADER = [
     "kind", "n", "eltype", "ishermitian",
