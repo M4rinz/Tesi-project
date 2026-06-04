@@ -173,7 +173,7 @@ The property in Lemma~\ref{lemma:matfun_f_continuity} trivially follows from the
 		f(A)=\lim_d\sum_{k=0}^{d}c_k(A-\alpha I)^k.
 	\]
 \end{corollario_lemma}
-The assumption $\rho(A-\alpha I)<r$ can also be loosened to $\rho(A-\alpha I)\le r$, paired with the differentiability assumption of Lemma~\ref{lemma:matfun_f_continuity} when an eigenvalue lies on the border of the risk of convergence. See also~\cite[Thm.~4.7]{higham:matfun_book}.
+The assumption $\rho(A-\alpha I)<r$ can also be loosened to $\rho(A-\alpha I)\le r$, paired with the differentiability assumption of Lemma~\ref{lemma:matfun_f_continuity} when an eigenvalue lies on the border of the disk of convergence. See also~\cite[Thm.~4.7]{higham:matfun_book}.
 \smallskip 
 
 \noindent Lemma~\ref{lemma:matfun_A_continuity} states that, under appropriate assumptions (which are satisfied, in the complex case, if the function is holomorphic), matrix functions are continuous functions.
@@ -234,7 +234,7 @@ In equation~\eqref{eqn:cond_frechet}, the norm of the Fréchet differential at $
 The norm of the operator $L_f(A)$ is the one induced by the norms of the input and output vector spaces. Being them $\C{n}{n}$, these norms are matrix norms. 
 \smallskip 
 
-\textcolor{red}{Note that from Remark~\ref{oss:frechet_generalizza} it follows that the~\eqref{eqn:cond_frechet} generalize the definitions of condition numbers for differentiable functions that we already know.}
+\textcolor{red}{Note that from Remark~\ref{oss:frechet_generalizza} it follows that the~\eqref{eqn:cond_frechet} generalizes the definitions of condition numbers for differentiable functions that we already know.}
 \smallskip 
 
 The differential $\dd{f}(x)$ of a function $f\colon\R{n}\to\R{n}$ at a point $x\in\R{n}$ is a linear map from $\R{n}$ to $\R{n}$ which is represented in the canonical basis by the Jacobian matrix. An analogous phenomenon happens for matrix functions: the action of the Fréchet derivative can closely related to the multiplication by a matrix. Unlike the $\R{n}$ case however, the isomorphism is not the identity.
@@ -259,7 +259,38 @@ which commutes since $\operatorname{Vec}$ is an isomorphism. The linear function
 \begin{equation}\label{eqn:frechet_vec}
 	\operatorname{Vec}\qty(L_f(A)[E])=K(A)\cdot\operatorname{Vec}(E).
 \end{equation}
-Equation~\eqref{eqn:frechet_vec} not only very useful for deriving properties of the Fréchet derivative, but can also be exploited by algorithms.
+Equation~\eqref{eqn:frechet_vec} not only very useful for deriving properties of the Fréchet derivative, but can also be exploited by algorithms\textcolor{red}{, as we will see briefly}.
+
+\textcolor{red}{Prodotti di Kronecker?}
+
+
+If the vector spaces $\C{n}{n}$ and $\C{n^2}$ are equipped with, respectively, the inner products 
+$\langle\cdot,\cdot\rangle_F$ and $\langle\cdot,\cdot\rangle_2$, where the latter is the 
+standard euclidean \textcolor{red}{(Hermitian?)} inner product $\langle u,v\rangle=u^{H}v$
+and the former is defined as $\langle U,V\rangle_F\coloneqq\tr(U^{H}V)$, 
+then $\operatorname{Vec}$ is an \emph{isometric isomorphism}, i.e. it satisfies
+\begin{equation}\label{eqn:vec_isometry}
+	\langle U,V\rangle_F = \langle\operatorname{Vec}(U),\operatorname{Vec}(V)\rangle_2\qquad\forall\,U,V\in\C{n}{n}.
+\end{equation}
+This can be easily proved from first principles. \textcolor{red}{Forse spostare in ``estimating the condition number'':}
+An important consequence of Equation~\eqref{eqn:vec_isometry} is Lemma~\ref{lemma:fro_norm_frechet}.
+
+\begin{lemma}\label{lemma:fro_norm_frechet}
+	Let $K(A)\in\C{n^2}{n^2}$ be as in~\eqref{eqn:frechet_vec}. 
+	Then $\norm{L_f(A)}_F=\norm{K(A)}_2$
+\end{lemma}
+\begin{proof}
+	As a consequence of~\eqref{eqn:vec_isometry}, $\norm{X}_F=\norm{\operatorname{Vec}(X)}_F$
+	for all $X\in\C{n}{n}$. 
+	\begin{align*}
+		\norm{L_f(A)}_F &= \max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{L_f(A)[E]}_F}{\norm{E}_F}=
+					\max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{\operatorname{Vec}\big(L_f(A)[E]\big)}_2}{\norm{\operatorname{Vec}(E)}_2}=\\
+					& \max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{K(A)\operatorname{Vec}(E)}_2}{\norm{\operatorname{Vec}(E)}_2}=
+				    \max_{\substack{x\in\C{\cramped{n^2}}\\ x\ne 0}}\frac{\norm{K(A)x}_2}{\norm{x}_2}=\norm{K(A)}_2.\qedhere
+	\end{align*}
+\end{proof}
+
+\textcolor{red}{Ora si deve parlare dell'aggiunta di $L_f(A)$. Si può sempre partire dalla~\eqref{eqn:vec_isometry}. Forse meglio nel paragrafo ``Properties''}
 
 \subsection{Properties of the Fréchet derivative}
 The Fréchet derivative enjoys most of the usual properties of derivatives. The sum, product, inverse and chain rules are all satisfied. We write the latter two properties for clarity. The inverse rule can be written as
@@ -297,3 +328,22 @@ However, the cost of evaluating a function on a matrix of size $n$ is usually $O
 \textcolor{red}{Le menziono, perché è giusto così. Schur-Parlett per funzioni generiche (in~\cite[§~9]{higham:matfun_book}). Per funzioni specifiche ci sono tecniche specifiche, che però possono essere raggruppate sotto un ``ombrello più grande''. Ad esempio metodo di Newton. }
 
 \textcolor{red}{Gli unici metodi che vale la pena descrivere più approfonditamente sono il \emph{binary powering} per $A^n$ e, soprattutto, Paterson-Stockmeyer per polinomi di matrici.}
+
+
+\textcolor{red}{Aggiusta: }
+The exposition of computational methods for generic matrix functions will be instrumental 
+to the main focus of this essay, i.e. the computation of the Matrix Exponential using Scaling and Squaring.
+Therefore the two \textcolor{red}{most popular ``broad schemes'' will be simply mentioned},
+and more emphasis will be given on methods that compute matrix powers and matrix polynomials.
+
+\subsection{The Schur-Parlett method}
+
+
+
+\subsection{Matrix Iterations}
+
+
+\subsection{Matrix powers}
+
+
+\subsection{Matrix polynomials}
