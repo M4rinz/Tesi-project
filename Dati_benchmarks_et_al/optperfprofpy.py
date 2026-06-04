@@ -149,9 +149,11 @@ def calc_perprof(df, problem_def, perf_meas, solver_char, inv_perf_meas=False, t
                 data.loc[gr.loc[gr['feas'] == False].index, perf_meas] = \
                     gr[perf_meas].map(lambda x: _safe_division(true_min, x)) + .05 if safe_divisions \
                                     else true_min / gr[perf_meas] +.05
-                
-            #if turn_nan_into_one:
-            #        data.loc[gr.index, perf_meas] = data.loc[gr.index, perf_meas].fillna(1)
+
+            # if any(data.loc[gr.loc[gr['feas'] == True].index, perf_meas] > 1e2):
+            #     print(f"{gr["kind"]}")
+            #     print(f"{data.loc[gr.loc[gr['feas'] == True].index, perf_meas]}")
+            #     print()
         except KeyError:
             if not inv_perf_meas:
                 data.loc[gr.index, perf_meas] = gr[perf_meas] / gr[perf_meas].min().iloc[0]

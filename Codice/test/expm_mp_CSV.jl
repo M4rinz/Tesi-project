@@ -387,12 +387,14 @@ for n in [8, 24] #[16, 64, 256]
     A = rand(n,n);
     run_and_record("rand_$n", A)
 end
+print("randn experiment completed\n")
 
 ## Second experiment: BigFloat random
 for n in [8, 24] #[16, 64, 256]
     A = rand(BigFloat, n,n)
     run_and_record("rand_$(n)_big", A)
 end
+print("randn_big experiment completed\n")
 
 ## Third experiment: Fasi's matrices
 _, _, _, n_matrices = FasiMatrices(-42) 
@@ -400,6 +402,7 @@ for k=1:n_matrices
     A, Y_true, k, _ = FasiMatrices(k, Y_true_precision=Y_TRUE_PREC)
     run_and_record("Fasi_$k", A, Y_true)
 end
+print("FasiMatrices experiment completed\n")
 
 ## Fourth experiment: matrices from `expm_testmats` 
 _, _, _, n_matrices = expm_testmats(-42)
@@ -414,6 +417,7 @@ for k=1:n_matrices
         run_and_record(id, A, Y_true)
     end
 end
+print("expm_testmats experiment completed\n")
 
 ## fifth experiment: matrices from `gallery_getall_expm`
 _, _, n_matrices = gallery_getall_expm(-42)
@@ -421,6 +425,7 @@ for k=1:n_matrices
     A, id, _ = gallery_getall_expm(k)
     run_and_record(id, A, nothing)
 end
+print("gallery_getall_expm experiment completed\n")
 
 
 
@@ -429,39 +434,39 @@ end
 
 
 
-## Fourth experiment: Hadamard + diagonalization (ComplexF64)
+## Sixth experiment: Hadamard + diagonalization (ComplexF64)
 """I TEST QUI SOTTO SONO DA AGGIUSTARE
 """
-for n in [8, 32]   #[16, 64, 256]
+for n in [8]   #[16, 64, 256]
     H = hadamard(n)
     H = Matrix{Float64}(H) / sqrt(n)
     D = Diagonal(100rand(n).-50 + 100im*rand(n).-50)
     A = H' * D * H
     #Y_true = H' * exp(D) * H
-    run_and_record("hadamard_diag", A)
+    run_and_record("hadamard_diag_$n", A)
 end
 
-## Fifth experiment: Hadamard + diagonalization (BigFloat)
-for n in [8, 32]   #[16, 64, 256]
+## Seventh experiment: Hadamard + diagonalization (BigFloat)
+for n in [8]   #[16, 64, 256]
     H = hadamard(n)
     H = Matrix{BigFloat}(H) / sqrt(big(n))
     D = Diagonal(100rand(BigFloat, n).-50 + 100im*rand(BigFloat, n).-50)
     A = H' * D * H
     #Y_true = H' * exp(D) * H
-    run_and_record("hadamard_diag_big", A)
+    run_and_record("hadamard_diag_big_$n", A)
 end
 
 
-## Sixth experiment: Hadamard + Jordan form (ComplexF64)
+## 8th experiment: Hadamard + Jordan form (ComplexF64)
 """The Hadamard similarity + Jordan form test is disabled (for now)
 """
-# for n in [16, 64]
+# for n in [8]     # [16, 64, 256]
 #     H = hadamard(n)
 #     H = Matrix{Float64}(H) / sqrt(n)
 #     J = create_J(n)
 #     A = H' * J * H
 #     #Y_true = H' * exp(J) * H
-#     run_and_record("hadamard_jord", A)
+#     run_and_record("hadamard_jord_$n", A)
 # end
 
 
