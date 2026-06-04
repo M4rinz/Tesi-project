@@ -146,7 +146,7 @@ function python_matrix_from_julia(
 ) where {T<:Complex}
     if real(T) == BigFloat
         A = setprecision(target_precision) do 
-            complex.(BigFloat.(real(M)), BigFloat.(imag(M)))
+            complex.(BigFloat.(real(A)), BigFloat.(imag(A)))
         end
         Apy = pyrowlist(mpmath.mpc.(string.(real(A)), string.(imag(A))))
     else    
@@ -227,7 +227,7 @@ end
 
 
 ############## Files per runnare esperimenti e scrivere su CSV ##############
-csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.5alpha-03_06-mpmath_ref.csv")
+csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.5alpha-04_06-mpmath_ref.csv")
 
 const CSV_HEADER = [
     "kind", "n", "eltype", "ishermitian",
@@ -427,16 +427,7 @@ for k=1:n_matrices
 end
 print("gallery_getall_expm experiment completed\n")
 
-
-
-
-
-
-
-
 ## Sixth experiment: Hadamard + diagonalization (ComplexF64)
-"""I TEST QUI SOTTO SONO DA AGGIUSTARE
-"""
 for n in [8]   #[16, 64, 256]
     H = hadamard(n)
     H = Matrix{Float64}(H) / sqrt(n)
@@ -445,6 +436,7 @@ for n in [8]   #[16, 64, 256]
     #Y_true = H' * exp(D) * H
     run_and_record("hadamard_diag_$n", A)
 end
+print("hadamard_diag experiment completed\n")
 
 ## Seventh experiment: Hadamard + diagonalization (BigFloat)
 for n in [8]   #[16, 64, 256]
@@ -455,19 +447,26 @@ for n in [8]   #[16, 64, 256]
     #Y_true = H' * exp(D) * H
     run_and_record("hadamard_diag_big_$n", A)
 end
-
+print("hadamard_diag_big experiment completed\n")
 
 ## 8th experiment: Hadamard + Jordan form (ComplexF64)
-"""The Hadamard similarity + Jordan form test is disabled (for now)
-"""
-# for n in [8]     # [16, 64, 256]
-#     H = hadamard(n)
-#     H = Matrix{Float64}(H) / sqrt(n)
-#     J = create_J(n)
-#     A = H' * J * H
-#     #Y_true = H' * exp(J) * H
-#     run_and_record("hadamard_jord_$n", A)
-# end
+for n in [8]     # [16, 64, 256]
+    H = hadamard(n)
+    H = Matrix{Float64}(H) / sqrt(n)
+    J = create_J(n)
+    A = H' * J * H
+    #Y_true = H' * exp(J) * H
+    run_and_record("hadamard_jord_$n", A)
+end
+print("hadamard_jord experiment completed \n")
 
-
-## Fifth experiment: 
+## Ninth experiment: Hadamard + Jordan form (ComplexF64)
+for n in [8]     # [16, 64, 256]
+    H = hadamard(n)
+    H = Matrix{Float64}(H) / sqrt(n)
+    J = create_J(n, BigFloat)
+    A = H' * J * H
+    #Y_true = H' * exp(J) * H
+    run_and_record("hadamard_jord_big_$n", A)
+end
+print("hadamard_jord_big experiment completed \n")

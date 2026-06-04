@@ -89,11 +89,11 @@ def produce_perfprof(
         solver_vals["schur_diagonalcheap"] = np.array(
             [combfun([c,r]) for c,r in zip(
                     solver_vals["complexschur_diagonalcheap"],
-                    solver_vals["realschurschur_diagonalcheap"])])
+                    solver_vals["realschur_diagonalcheap"])])
         solver_vals["schur_taylor"] = np.array(
             [combfun([c,r]) for c,r in zip(
                     solver_vals["complexschur_taylor"],
-                    solver_vals["realschurschur_taylor"])])  
+                    solver_vals["realschur_taylor"])])  
         # escludiamo i "realschur" e "complexschur" dai solvers
         solvers = [s for s in solver_vals.keys() if not ("realschur" in s or "complexschur" in s)]
 
