@@ -79,7 +79,7 @@ We can finally give the definition of matrix function via Jordan form.
 \end{definizione}
 Definition~\ref{def:matfun_Jordan} comes natural if $f$ is a polynomial, in fact~\eqref{eqn:f_Jordan_block} can be proven by a simple computation.
 
-\textcolor{red}{Dire: anche se a prima vista non sembra, è una buona definizione.}
+Recall that in~\eqref{eqn:jordan_A} the Jordan normal form of $A$ is unique, but the generalized eigenvectors matrix $V$ is not. It turns out that even though Definition~\ref{def:matfun_Jordan} uses one of many possible changes of basis, it is well posed.
 
 \subsection*{Polynomial interpolation definition}
 The second definition of matrix function is based on polynomial interpolation.
@@ -188,7 +188,7 @@ The assumption $\rho(A-\alpha I)<r$ can also be loosened to $\rho(A-\alpha I)\le
 \section{Conditioning of matrix functions}\label{sect:cond_matfun}
 The general definitions of absolute and relative condition numbers have been given in Definition~\ref{def:cond_number}, in Section~\ref{sect:conditioning_general}. Apart from choosing appropriate norms, nothing prevents us from applying those same definitions to matrix functions. 
 
-In that same section we discussed explicit formulas for the condition number of vectorvalued functions that involve the norm of the Jacobian matrix. More practical formulas would be welcome even in the case at hand.
+In that same section we discussed explicit formulas for the condition number of vector valued functions that involve the norm of the Jacobian matrix. More practical formulas would be welcome even in the case at hand.
 To obtain it, a reasonable notion of derivative is needed. To this end, we introduce the \emph{Fréchet derivative} of a matrix function.
 
 \begin{definizione}\label{def:frechet_derivative}
@@ -201,7 +201,7 @@ To obtain it, a reasonable notion of derivative is needed. To this end, we intro
 	\]
 	such that $f(A+E) = f(A) + L_f(A)[E] + o(\norm{E})$ for all $E\in\C{n}{n}$.
 \end{definizione}
-The Fréchet differential definition can be generalized to functions between Banach spaces. For the purposes of this essay, Definition~\ref{def:frechet_derivative} is sufficient.
+The definition of Fréchet differential can be generalized to functions between Banach spaces. For the purposes of this essay, Definition~\ref{def:frechet_derivative} is sufficient.
 
 The Fréchet derivative of $f$ at $A$ may not exist, but if it exists then it is unique.  
 
@@ -228,9 +228,9 @@ The Fréchet derivative of $f$ at $A$ may not exist, but if it exists then it is
 with the same notational convention~\ref{notaz:kappa_f}.
 
 In equation~\eqref{eqn:cond_frechet}, the norm of the Fréchet differential at $A$ appears. This norm is defined analogously to the norm of any linear operator (including matrices) as
-\[
+\begin{equation}\label{eqn:def_norm_frechet}
 	\norm{L_f(A)}\coloneqq\max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{L_f(A)[E]}}{\norm{E}}.
-\] 
+\end{equation} 
 The norm of the operator $L_f(A)$ is the one induced by the norms of the input and output vector spaces. Being them $\C{n}{n}$, these norms are matrix norms. 
 \smallskip 
 
@@ -272,23 +272,23 @@ then $\operatorname{Vec}$ is an \emph{isometric isomorphism}, i.e. it satisfies
 \begin{equation}\label{eqn:vec_isometry}
 	\langle U,V\rangle_F = \langle\operatorname{Vec}(U),\operatorname{Vec}(V)\rangle_2\qquad\forall\,U,V\in\C{n}{n}.
 \end{equation}
-This can be easily proved from first principles. \textcolor{red}{Forse spostare in ``estimating the condition number'':}
-An important consequence of Equation~\eqref{eqn:vec_isometry} is Lemma~\ref{lemma:fro_norm_frechet}.
-
-\begin{lemma}\label{lemma:fro_norm_frechet}
-	Let $K(A)\in\C{n^2}{n^2}$ be as in~\eqref{eqn:frechet_vec}. 
-	Then $\norm{L_f(A)}_F=\norm{K(A)}_2$
-\end{lemma}
-\begin{proof}
-	As a consequence of~\eqref{eqn:vec_isometry}, $\norm{X}_F=\norm{\operatorname{Vec}(X)}_F$
-	for all $X\in\C{n}{n}$. 
-	\begin{align*}
-		\norm{L_f(A)}_F &= \max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{L_f(A)[E]}_F}{\norm{E}_F}=
-					\max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{\operatorname{Vec}\big(L_f(A)[E]\big)}_2}{\norm{\operatorname{Vec}(E)}_2}=\\
-					& \max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{K(A)\operatorname{Vec}(E)}_2}{\norm{\operatorname{Vec}(E)}_2}=
-				    \max_{\substack{x\in\C{\cramped{n^2}}\\ x\ne 0}}\frac{\norm{K(A)x}_2}{\norm{x}_2}=\norm{K(A)}_2.\qedhere
-	\end{align*}
-\end{proof}
+This can be easily proved from first principles. %\textcolor{red}{Forse spostare in ``estimating the condition number'':}
+%An important consequence of Equation~\eqref{eqn:vec_isometry} is Lemma~\ref{lemma:fro_norm_frechet}.
+%
+%\begin{lemma}\label{lemma:fro_norm_frechet}
+%	Let $K(A)\in\C{n^2}{n^2}$ be as in~\eqref{eqn:frechet_vec}. 
+%	Then $\norm{L_f(A)}_F=\norm{K(A)}_2$
+%\end{lemma}
+%\begin{proof}
+%	As a consequence of~\eqref{eqn:vec_isometry}, $\norm{X}_F=\norm{\operatorname{Vec}(X)}_2$
+%	for all $X\in\C{n}{n}$. 
+%	\begin{align*}
+%		\norm{L_f(A)}_F &= \max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{L_f(A)[E]}_F}{\norm{E}_F}=
+%					\max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{\operatorname{Vec}\big(L_f(A)[E]\big)}_2}{\norm{\operatorname{Vec}(E)}_2}=\\
+%					& \max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{K(A)\operatorname{Vec}(E)}_2}{\norm{\operatorname{Vec}(E)}_2}=
+%				    \max_{\substack{x\in\C{\cramped{n^2}}\\ x\ne 0}}\frac{\norm{K(A)x}_2}{\norm{x}_2}=\norm{K(A)}_2.\qedhere
+%	\end{align*}
+%\end{proof}
 
 \textcolor{red}{Ora si deve parlare dell'aggiunta di $L_f(A)$. Si può sempre partire dalla~\eqref{eqn:vec_isometry}. Forse meglio nel paragrafo ``Properties''}
 
@@ -320,9 +320,51 @@ holds for any $A\in\C{n}{n}$ such that $\Lambda(A)\subseteq\Omega$ and for any d
 
 Thanks to formula~\eqref{eqn:mathias_trick}, the problem of evaluating the Fréchet derivative is converted to that of computing the function on a matrix of twice the size. This computation returns both $f(A)$ and $L_f(A)[E]$\textcolor{red}{, similarly to what happens in forward mode automatic differentiation.}
 However, the cost of evaluating a function on a matrix of size $n$ is usually $O(n^3)$, so the cost of computing $f(A)$ and $L_f(A)[E]$ using~\eqref{eqn:mathias_trick} is $8$ times that of computing $f(A)$ alone.
+\bigskip
+
+\textcolor{red}{Altre proprietà: $AE=EA\implies L_f(A)[E]=f'(A)E$, per $A$ diagonalizzabile il cambio di base esce da $L_f(A)[E]$, formula per $L_f(A)[E]$ per $f$ con serie di potenze (opzionale: usando i prodotti di Kronecker si dà anche una formula a $K(A)$)}
 
 \subsection{Computing or estimating the condition number}
+The problem of computing or estimating $\kappa_f(A)$ essentially reduces that of computing or estimating the norm of the Fréchet differential at $A$. There are two aspects to this last problem, namely the computation of $L_f(A)$ and the computation, or estimation, of its norm. 
 
+Recall that the condition number is defined with respect to a norm. A norm on $\C{n}{n}$ has to be chosen, then the norm of $L_f(A)$ will be its subordinate operator norm, as introduced by Equation~\eqref{eqn:def_norm_frechet}. However, as Equation~\eqref{eqn:def_norm_frechet} -- which introduced its definition -- also suggests, $\norm{L_f(A)}$ doesn't have a simple expression, in general. 
+
+Lemma~\ref{lemma:fro_norm_frechet}, an important consequence of Equation~\eqref{eqn:vec_isometry}, states that one exception is the Frobenius norm. 
+\begin{lemma}\label{lemma:fro_norm_frechet}
+	Let $K(A)\in\C{\cramped{n^2}}{\cramped{n^2}}$ be as in Equation~\eqref{eqn:frechet_vec}. 
+	Then $\norm{L_f(A)}_F=\norm{K(A)}_2$
+\end{lemma}
+\begin{proof}
+	As a consequence of~\eqref{eqn:vec_isometry}, $\norm{X}_F=\norm{\operatorname{Vec}(X)}_2$
+	for all $X\in\C{n}{n}$. 
+	\begin{align*}
+		\norm{L_f(A)}_F &= \max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{L_f(A)[E]}_F}{\norm{E}_F}=
+		\max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{\operatorname{Vec}\big(L_f(A)[E]\big)}_2}{\norm{\operatorname{Vec}(E)}_2}=\\
+		& \max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{K(A)\operatorname{Vec}(E)}_2}{\norm{\operatorname{Vec}(E)}_2}=
+		\max_{\substack{x\in\C{\cramped{n^2}}\\ x\ne 0}}\frac{\norm{K(A)x}_2}{\norm{x}_2}=\norm{K(A)}_2.\qedhere
+	\end{align*}
+\end{proof}
+Lemma~\ref{lemma:fro_norm_frechet} suggests that $\norm{L_f(A)}_F$ can be exactly computed as shown in Algorithm~\ref{alg:exact_cond_n}; by forming the $n^2\times n^2$ matrix $K(A)$, then $\kappa_f(A)=\norm{K(A)}_2\norm{A}_F/\norm{f(A)}_F$. 
+\begin{algorithm}[H]
+	\caption{\emph{Exact $\kappa_f(A)$ computation in the Frobenius norm~\cite[Alg.~3.17]{higham:matfun_book}}}
+	\label{alg:exact_cond_n}
+	\begin{algorithmic}[1]
+		\For{$j=1,\dots,n$}
+			\For{$i=1,\dots,n$}
+				\State $Y \gets L_f(A)\qty[e_{i}e_{j}^{\top}]$
+				\State $K\qty[:\mid(j-1)n+i] = \operatorname{Vec}(A)$
+			\EndFor
+		\EndFor
+		\State $\kappa_f(A) = \norm{K(A)}_2\norm{A}_F / \norm{f(A)}_F$
+	\end{algorithmic}
+\end{algorithm}
+Algorithm~\ref{alg:exact_cond_n} explicitly forms $K(A)$; this assumes that it's possible to compute the Fréchet derivative along every coordinate direction. An ``oracle'' implementing the action $E\to L_f(A)[E]$ provides a way to do so.
+Section \textcolor{red}{somewhere} describes how this ``oracle'' is obtained for the Matrix Exponential.
+
+Algorithms for computing $f(A)$ usually cost $O(n^3)$ flops; assuming that evaluating $L_f(A)$ costs $O(n^3)$ flops, Algorithm~\ref{alg:exact_cond_n} has the prohibitive cost of $O(n^5)$ flops, besides the memory cost of storing $K(A)$.
+\bigskip 
+
+\textcolor{red}{Da fare: Metodo delle potenze su $K(A)$; $\norm{K(A)}_1$ non è proprio $\norm{L_f(A)}_1$ ma ci sono dei bound; \texttt{normest1} (è importante)}
 
 \section{Computational techniques for matrix functions}
 \textcolor{red}{Le menziono, perché è giusto così. Schur-Parlett per funzioni generiche (in~\cite[§~9]{higham:matfun_book}). Per funzioni specifiche ci sono tecniche specifiche, che però possono essere raggruppate sotto un ``ombrello più grande''. Ad esempio metodo di Newton. }

@@ -1,8 +1,6 @@
 \chapter{Numerical Experiments}\label{capitolo:6}
 In this chapter, the numerical experiments to assess and validate the \texttt{expm\_mp} algorithm will be thouroughly described. Then, their outcomes will be presented, emphasizing the most relevant ones. A critical discussion of the obtained results will be given, and conclusions will be drawn.
 
-\textcolor{red}{Per citare MatrixDepot~\cite{higham:MatrixDepot}. Per citare TypedMatrices invece~\cite{fasi25:TypedMatrices}}
-
 \section{Experimental setup}
 Since the algorithm under consideration operates in arbitrary precision, the main concern is accuracy.
 In fact, multiprecision algorithms are frequently used to compute reference solutions against which lower precision methods are compared. Reliability is of paramount importance, more so than computational performance.
@@ -27,7 +25,7 @@ In~\cite{higham:hf19_mpexpm} the proposed algorithm is tested on matrices taken 
 		\mathtt{fl}(-10^{-4}) & \mathtt{0}
 	\end{pmatrix}.
 \end{equation}
-The reference solution is computed using \texttt{exp\_mct} -- the \texttt{expm} function provided by the Multiprecision Computing Toolbox -- with $2d$ the significant digits, where $d$ is the number of digits of precision that the algorithm under test is running with. This first testing strategy can be described as in code snippet~\ref{alg:first_test_strat} 
+The reference solution is computed using \texttt{exp\_mct} -- the \texttt{expm} function provided by the Multiprecision Computing Toolbox -- with $2d$ the significant digits, where $d$ is the number of digits of precision that the algorithm under test is running with. This first testing strategy can be described as in Algorithm~\ref{alg:first_test_strat}. 
 \begin{algorithm}[H]
 	\caption{\emph{First testing strategy}}
 	\label{alg:first_test_strat}
@@ -45,7 +43,7 @@ The reference solution is computed using \texttt{exp\_mct} -- the \texttt{expm} 
 		%	\end{algorithmic}
 \end{algorithm}
 
-\noindent For the accuracy analysis of the algorithm proposed in~\cite{exptayotf18}, the authors use matrices of the form $H^{\top}DH$, where $H$ is a Hadamard matrix normalized in order to be orthogonal (i.e. each entry is divided by $\sqrt{n}$), and $D$ is a diagonal matrix with entries uniformly randomly distributed in $[-50,50] + \mathtt{i}[-50,50]$. This second testing strategy can be described as in code snippet~\ref{alg:second_test_strat}.
+For the accuracy analysis of the algorithm proposed in~\cite{exptayotf18}, the authors use matrices of the form $H^{\top}DH$, where $H$ is a Hadamard matrix normalized in order to be orthogonal (i.e. each entry is divided by $\sqrt{n}$), and $D$ is a diagonal matrix with entries uniformly randomly distributed in $[-50,50] + \mathtt{i}[-50,50]$. This second testing strategy can be described as in code snippet~\ref{alg:second_test_strat}.
 \begin{algorithm}[H]
 	\caption{\emph{Second testing strategy}}
 	\label{alg:second_test_strat}
@@ -70,72 +68,50 @@ Is the accuracy of the computation -- whatever the precision it's being carried 
 
 The latter strategy introduces a tiny error that the former one does not introduce. Furthermore, the three questions with which this section ends are misguiding and fallacious.  
 
-\subsection{The perplexities in the first testing strategy}\label{subs:1st_strat_argument}
-When one sees $A$ as in~\eqref{eqn:Higham_test_matrix}, one is \emph{biased} to think that it comes from $A = \mathcal{A}+\Delta\mathcal{A}$, where $\mathcal{A}=\left(\begin{smallmatrix}
-	0 & 10^{-4}\\ -10^{-4} & 0
-\end{smallmatrix}\right)$ is the matrix that was supposed to be fed to the algorithm but can't be because of rounding errors. Therefore, one concludes, $A$ is not an appropriate test matrix for \texttt{exp\_mp} because the algorithm will always fail to compute $\mathcal{Y}\coloneqq\exp(\mathcal{A})$ due to intrinsic error in its input. 
-%\begin{oss*}
-%	\textcolor{red}{Of course the elements in $A$ reinforce this bias. But the bias is more general I would say. \`E il discorso che i dati in doppia precisione sono accompagnati dalla percezione di essere ``erronei''.}
-%\end{oss*}
+\subsection{Discussing the first testing strategy}\label{subs:1st_strat_argument}
+Let $\mathcal{F}^{n\times n}$ be the set of $n$-by-$n$ matrices with double precision elements, let $\mathtt{fl}(M)\in\mathcal{F}^{n\times n}$ be the closest matrix to a matrix $M$.
+When one sees $A$ as in~\eqref{eqn:Higham_test_matrix} being passed to the multiprecision algorithm \texttt{exp\_mp}, one may think that there exists a matrix $\mathcal{A}\in\R{n}{n}$ s.t. $\mathtt{fl}(\mathcal{A})=A$ that was supposed to be passed instead of $A$, but can't be because of intrinsic errors. 
+Following that line of reasoning, one may doubt the appropriateness of $A$ as a test matrix for \texttt{exp\_mp}, because the error in the input inherently prevents the method from computing $\mathcal{Y}\coloneqq\exp(\mathcal{A})$, the quantity that is actually desired.
 
-Let $Y\coloneqq\exp(A)$. The algorithm \texttt{exp\_mp} will produce an approximation $\hat{Y}$.
-More formally, the (fallacious) argument is as follows: to correctly assess the quality of our algorithms, $\norm*{\hat{Y}-\mathcal{Y}}/\norm{\mathcal{Y}}$ should be measured. Except in some special cases, the computed value will differ from the exact $\mathcal{Y}$; however
+Let $Y\coloneqq\exp(A)$; the algorithm \texttt{exp\_mp} will produce an approximation $\hat{Y}$ of $Y$. 
+Notice that that $\hat{Y}$ may well approximate $Y$ while being a poor approximation of $\mathcal{Y}$, in fact
 \begin{equation}\label{eqn:Y_rel_err_expansion}
 	\begin{aligned}
-	\frac{\norm*{\hat{Y}-\mathcal{Y}}}{\norm{\mathcal{Y}}} &= \frac{\norm*{\hat{Y}-Y+Y-\mathcal{Y}}}{\norm{\mathcal{Y}}}\\
+		\frac{\norm*{\hat{Y}-\mathcal{Y}}}{\norm{\mathcal{Y}}} &= \frac{\norm*{\hat{Y}-Y+Y-\mathcal{Y}}}{\norm{\mathcal{Y}}}\\
 		&\le\frac{\norm*{\hat{Y}-Y}}{\norm{Y}}\frac{\norm*{Y-\mathcal{Y}+\mathcal{Y}}}{\norm{\mathcal{Y}}}+\frac{\norm{Y-\mathcal{Y}}}{\norm{\mathcal{Y}}}\\
 		&\le\frac{\norm*{\hat{Y}-Y}}{\norm{Y}}\left(1+\frac{\norm{Y-\mathcal{Y}}}{\norm{\mathcal{Y}}}\right)+\frac{\norm{Y-\mathcal{Y}}}{\norm{\mathcal{Y}}}\\
 		&\dot{=}\frac{\norm*{\hat{Y}-Y}}{\norm{Y}}+\frac{\norm{Y-\mathcal{Y}}}{\norm{\mathcal{Y}}}\le\frac{\norm*{\hat{Y}-Y}}{\norm{Y}}+\kappa_{\exp}(\mathcal{A})\frac{\norm{\Delta\mathcal{A}}}{\norm{\mathcal{A}}}
-\end{aligned}
+	\end{aligned}
 \end{equation}
-where $\dot{=}$ denotes equality up to first order terms (i.e. higher order terms have been dropped). A term $\norm{\Delta\mathcal{A}}/\norm{\mathcal{A}}$ appears, with $\norm{\Delta\mathcal{A}}=O(u_{53})$, and is further amplified by $\kappa_{\exp}(\mathcal{A})$. Therefore the forward error can be higher than what we should be able to get, namely something close to $\kappa_{\exp}(A)u_{256}$. Even when the multiprecision algorithm may seem to compute the solution accurately, the actual underlying approximation error can be bigger than what it should be. Using $A$ we will never know for sure. 
+where $\dot{=}$ denotes equality up to first order terms (i.e. higher order terms have been dropped). Note that in~\eqref{eqn:Y_rel_err_expansion} a term $\norm{\Delta\mathcal{A}}/\norm{\mathcal{A}}$ appears, with $\norm{\Delta\mathcal{A}}=O(u_{53})$, and is further amplified by $\kappa_{\exp}(\mathcal{A})$.
 
-\subsubsection*{Addressing the objections}
-Let $\hat{\mathcal{Y}}$ be the approximation of $\mathcal{Y}$ that the algorithm would compute. 
-Behind the fallacy there is the belief that only $\norm*{\mathcal{Y}-\hat{\mathcal{Y}}}/\norm{\mathcal{Y}}$ would be able to capture errors of the order of $u_{256}$; but since we're doomed to use $\hat{Y}$ instead of $\hat{\mathcal{Y}}$ our error reads will be unreliable. 
+In practical applications, $\mathcal{Y}$ may represent ``the desired quantity''. Then Equation~\eqref{eqn:Y_rel_err_expansion} tells us that the algorithm may fail at computing the desired quantity.
+While true, this doesn't constitute a valid reason to turn away the first testing strategy, because computing a ``desired quantity'' that can't possibly be computed using the data at our disposal was never our aim. It is outside the scope of any benchmark for our algorithm. The input to the algorithm is $A$, there is no reason why its output should approximate well the exponential of another matrix.
 
-The steps in~\eqref{eqn:Y_rel_err_expansion} are correct,  
-the point is that although $\exp(A)$ may never be computed exactly, a matrix $Y$ arbitrarily close to it can be computed using multiprecision arithmetic, just like with any real matrix. Thus, $\norm*{\hat{Y}-Y}/\norm{Y}$ can potentially be of the order of $u_{256}$. This forward error, and not $\norm*{\mathcal{Y}-\hat{\mathcal{Y}}}/\norm{\mathcal{Y}}$, is the appropriate measure for the quality of the approximations that our algorithm computes.
-\smallskip 
+The matrix $A\in\mathcal{F}^{n\times n}$ is a real matrix like any other, as such is an appropriate input to a multiprecision algorithm. Our aim is to assess how well the algorithm approximates the matrix exponential \emph{of its input}. Note that $\exp(A)$ is unlikely to belong to $\mathcal{F}^{n\times n}$. 
+Although $\exp(A)$ may never be computed exactly, a matrix arbitrarily close to it can be computed using multiprecision arithmetic, thus the error $\norm*{\hat{Y}-Y}/\norm{Y}$ can be arbitrarily small. This doesn't depend on whether $A$ is affected by intrinsic error or not, neither it depends on the precision of $A$. Errors of the order of $u_p$, with $p$ being the working precision of the algorithm, can be observed even if the input matrix $A$ is in double precision.
 
-Returning to the three questions that introduced the ``fallacious argument'', it is often wrongly believed that floating point data is ``flawed'' or ``uncertain''. Instead, as well explained in the documentation of the Python arbitrary precision library \textsc{mpmath}~\cite{mpmath},
-\begin{quotation}
-	Contrary to popular belief, floating-point \emph{numbers} do not come with an inherent ``small uncertainty'', although floating-point \emph{arithmetic} generally is inexact. Every binary floating-point number is an exact rational number. With arbitrary-precision integers used for the mantissa and exponent, floating-point numbers can be added, subtracted and multiplied \emph{exactly}. \elide
-	
-	Floating-point arithmetic is generally approximate because the size of the mantissa must be limited for efficiency reasons \elide.
-\end{quotation}
-The input to the algorithm is $A$, \textcolor{red}{Finire dopo che ne ho parlato con il professore.} 
-\smallskip
+In conclusion, it is the forward error $\norm*{\hat{Y}-Y}/\norm{Y}$, and not $\norm*{\hat{Y}-\mathcal{Y}}/\norm{\mathcal{Y}}$, that correctly measures the quality of the approximations computed by the algorithm. If the former error is small, we can say that the algorithm is accurate. 
 
+%As a final remark, it is often wrongly believed that floating point data is in itself ``flawed'' or ``uncertain''. Instead, as well explained in the documentation of the Python arbitrary precision library \textsc{mpmath}~\cite{mpmath},
+%\begin{quotation}
+%	Contrary to popular belief, floating-point \emph{numbers} do not come with an inherent ``small uncertainty'', although floating-point \emph{arithmetic} generally is inexact. Every binary floating-point number is an exact rational number. With arbitrary-precision integers used for the mantissa and exponent, floating-point numbers can be added, subtracted and multiplied \emph{exactly}. \elide
+%	
+%	Floating-point arithmetic is generally approximate because the size of the mantissa must be limited for efficiency reasons \elide.
+%\end{quotation}
 
-\textcolor{red}{Originale:}\newline
-Returning to the three questions that introduced the ``fallacious argument'', floating point data usually comes with this notion of being ``flawed'' or ``uncertain''.
-The \emph{bias} is to think that the available digits in $A$ come from a truncation that $\mathtt{big.()}$ should somehow undo. For all we know, the extra digits returned by the command are correct (whatever ``correct'' means). $A$ is the input to the algorithm, it may be affected by intrinsic error or it may not, but we will never know; the fact that is in double precision doesn't imply that it is. The point is that it doesn't matter. 
-In fact, $A$ is better thought of as a real square matrix like any other, although containing double precision data. As such, it's a perfectly valid input to an algorithm running in higher precision. $\mathcal{Y}$ is just a distraction.
-
-The documentation of the Python arbitrary precision library \textsc{mpmath}~\cite{mpmath} puts it very well:
-\begin{quotation}
-	Contrary to popular belief, floating-point \emph{numbers} do not come with an inherent ``small uncertainty'', although floating-point \emph{arithmetic} generally is inexact. Every binary floating-point number is an exact rational number. With arbitrary-precision integers used for the mantissa and exponent, floating-point numbers can be added, subtracted and multiplied \emph{exactly}. \elide
-	
-	Floating-point arithmetic is generally approximate because the size of the mantissa must be limited for efficiency reasons \elide.
-\end{quotation}
-
-
-\subsection{Why the second testing strategy is (subtly) deceitful}
+\subsection{Discussing the second testing strategy}
 Let's now consider the second testing strategy, which is summarized in the code snippet~\ref{alg:second_test_strat}.
 
-%Similarly to the discussion of the first strategy, identifying what is the input data, which matrix exponential we really want to compute, the crucial issue
 \begin{notazione*}
 	Let either the dot symbol or no symbol at all, as in $A\cdot B$ and $AB$ respectively, denote the product in exact arithmetic. Let the $\mathtt{*}$ symbol denote the same operation in floating point arithmetic.
 \end{notazione*}
-
-%Similarly to the first strategy, there is a bias at play here. We would like to have $A=H^{\top}\!DH$, but by doing $H^{\top}\!\mathtt{*}D\mathtt{*}H$ at line $4$ of algorithm~\ref{alg:second_test_strat} an approximation $\tilde{A}$ is computed instead.
 
 Similarly to the first strategy, some confusion may arise by the fact that, by performing $H^{\top}\!\mathtt{*}D\mathtt{*}H$, an approximation $A$ of $\mathcal{A}=H^{\top}\!DH$ is computed and fed to the algorithm.
 
 \begin{oss}\label{oss:A_double_prec}
 	The starting data $D$, $H$ is in double precision; $H$ is exactly representable in double precision because $H_{i,j}=\pm 1/\sqrt{n}$ and $n$ is a power of two. 	
-	However, $\mathcal{A}=H^{\top}DH$ may not belong to the set $\mathcal{F}^{n\times n}$ of matrices with double precision elements. Let $\mathtt{fl}(\mathcal{A})\in\mathcal{F}^{n\times n}$ be the closest matrix to $\mathcal{A}$.
+	However, $\mathcal{A}=H^{\top}DH$ may not belong to $\mathcal{F}^{n\times n}$.
 	
 	The best that we can reasonably hope for is $\mathtt{fl}(\mathcal{A})$, but line 4 of Algorithm~\ref{alg:second_test_strat} will in general compute something different (see Remark~\ref{oss:A_rel_err}). Note that by increasing the precision between lines $3$ and $4$ of Algorithm~\ref{alg:second_test_strat} it is possible to obtain $A=\mathtt{fl}(\mathcal{A})$ (see also~\cite[p.64]{higham:accuracy_book}).
 \end{oss}
@@ -159,10 +135,10 @@ Similarly to the first strategy, some confusion may arise by the fact that, by p
 \end{oss}
 %\smallskip
 
-If the (fallacious) argument of Section~\ref{subs:1st_strat_argument} was followed, the computed $\hat{Y}$ would be ideally compared with $\mathcal{Y}=\exp(\mathcal{A})=H^{\top}\!\exp(D)H$. Reasoning as in Remark~\ref{oss:A_double_prec}, $Y_{\textup{true}}$ is just an approximation $\widetilde{\exp(\mathcal{A})}$ of $\exp(\mathcal{A})$.
+One may think, as in Section~\ref{subs:1st_strat_argument}, that the computed $\hat{Y}$ should be ideally compared with $\mathcal{Y}=\exp(\mathcal{A})=H^{\top}\!\exp(D)H$. Reasoning as in Remark~\ref{oss:A_double_prec}, $Y_{\textup{true}}$ is just an approximation $\widetilde{\exp(\mathcal{A})}$ of $\exp(\mathcal{A})$.
 The algorithm however is fed with $A$, not $\mathcal{A}$, thus it returns and approximation $\hat{Y}$ of $\exp(A)$, not of $\exp(\mathcal{A})$. Therefore $\hat{Y}$ should be compared with a good proxy of $\exp(A)$, not with $Y_{\textup{true}}$.
 
-Image~\ref{img:plot_expm_test2} pictures the situation. The ticks on the axis represent floating point data, they're widely spaced apart for illustration purposes. The curly brace between $\hat{Y}$ and $\exp(A)$ highlights the gap that is measured in the first testing strategy.
+Figure~\vref{img:plot_expm_test2} pictures the situation. The ticks on the axis represent floating point data, they're widely spaced apart for illustration purposes. The curly brace between $\hat{Y}$ and $\exp(A)$ highlights the gap that is measured in the first testing strategy.
 \begin{figure}[hbp]
 	\centering
 	\includegraphics[width=\textwidth]{Immagini/plot_expm_test2.pdf}
@@ -171,11 +147,11 @@ Image~\ref{img:plot_expm_test2} pictures the situation. The ticks on the axis re
 \end{figure}
 \smallskip 
 
-Instead, in the second strategy $\hat{Y}$ is compared with $Y_{\textup{true}}$. In Image~\ref{img:plot_expm_test2}, the gap between the two terms is enclosed in a square brace. Now,
+Instead, in the second strategy $\hat{Y}$ is compared with $Y_{\textup{true}}$. In Figure~\ref{img:plot_expm_test2}, the gap between the two terms is enclosed in a square brace. Now,
 \[
 	\norm{\hat{Y}-Y_{\textup{true}}}\le\norm{\hat{Y}-\exp(A)}+\norm{\exp(A)-Y_{\textup{true}}}.
 \]
-As discussed, the first term $\norm*{\hat{Y}-\exp(A)}$ is the error that the algorithm actually achieves. Image~\ref{img:plot_expm_test2} suggests that this second term should be  roughly of size $\norm{L_{\exp}(\mathcal{A})}\norm*{\mathcal{A}-A}$. Let us give a more rigorous bound. 
+As discussed, the first term $\norm*{\hat{Y}-\exp(A)}$ is the error that the algorithm actually achieves. Figure~\ref{img:plot_expm_test2} suggests that this second term should be roughly of size $\norm{L_{\exp}(\mathcal{A})}\norm*{\mathcal{A}-A}$. Let us give a more rigorous bound. 
 \begin{align*}
 	\norm{\exp(A)-Y_{\textup{true}}}&=\norm{\exp(A)-H^{\top}\!\mathtt{*}\exp(D)\mathtt{*}H}\\
 	&=\norm{\exp(H^{\top}\!DH+E_1)-H^{\top}\!\exp(D)H+E_2}\\
@@ -209,14 +185,14 @@ The bound for $\norm*{\exp(A)-Y_{\textup{true}}}$ depends on the conditioning of
 \end{oss*}
 
 \subsubsection{Experimental setup, in conclusion}
-Let us finally describe the experimental setup. The algorithm has been tested in all its configurations of possible approximants (Taylor and diagonal Padé) and algorithms (i.e. Scaling and Squaring preceded by a real Schur decomposition, preceded by a complex Schur decomposition, or without any preprocessing), with internal (binary) precision values of $53$, $256$ and $851$. The first value matches double precision, the second one is the default \texttt{BigFloat} precision, the third one roughly corresponds to $256$ decimal digits. Higher precisions haven't been tested for performance reasons. 
+Let us finally describe the experimental setup. The algorithm has been tested in all its configurations of possible values of \texttt{approximant} (Taylor and diagonal Padé) and of \texttt{algorithm} (i.e. Scaling and Squaring preceded by a real Schur decomposition, preceded by a complex Schur decomposition, or without any Schur decomposition), with working (binary) precision values of $53$, $256$ and $851$. The first value matches double precision, the second one is the default \texttt{BigFloat} precision, the third one roughly corresponds to $256$ decimal digits. Higher precisions haven't been tested for performance reasons. 
 
-\begin{oss*}
-	We remark that \texttt{exp\_mp} automatically selects a factor $\mu$, the input matrix is shifted as $A\gets A-\mu I$. \texttt{exp\_mp} does no internal balancing other than what the Schur decomposition algorithm may internally do.
-\end{oss*}
+%\begin{oss*}
+%	We remark that \texttt{exp\_mp} automatically selects a factor $\mu$, the input matrix is shifted as $A\gets A-\mu I$. \texttt{exp\_mp} does no internal balancing other than what the Schur decomposition algorithm may internally do.
+%\end{oss*}
 
 The experiments have been conducted on a laptop equipped with a \textsc{AMD} Ryzen\textsuperscript{\texttrademark}~5 5600H CPU, with 6 cores and 2 threads per core. The memory hierarchy is as follows: $\SIqty{16}{\giga\byte}$ DDR4 RAM, $\SIqty{16}{\mega\byte}$ L3 cache, $\SIqty{3}{\mega\byte}$ L2 cache (private per core), $\SIqty{384}{\kilo\byte}$ L1 cache equally split between data and instruction (private per core). 
-The main software specifications are summarized in table~\ref{tab:sw_specs}.
+The main software specifications are summarized in Table~\ref{tab:sw_specs}. 
 \begin{table}[htp]
 	\centering
 	\caption{\emph{Main software specifications.}}
@@ -232,15 +208,56 @@ The main software specifications are summarized in table~\ref{tab:sw_specs}.
 	\end{tabular}
 \end{table}
 
-The experimental data contains the same matrices that have been used for the experiments in~\cite{higham:hf19_mpexpm}. Many of these matrices are available, in Julia, thanks to the \texttt{TypedMatrices.jl} library~\cite{fasi25:TypedMatrices}. 
+The experimental data contains the same matrices that have been used for the experiments in~\cite{higham:hf19_mpexpm}. Many of them are available, in Julia, thanks to the \texttt{TypedMatrices.jl} library~\cite{fasi25:TypedMatrices}. 
+Other test matrices include: randomly generated matrices (with double precision data, and with $256$-bit precision data), matrices of the form $A = H^{\top}\!\mathtt{*}D\mathtt{*}H$ and $A = H^{\top}\!\mathtt{*}J\mathtt{*}H$ as described in the previous paragraphs. In light of the previous discussion, the reference solution has not been computed by evaluating the exact formula in floating-point arithmetic, but rather through the procedure presented in the next section.
 
-\textcolor{red}{Mettere: (i) quante sono Hermitiane e quante no. (ii) Distribuzione delle taglie $n$ delle matrici. (iii) Disclaimer sul fatto che le matrici sono piccoline perché (a) non è colpa mia e (b) sennò mi esplode il computer.}
+\begin{notazione}
+	Let us clarify some terminology that will be used throughout the discussion of the experimental results.
+	
+	Each test matrix gives rise to multiple \emph{samples}. One sample represents the outcome of the execution of the algorithm \emph{for a specific configuration of its parameters}, as outlined at the beginning of this section. 
+\end{notazione}	 
+Typically, each test matrix produces $19$ samples, as \texttt{exp\_mp} allows to choose between three values for the \texttt{algorithm} parameter and two for the \texttt{approximant} parameter, each possible combination has been tested at three different working precisions, and the standard Julia \texttt{exp} algorithm has been tested as well.
 
-\subsection{Computing the reference solution}
-\textcolor{red}{Aggiusta. Forse metti dopo?} The exponential of some of the test matrices is known in close formula, but the methods that will be shortly described struggle to compute it. Thus, for a minority of the test matrices, $Y_{\textup{true}}$ was computed in advance, by evaluating the closed formula for the elements of $\exp(A)$ in high precision.
+Some configurations of the algorithm haven't been executed on all of the test matrices. For example, the real Schur form of $A\in\C{n}{n}$ can be computed only if all its elements are real. So if $A$ has complex elements, the $\mathtt{algorithm}=\mathtt{\colon\!complexschur}$ configuration hasn't been tested on $A$. As a consequence, the number of samples that each test matrix produced is not constant. 
 \smallskip 
 
-\noindent Three strategies had initially been devised for the computation of the reference solution $Y_{\textup{true}}$. Ultimately, the chosen one was the third. It is interesting, however, to briefly describe them all.
+Figure~\vref{fig:hist_matrix_sizes} shows how many $n\times n$ matrices are present in the test set, for each available size $n$.
+\begin{figure}[hbp]
+	\centering
+	\includegraphics[width=0.8\textwidth]{Immagini/hist_matrix_sizes}
+	\caption{\emph{Number of distinct test matrices per matrix size.}}
+	\label{fig:hist_matrix_sizes}
+\end{figure}
+Most matrices are $10$-by-$10$, the maximum size is $24$-by-$24$. Such small sizes are motivated by performance considerations, as the algorithm to compute $\kappa_{\exp}$ (Algorithm~\ref{alg:exact_cond_n}) struggles even on matrices of moderate size, and \textcolor{red}{-- as already discussed somewhere --} \texttt{exp\_mp} is computationally expensive as well. We remark that most test matrices are the same that were used in the accuracy tests in~\cite{higham:hf19_mpexpm}. This included their sizes. \textcolor{red}{La tolgo questa osservazione se è troppo passivo-aggressiva senza essere davvero necessaria.}
+
+Table~\ref{tab:hermitian_test_matrices} specifies how many samples refer to Hermitian matrices and how many refer to non Hermitian matrices.
+\begin{table}[htp]
+	\centering
+	\caption{\emph{Proportion of Hermitian and non-Hermitian matrices in the test set.}}
+	\label{tab:hermitian_test_matrices}
+	
+	\begin{tabular}{lccccc}
+		\toprule
+		& \multicolumn{2}{c}{\textbf{Hermitian}}
+		& \multicolumn{2}{c}{\textbf{Non-Hermitian}}
+		& \multirow{2}*{\textbf{Total}} \\
+		\cmidrule(rl){2-3}
+		\cmidrule(rl){4-5}
+		& Count & Percentage & Count & Percentage & \\
+		\midrule
+		\textbf{Matrices} & $37$  & $\SIqty{25.69}{\percent}$ & $107$  & $\SIqty{74.31}{\percent}$ & $144$ \\
+		\textbf{Samples}  & $703$ & $\SIqty{26.33}{\percent}$ & $1967$ & $\SIqty{73.67}{\percent}$ & $2670$ \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+%\textcolor{red}{Note that Hermitian matrices aren't particulartly telling, because the algorithm diagonalizes}
+
+
+\subsection{Computing the reference solution}
+The exponential of some of the test matrices is known in closed formula. For $8$ test matrices ($152$ samples), $Y_{\textup{true}}$ was computed in advance, by evaluating the formula at a high precision $\hat{p}$. This was done only for the matrices $A$ for which it would be guaranteed that $Y_{\textup{true}}=\exp(A)+E$ s.t. $\norm{E}/\norm{\exp(A)}=O(u_{\hat{p}})$, and for which there was the ``suspicion'' that the methods to compute the reference solution wouldn't return a good approximation of $\exp(A)$, or at least not as good as the high precision evaluation of its closed formula.\newline
+\textcolor{red}{Se serve posso mettere un esempio un po' interessante, che non sia l'esponenziale di una matrice diagonale. Se l'approccio è sbagliato, faccio che tutte le soluzioni di riferimento le calcola mpmath e via.}\newline
+For the vast majority of the test matrices, the reference solution was computed using another numerical method.
+\smallskip 
 
 In an earlier phase of testing, $Y_{\textup{true}}$ was being computed via diagonalization, i.e. as $Y_{\textup{true}}=\mathtt{V}*\exp(\mathtt{D})\,/\,\mathtt{V}$, where $\mathtt{V}$ and $\mathtt{D}$ are, respectively, the eigenvector and eigenvalue matrices returned by a high precision eigendecomposition. 
 This strategy was not viable in many cases, though, because of the conditioning of the returned $\mathtt{V}$. 
@@ -248,30 +265,30 @@ In fact, many matrices are badly scaled or severely non-normal, thus their compu
 
 Therefore, diagonalization alone was not sufficient, a ``fallback method'' had to be present alongside it. 
 The most immediate choice would have been a Taylor series expansion, but Scaling and Squaring would have been better. However, currently -- to the best of our knowledge -- there are no Julia libraries that implement Scaling and Squaring for the matrix exponential in arbitrary precision. Thus, the ``fallback method'' of choice was \texttt{exp\_mp}, the algorithm under test, in higher precision. Since preliminary tests and comparisons with diagonalization suggested that \texttt{exp\_mp} was accurate and reliable, this choice was not entirely unjustified.
-\smallskip 
+%\smallskip 
 
-The second procedure to produce reference solutions avoided diagonalization altogether. Instead, \texttt{exp\_mp} was executed at progressively higher values of working precision, until the computed digits stabilized. More precisely, suppose that the goal was to compute $Y_{\textup{true}}$ with binary precision $\hat{p}$. Then $\norm{\exp(A)-Y_{\textup{true}}}/\norm{\exp(A)}$ should have been of order $2^{-\hat{p}}$%, i.e. $Y_{\textup{true}}$ and $\exp(A)$ should have matched up to approximately $\hat{p}\cdot\log_{10}(2)$ significant digits. \textcolor{red}{\`E utile questa specifica? Inutile? Dannosa, addirittura?}
+%The second procedure to produce reference solutions avoided diagonalization altogether. Instead, \texttt{exp\_mp} was executed at progressively higher values of working precision, until the computed digits stabilized. More precisely, suppose that the goal was to compute $Y_{\textup{true}}$ with binary precision $\hat{p}$. Then $\norm{\exp(A)-Y_{\textup{true}}}/\norm{\exp(A)}$ should have been of order $2^{-\hat{p}}$%, i.e. $Y_{\textup{true}}$ and $\exp(A)$ should have matched up to approximately $\hat{p}\cdot\log_{10}(2)$ significant digits. \textcolor{red}{\`E utile questa specifica? Inutile? Dannosa, addirittura?}
+%
+%A sequence of approximants $Y_{k}\!=\mathtt{exp\_mp}(A, \mathtt{working\_precision}=p_k)$ was computed at progressively higher working precision values $p_1,\dots, p_k,\dots$. This process was terminated when
+%\[
+%	\max_{i,j\in[n]}\frac{\abs{(Y_{k}-Y_{k+1})_{i,j}}}{\abs{(Y_{k+1})_{i,j}}}\le 2^{-\hat{p}}
+%\]
+%at which point $Y_{k}$ was kept as reference solution. 
+%
+%The rationale behind this strategy is that for each element of $Y_k$, only some of the $p_k$ binary significant digits are correct. 
+%%Being a higher precision approximation of $\exp(A)$ computed with the same algorithm, $Y_{k+1}$ inherits the correct significant digits of $Y_k$, but has potentially more. 
+%$Y_{k+1}$ inherits the correct significant digits of $Y_k$, while potentially having more. The correctness of the computed digits in $Y_k$ can thus be assessed by comparing $Y_{k+1}$ and $Y_k$ element by element. When each element $(Y_k)_{i,j}$ of $Y_{k}$ approximates $(Y_{k+1})_{i,j}$ to high relative accuracy, it approximates $(\exp(A))_{i,j}$ to high relative accuracy as well.
+%
+%
+%\textcolor{red}{A una spiegazione basata sulle norme magari penserò poi.}
+%
+%
+%
+%Again, the underlying assumption is that \texttt{exp\_mp} is able to approximate the exact matrix exponential up to (potentially) any level of precision: given a high enough working precision, an arbitrarily accurate approximation of $\exp(A)$ can be computed by the algorithm.
+%Although, as previously stated, preliminary tests suggest that this is not a strong assumption, the fact that the reference solutions are being produced by the algorithm that is being tested remains. \textcolor{red}{Furthermore, the assumption is fundamental for the validity of this methodology. If, say, the algorithm was systematically biased\dots}
+%\smallskip 
 
-A sequence of approximants $Y_{k}\!=\mathtt{exp\_mp}(A, \mathtt{working\_precision}=p_k)$ was computed at progressively higher working precision values $p_1,\dots, p_k,\dots$. This process was terminated when
-\[
-	\max_{i,j\in[n]}\frac{\abs{(Y_{k}-Y_{k+1})_{i,j}}}{\abs{(Y_{k+1})_{i,j}}}\le 2^{-\hat{p}}
-\]
-at which point $Y_{k}$ was kept as reference solution. 
-
-The rationale behind this strategy is that for each element of $Y_k$, only some of the $p_k$ binary significant digits are correct. 
-%Being a higher precision approximation of $\exp(A)$ computed with the same algorithm, $Y_{k+1}$ inherits the correct significant digits of $Y_k$, but has potentially more. 
-$Y_{k+1}$ inherits the correct significant digits of $Y_k$, while potentially having more. The correctness of the computed digits in $Y_k$ can thus be assessed by comparing $Y_{k+1}$ and $Y_k$ element by element. When each element $(Y_k)_{i,j}$ of $Y_{k}$ approximates $(Y_{k+1})_{i,j}$ to high relative accuracy, it approximates $(\exp(A))_{i,j}$ to high relative accuracy as well.
-
-
-\textcolor{red}{A una spiegazione basata sulle norme magari penserò poi.}
-
-
-
-Again, the underlying assumption is that \texttt{exp\_mp} is able to approximate the exact matrix exponential up to (potentially) any level of precision: given a high enough working precision, an arbitrarily accurate approximation of $\exp(A)$ can be computed by the algorithm.
-Although, as previously stated, preliminary tests suggest that this is not a strong assumption, the fact that the reference solutions are being produced by the algorithm that is being tested remains. \textcolor{red}{Furthermore, the assumption is fundamental for the validity of this methodology. If, say, the algorithm was systematically biased\dots}
-\smallskip 
-
-The third method to compute $Y_{\textup{true}}$ consisted in using \textsc{mpmath}~\cite{mpmath}. 
+Ultimately, $Y_{\textup{true}}$ was computed using \textsc{mpmath}~\cite{mpmath}. 
 Being a Python library, this had to be done with Python calls from within Julia. There are many libraries that allow this, such as \texttt{PythonCall.jl}. Version $0.9.31$ was used in the proposed numerical experiments; the library is still actively maintained at the time of writing.
 
 \textsc{mpmath} uses Scaling and Squaring with Taylor or diagonal Padé approximant to compute the matrix exponential. The chosen approximant was the former, which is the default one. The algorithm is described, in pseudocode, in Algorithm~\ref{alg:mpmath_expm}.
@@ -298,34 +315,76 @@ Being a Python library, this had to be done with Python calls from within Julia.
 		\EndFunction
 	\end{algorithmic}
 \end{algorithm}
-One thing to notice is that \texttt{mpmath.expm} internally increases the precision. Recall that \texttt{exp\_mp} does it too.
+Like \texttt{exp\_mp}, \texttt{mpmath.expm} internally increases the working precision.
+Notice how, unlike \texttt{exp\_mp}, \texttt{mpmath.expm} doesn't compute the exponential of Hermitian matrices via diagonalization.
 
 \section{Experimental results}
-Figure~\ref{fig:exp_mp_fwerrs} displays, for various working precisions, the forward errors achieved by \texttt{exp\_mp} in its possible configurations, namely:
+Figure~\vref{fig:exp_mp_fwerrs} displays -- for various working precisions -- the relative forward errors $\norm*{\hat{Y}-Y_{\textup{true}}}_F/\norm{Y_{\textup{true}}}_F$, where $\hat{Y}$ is the solution computed by \texttt{exp\_mp} in one of its possible configurations, namely:
 \begin{itemize}
 	\item \texttt{exp\_d}: transformation-free variant of \texttt{exp\_mp}, with diagonal Padé approximant. 
 	\item \texttt{exp\_t}: transformation-free variant of \texttt{exp\_mp}, with Taylor approximant.
-	\item \texttt{exp\_sp\_d}: Schur-Padé variant of \texttt{exp\_mp}, with diagonal Padé approximant. 
-	\item \texttt{exp\_sp\_t}: Schur-Padé variant of \texttt{exp\_mp}, with Taylor approximant.
+	\item \texttt{exp\_sp\_d}: (Complex) Schur-Padé variant of \texttt{exp\_mp}, with diagonal Padé approximant. 
+	\item \texttt{exp\_sp\_t}: (Complex) Schur-Padé variant of \texttt{exp\_mp}, with Taylor approximant.
 \end{itemize}
-Furthermore, \texttt{exp\_sas} denotes the standard Julia $\mathtt{exp}(A)$ algorithm. The continuous line marks $\kappa_{\exp}(A)\cdot u$. 
+Furthermore, \texttt{exp\_sas} denotes the standard Julia $\mathtt{exp}(A)$ algorithm. 
 
+Since their magnitude depends not only on the working precision but also on the conditioning of the problem, the relative forward errors are compared with $\kappa_{\exp}(A)\cdot u$. In the plots in Figure~\ref{fig:exp_mp_fwerrs}, this quantity is marked by a continuous line. 
+ 
+To avoid cluttering them -- and since its real counterpart achieves similar results, but fewer samples correspond to it -- only the complex variant of the Schur-Padé algorithm is displayed in the figures.
 \begin{figure}[hbp]
-	\includegraphics[width=\textwidth]{Immagini/errors_restricted-mpmath_ref}
+	\centering 
+	\includegraphics[width=0.8\textwidth]{Immagini/errors_restricted-mpmath_ref}
 	\caption{\emph{Forward errors of \texttt{exp\_mp}, for various parametric configurations.}}
 	\label{fig:exp_mp_fwerrs}
 \end{figure}
-\textcolor{red}{Da spiegare:
-\begin{itemize}
-	\item Spiegare come è stato calcolato il numero di condizionamento
-	\item La linea tratteggiata grigia
-	\item \texttt{exp\_mp} è concorrenziale con \texttt{Base.exp}
-\end{itemize}
-}
 
-\textcolor{red}{The same plot, hued by strategy to compute the reference solution, is in figure~\ref{fig:exp_mp_fwerrs_byStrat}.}
+To make the plots in Figure~\ref{fig:exp_mp_fwerrs} more readable and visually appealing, without affecting the interpretation of the displayed results, the datapoints that fall beyond the horizontal dashed lines are projected on it. 
+
+\begin{oss}\label{oss:failed_computations}
+	The computation of the conditioning of the exponential of four test matrices overflowed. 
+	When the precision was $851$, the computation of the real and complex Schur forms of one test matrix failed, as the maximum number of allowed iterations was reached before convergence; thus the Schur-Padé variant(s) of \texttt{exp\_mp} could not be executed on that matrix. The $76+4$ samples associated to the failure cases just described are excluded from the analysis; in particular they've been removed from Figure~\ref{fig:exp_mp_fwerrs}.
+\end{oss}
+\smallskip 
+
+The figure suggests that the relation $E_{\textup{rel}}(\hat{Y})=\kappa_{\exp}(A)\cdot O(u_p)$ is satisfied by almost all samples, for all the working precision values $p$. A closer inspection reveals that some configurations consistently outperform the others, as their related datapoints fall lower in the plot.
+Figure~\ref{fig:exp_mp_fwerrs} alone, however, is not sufficient to precisely assess the performance of the \texttt{exp\_mp} variants on our test matrices. The \texttt{exp\_mp} configurations can be more easily compared using Performance profiles~\cite{dolan_more:perfprof} . The same experimental results are thus presented in the form of performance profiles in Figure~\vref{fig:perfprof_cplxschur}.
 \begin{figure}[hbp]
-	\includegraphics[width=\textwidth]{Immagini/errors_restricted-mpmath_ref-hued_by_strat}
-	\caption{\emph{Forward errors of \texttt{exp\_mp}, colored by method to compute $Y_{\textup{true}}$.}}
-	\label{fig:exp_mp_fwerrs_byStrat}
+	\centering
+	\includegraphics[width=0.8\textwidth]{Immagini/perfprof_complexschur}
+	\caption{\emph{Performance profiles of the forward errors achieved by \texttt{exp\_mp}, for various parametric configurations.}}
+	\label{fig:perfprof_cplxschur}
 \end{figure}
+
+We briefly recall how to interpret a performance profile plot, adapting the explaination to the present setting. For the sake of explaination, a performance profile plot is composed of multiple curves called \emph{performance profiles}, each relative to one configuration of \texttt{exp\_mp}. A point $(\tau,c)$ on the performance profile specifies the fraction $c$ of samples for which the \texttt{exp\_mp} variant achieved a relative error within a factor $\tau$ from the best relative error on that sample.
+
+So, at $\tau=1$ the performance profile gives the fraction of samples for which the corresponding variant was the most accurate. The sum of all the performance profile values at $\tau=1$ can exceed $1$, as ties are possible.
+For each variant, the bigger the $\tau$ is, the more samples are such that the relative error is within a factor $\tau$ from the best result; therefore the performance profiles are nondecreasing functions of $\tau$. Their growth behaviour, as $\tau$ increases, reveals the reliability of the corresponding configuration.
+Indeed, by reading it farther and farther right, the performance profile plot tells how many matrix exponentials are \emph{eventually} computed by the corresponding configuration. 
+A performance profile curve remaining flat may indicate that the configuration performs very well on some samples, but very poorly on others (or even fail to compute their underlying matrix exponential altogether). 
+
+A preliminary analysis of the performance profiles revealed that, for almost all samples, the ratio between the forward error of the sample and the smallest error attained in the computation of the same matrix exponential was below $\tau=100$; therefore the maximum value on the horizontal axis was set to $100$. Note that if, for some test matrices, a configuration achieved a positive relative error but another configuration managed to compute the corresponding $Y_{\textup{true}}$ exactly, then its performance profile would never reach the value $1$ except in the limit. As noted in Remark~\ref{oss:failed_computations}, some configurations fail to compute the exponential of some matrices, thus their performance profile doesn't converge to $1$. \newline
+All in all, the closer the performance profile is to the top left corner, the better.
+\smallskip 
+
+For all values of working precision, the Schur-Padé variants perform worse than their transformation-free counterparts.
+When the working precision is $53$, the same as \textsc{IEEE}754 double precision, the performance profiles suggest that \texttt{exp\_d} and \texttt{exp\_t} are competitive with Julia's \texttt{expm}, even outperforming it. This is remarkable, because Julia's implementation of the matrix exponential is specifically tailored for double precision, as explained \textcolor{red}{somewhere}. 
+When the working precision is $256$, the \texttt{exp\_t} variant achieves, on all matrix exponentials, relative errors that are within a small factor from the lowest relative error (on that same matrix exponential). It is most likely the best variant for most matrices, outperforming \texttt{exp\_d}. The Schur-Padé variants are significantly worse.
+When the working precision is $851$, \texttt{exp\_d} outperforms the other variants. However, all of them achieve relative errors within a factor $100$ from the lowest, on almost all prolems.
+
+Table~\vref{tab:samples_within_bnd} \textcolor{red}{(che sicuramente va sistemata in qualche modo)} reports, for each configuration and for each working precision $p$, the number of test matrices $A$ for which the forward relative error is bounded by $n^2\cdot\kappa_{\exp}($A$)\cdot u_p$, where $n$ is the size of the matrix. 
+\begin{table}[hbp]
+	\centering
+	\caption{\emph{Number (and percentage) of matrices for which the relative error is bounded by $n^2\cdot\kappa_{\exp}\cdot u_p$, for each \texttt{exp\_mp} configuration and for each working precision value.}}
+	\label{tab:samples_within_bnd}
+	\begin{tabular}{lcccccc}
+	\toprule
+	\multirow{2}*{$p$} & \multicolumn{2}{c}{\texttt{transfree}} & \multicolumn{2}{c}{\texttt{realschur}} & \multicolumn{2}{c}{\texttt{complexschur}}\\
+	\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+	 & Padé & Taylor & Padé & Taylor & Padé & Taylor\\
+	\midrule
+	$53$  & $132$ ($\SIqty{94.29}{\percent}$) & $133$ ($\SIqty{95.00}{\percent}$) & $122$ ($\SIqty{94.57}{\percent}$) & $122$ ($\SIqty{94.57}{\percent}$) & $133$ ($\SIqty{95.00}{\percent}$) & $133$ ($\SIqty{95.00}{\percent}$) \\
+	$256$ & $132$ ($\SIqty{94.29}{\percent}$) & $133$ ($\SIqty{95.00}{\percent}$) & $122$ ($\SIqty{94.57}{\percent}$) & $122$ ($\SIqty{94.57}{\percent}$) & $133$ ($\SIqty{95.00}{\percent}$) & $133$ ($\SIqty{95.00}{\percent}$) \\
+	$851$ & $133$ ($\SIqty{95.00}{\percent}$) & $132$ ($\SIqty{94.29}{\percent}$) & $121$ ($\SIqty{93.80}{\percent}$) & $121$ ($\SIqty{93.80}{\percent}$) & $132$ ($\SIqty{94.29}{\percent}$) & $132$ ($\SIqty{94.29}{\percent}$) \\
+	\bottomrule
+	\end{tabular}
+\end{table}
