@@ -91,7 +91,7 @@ While true, this doesn't constitute a valid reason to turn away the first testin
 The matrix $A\in\mathcal{F}^{n\times n}$ is a real matrix like any other, as such is an appropriate input to a multiprecision algorithm. Our aim is to assess how well the algorithm approximates the matrix exponential \emph{of its input}. Note that $\exp(A)$ is unlikely to belong to $\mathcal{F}^{n\times n}$. 
 Although $\exp(A)$ may never be computed exactly, a matrix arbitrarily close to it can be computed using multiprecision arithmetic, thus the error $\norm*{\hat{Y}-Y}/\norm{Y}$ can be arbitrarily small. This doesn't depend on whether $A$ is affected by intrinsic error or not, neither it depends on the precision of $A$. Errors of the order of $u_p$, with $p$ being the working precision of the algorithm, can be observed even if the input matrix $A$ is in double precision.
 
-In conclusion, it is the forward error $\norm*{\hat{Y}-Y}/\norm{Y}$, and not $\norm*{\hat{Y}-\mathcal{Y}}/\norm{\mathcal{Y}}$, that correctly measures the quality of the approximations computed by the algorithm. If the former error is small, we can say that the algorithm is accurate. 
+In conclusion, it is the forward relative error $\norm*{\hat{Y}-Y}/\norm{Y}$, and not $\norm*{\hat{Y}-\mathcal{Y}}/\norm{\mathcal{Y}}$, that correctly measures the quality of the approximations computed by the algorithm. If the former error is small, we can say that the algorithm is accurate. 
 
 %As a final remark, it is often wrongly believed that floating point data is in itself ``flawed'' or ``uncertain''. Instead, as well explained in the documentation of the Python arbitrary precision library \textsc{mpmath}~\cite{mpmath},
 %\begin{quotation}
@@ -255,7 +255,7 @@ Table~\ref{tab:hermitian_test_matrices} specifies how many samples refer to Herm
 
 \subsection{Computing the reference solution}
 The exponential of some of the test matrices is known in closed formula. For $8$ test matrices ($152$ samples), $Y_{\textup{true}}$ was computed in advance, by evaluating the formula at a high precision $\hat{p}$. This was done only for the matrices $A$ for which it would be guaranteed that $Y_{\textup{true}}=\exp(A)+E$ s.t. $\norm{E}/\norm{\exp(A)}=O(u_{\hat{p}})$, and for which there was the ``suspicion'' that the methods to compute the reference solution wouldn't return a good approximation of $\exp(A)$, or at least not as good as the high precision evaluation of its closed formula.\newline
-\textcolor{red}{Se serve posso mettere un esempio un po' interessante, che non sia l'esponenziale di una matrice diagonale. Se l'approccio è sbagliato, faccio che tutte le soluzioni di riferimento le calcola mpmath e via.}\newline
+\textcolor{red}{Se serve posso mettere un esempio un po' interessante, diverso dall'esponenziale di una matrice diagonale. Se l'approccio è sbagliato, faccio che tutte le soluzioni di riferimento le calcola mpmath e via.}\newline
 For the vast majority of the test matrices, the reference solution was computed using another numerical method.
 \smallskip 
 
@@ -347,7 +347,7 @@ To make the plots in Figure~\ref{fig:exp_mp_fwerrs} more readable and visually a
 \smallskip 
 
 The figure suggests that the relation $E_{\textup{rel}}(\hat{Y})=\kappa_{\exp}(A)\cdot O(u_p)$ is satisfied by almost all samples, for all the working precision values $p$. A closer inspection reveals that some configurations consistently outperform the others, as their related datapoints fall lower in the plot.
-Figure~\ref{fig:exp_mp_fwerrs} alone, however, is not sufficient to precisely assess the performance of the \texttt{exp\_mp} variants on our test matrices. The \texttt{exp\_mp} configurations can be more easily compared using Performance profiles~\cite{dolan_more:perfprof} . The same experimental results are thus presented in the form of performance profiles in Figure~\vref{fig:perfprof_cplxschur}.
+Figure~\ref{fig:exp_mp_fwerrs} alone, however, is not sufficient to precisely assess the performance of the \texttt{exp\_mp} variants on our test matrices. The \texttt{exp\_mp} configurations can be more easily compared using Performance profiles~\cite{dolan_more:perfprof}. The same experimental results are thus presented in the form of performance profiles in Figure~\vref{fig:perfprof_cplxschur}.
 \begin{figure}[hbp]
 	\centering
 	\includegraphics[width=0.8\textwidth]{Immagini/perfprof_complexschur}
@@ -355,7 +355,7 @@ Figure~\ref{fig:exp_mp_fwerrs} alone, however, is not sufficient to precisely as
 	\label{fig:perfprof_cplxschur}
 \end{figure}
 
-We briefly recall how to interpret a performance profile plot, adapting the explaination to the present setting. For the sake of explaination, a performance profile plot is composed of multiple curves called \emph{performance profiles}, each relative to one configuration of \texttt{exp\_mp}. A point $(\tau,c)$ on the performance profile specifies the fraction $c$ of samples for which the \texttt{exp\_mp} variant achieved a relative error within a factor $\tau$ from the best relative error on that sample.
+We briefly recall how to interpret a performance profile plot, adapting the explaination to the present setting. For the sake of explaination, a performance profile plot is composed of multiple curves called \emph{performance profiles}, each relative to one configuration of \texttt{exp\_mp}. A point $(\tau,c)$ on the performance profile specifies the fraction $c$ of samples for which the \texttt{exp\_mp} variant achieved a relative error within a factor $\tau$ from the relative error obtained by the algorithm that best approximates the exponential of the sample's matrix.
 
 So, at $\tau=1$ the performance profile gives the fraction of samples for which the corresponding variant was the most accurate. The sum of all the performance profile values at $\tau=1$ can exceed $1$, as ties are possible.
 For each variant, the bigger the $\tau$ is, the more samples are such that the relative error is within a factor $\tau$ from the best result; therefore the performance profiles are nondecreasing functions of $\tau$. Their growth behaviour, as $\tau$ increases, reveals the reliability of the corresponding configuration.

@@ -1,5 +1,5 @@
 \chapter{Matrix Functions}\label{capitolo:2}
-This chapter introduces the matrix functions, their definitions, their basic properties and their conditioning. This chapter is aimed at laying the ground for the presentation that will be given in Chapter~\ref{capitolo:3} of the Matrix Exponential, the matrix function this essay focuses on. Therefore the treatment will be concise, giving multiple specific references for further details.
+This chapter introduces the matrix functions, their definitions, their basic properties and their conditioning. It aims at laying the ground for the presentation that will be given in Chapter~\ref{capitolo:3} of the Matrix Exponential, the matrix function this essay focuses on, therefore the treatment will be concise, giving multiple specific references for further details.
 
 \section{Introduction}
 The general idea behind the functions of a matrix is that a function $f\colon\Sigma\subseteq\C\to\C$ is extended to its counterpart on square matrices, $f\colon\Omega\subseteq\C{n}{n}\to\C{n}{n}$, in such a way that the core properties are preserved.
@@ -15,7 +15,7 @@ This is \emph{very} different from applying (the scalar) $f$ to the elements of 
 We anticipate that, in order to be \emph{defined} on square matrices, $f$ must satisfy some additional properties that may not be necessary for the definition of the original scalar function $f$. Specifically, the existence of derivatives at certain points must be guaranteed, up to a certain order.
 
 \textcolor{red}{Le funzioni di matrice sono utilissime blabla}
-\section{Definitions of matrix function}
+\section{Definitions of matrix function}\label{sect:matfun_defs}
 Matrix functions can be defined in three equivalent ways. 
 
 \subsection*{Jordan form definition}
@@ -167,7 +167,7 @@ The property in Lemma~\ref{lemma:matfun_f_continuity} trivially follows from the
 	\]
 	From~\eqref{eqn:f_Jordan_block} it follows that, under our assumptions, $\lim_m f_m(A)=f(A)$, which completes the proof.
 \end{proof}
-\begin{corollario_lemma}
+\begin{corollario_lemma}\label{cor:matfun_power_series}
 	Let $f$ be defined by the power series expansion $f(z)=\sum_{k=0}^{\infty}c_k(z-\alpha)^k$ with radius of convergence $r>0$. If $A\in\C{n}{n}$ is such that $\rho(A-\alpha I)<r$ then
 	\[
 		f(A)=\lim_d\sum_{k=0}^{d}c_k(A-\alpha I)^k.
@@ -178,10 +178,10 @@ The assumption $\rho(A-\alpha I)<r$ can also be loosened to $\rho(A-\alpha I)\le
 
 \noindent Lemma~\ref{lemma:matfun_A_continuity} states that, under appropriate assumptions (which are satisfied, in the complex case, if the function is holomorphic), matrix functions are continuous functions.
 \begin{lemma}\label{lemma:matfun_A_continuity}
-	Let $\Omega$ be an open subset of $\R$ or $\C$, let $f$ be $n-1$ times differentiable on $\Omega$. Then $\lim_{m}f(A_m)=f(A)$ for any sequence $\qty{A_m}_{m\in\mathbb{N}}\subseteq\qty{A\in\C{n}{n}\mid\Lambda(A)\subseteq\Omega}$ such that $A_m\xlongrightarrow{m\to\infty}A$.
+	Let $\Sigma$ be an open subset of $\R$ or $\C$, let $f$ be $n-1$ times differentiable on $\Sigma$. Then $\lim_{m}f(A_m)=f(A)$ for any sequence $\qty{A_m}_{m\in\mathbb{N}}\subseteq\qty{A\in\C{n}{n}\mid\Lambda(A)\subseteq\Omega}$ such that $A_m\xlongrightarrow{m\to\infty}A$.
 \end{lemma}
 \begin{proof}
-	The proof can be found in~\cite[Thm.~1.19]{higham:matfun_book} and the references therein. Note that the property can't be proven as a straightforward outcome of the polynomial interpolation definition; i.e. $\lim_{m}f(A_k)=\lim_{m}p(A_m)=p(\lim_{m}A_m)$ is \emph{not} a valid proof, because the interpolating polynomial $p$ depends on $A_m$.
+	The proof can be found in~\cite[Thm.~1.19]{higham:matfun_book} and the references therein. Note that the property can't be proven as a straightforward outcome of the polynomial interpolation definition; i.e. $\lim_{m}f(A_m)=\lim_{m}p(A_m)=p(\lim_{m}A_m)$ is \emph{not} a valid proof, because the interpolating polynomial $p$ depends on $A_m$.
 \end{proof}
 
 
@@ -209,14 +209,14 @@ The Fréchet derivative of $f$ at $A$ may not exist, but if it exists then it is
 	The notation $L_{f}(A)[E]$ can be read as ``the (Fréchet) derivative of $f$, in $A$, applied to $E$'', or ``the (Fréchet) derivative of $f$, computed in $A$, along the direction $E$''. 
 	$L(A)$ denotes the linear operator $E\mapsto L(A)[E]$.
 	
-	\textcolor{red}{Forse introdurre notazione $\dd{f}(A)$?}
+	\textcolor{red}{Forse introdurre notazione $\dd f(A)$?}
 \end{notazione*}
 
 \begin{oss}\label{oss:frechet_generalizza}
 	Notice that if, in Definition~\ref{def:frechet_derivative}, the function $f$ had different domain and range, the usual notions of derivative known from real analysis would be obtained. Namely:
 	\begin{itemize}
 		\item For $f\colon\R\to\R$, $L_f(x_0)[x]=f'(x_0)\,x$, i.e. $L_f(x)=f'(x)\dd{x}$
-		\item For $f\colon\R{n}\to\R$, $L_f(x_0)[x]=\langle\grad{f}(x_0),x\rangle$, i.e. $L_f(x_0)=\sum_{i=1}^n\pdv{f(x_0)}{x_i}\dd{x_i}$.
+		\item For $f\colon\R{n}\to\R$, $L_f(x_0)[x]=\left\langle\grad{f}(x_0),x\right\rangle$, i.e. $L_f(x_0)\!=\sum_{i=1}^n\!\pdv{f(x_0)}{x_i}\dd{x_i}$
 		\item For $f\colon\R{n}\to\R{n}$, $L_f(x_0)[x]=\mathbb{J}(x_0)\cdot x$
 	\end{itemize}
 \end{oss}
@@ -237,7 +237,7 @@ The norm of the operator $L_f(A)$ is the one induced by the norms of the input a
 \textcolor{red}{Note that from Remark~\ref{oss:frechet_generalizza} it follows that the~\eqref{eqn:cond_frechet} generalizes the definitions of condition numbers for differentiable functions that we already know.}
 \smallskip 
 
-The differential $\dd{f}(x)$ of a function $f\colon\R{n}\to\R{n}$ at a point $x\in\R{n}$ is a linear map from $\R{n}$ to $\R{n}$ which is represented in the canonical basis by the Jacobian matrix. An analogous phenomenon happens for matrix functions: the action of the Fréchet derivative can closely related to the multiplication by a matrix. Unlike the $\R{n}$ case however, the isomorphism is not the identity.
+The differential $\dd f(x)$ of a function $f\colon\R{n}\to\R{n}$ at a point $x\in\R{n}$ is a linear map from $\R{n}$ to $\R{n}$ which is represented in the canonical basis by the Jacobian matrix. An analogous phenomenon happens for matrix functions: the action of the Fréchet derivative can closely related to the multiplication by a matrix. Unlike the $\R{n}$ case however, the isomorphism is not the identity.
 
 \begin{definizione}
 	Let $\operatorname{Vec}\colon\C{n}{n}\to\C{n^2}$ be the function that ``stacks all the columns of a matrix'', i.e. let it be defined as 
@@ -293,21 +293,22 @@ This can be easily proved from first principles. %\textcolor{red}{Forse spostare
 \textcolor{red}{Ora si deve parlare dell'aggiunta di $L_f(A)$. Si può sempre partire dalla~\eqref{eqn:vec_isometry}. Forse meglio nel paragrafo ``Properties''}
 
 \subsection{Properties of the Fréchet derivative}
-The Fréchet derivative enjoys most of the usual properties of derivatives. The sum, product, inverse and chain rules are all satisfied. We write the latter two properties for clarity. The inverse rule can be written as
-\begin{equation*}
-	L_{f^{-1}}(f(A)) = L_f(A)^{-1},\ \text{or equivalently}\ L_f(A)\big[L_{f^{-1}}\qty(f(A))[E]\big]=E%\qquad\forall\,X\in\C{n}{n}\ \forall\,E\in\C{n}{n}
-\end{equation*}
-\noindent The chain rule can be written as 
-\begin{equation*}
-	L_{f\circ g}(A) = L_f(g(A))\circ L_g(A)
-\end{equation*}
-\noindent or equivalently as 
-\begin{equation*}
-	L_{f\circ g}(A)[E]=L_f\qty(g(A))\big[L_g\qty(A)\qty[E]\big].
-\end{equation*}
-\smallskip 
+The Fréchet derivative enjoys most of the usual properties of derivatives. The sum, product, inverse and chain rules are all satisfied. The rules can be stated, in order, as follows:
+\begin{align}
+	L_{f+g}(A) & = E\mapsto L_f(A)[E] + L_g(A)[E]\nonumber \\
+	L_{f\cdot g}(A) & = E\mapsto\big(L_f(A)[E]\cdot g(A) + f(A)\cdot L_g(A)[E]\big)\label{eqn:frechet_prod_rule}\\
+	L_{f^{-1}}(f(A)) & = 
+		\begin{multlined}[t]
+			E\mapsto L_f(A)^{-1}[E],\\ 
+			\text{or equivalently}\ L_f(A)\big[L_{f^{-1}}\qty(f(A))[E]\big]=E
+		\end{multlined}\nonumber \\
+	L_{f\circ g}(A) & = L_f(g(A))\circ L_g(A) = E\mapsto L_f\qty(g(A))\big[L_g\qty(A)\qty[E]\big].
+\end{align}
+\noindent We recall four of the many computation-oriented properties of the Fréchet derivative.
 
-\noindent If $f\colon\Omega\subseteq\C{n}\to\C{n}$ is $2n-1$ times continuously differentiable on $\Omega$, then 
+By analogy with the scalar case $\dd f(x)=f'(x)\dd{x}$, one may be tempted to define the differential of a matrix function at $A$ evaluated along $E$ as $f'(A)E$. This is \emph{not} the same as $L_f(A)[E]$ in general, but if $A$ and $E$ commute then $ L_f(A)[E]=f'(A)E$.
+
+If $f\colon\Omega\subseteq\C{n}\to\C{n}$ is $2n-1$ times continuously differentiable on $\Omega$, then 
 \begin{equation}\label{eqn:mathias_trick}
 	f\left(\begin{array}{c|c}
 		A & E \\ \hline & A
@@ -320,9 +321,42 @@ holds for any $A\in\C{n}{n}$ such that $\Lambda(A)\subseteq\Omega$ and for any d
 
 Thanks to formula~\eqref{eqn:mathias_trick}, the problem of evaluating the Fréchet derivative is converted to that of computing the function on a matrix of twice the size. This computation returns both $f(A)$ and $L_f(A)[E]$\textcolor{red}{, similarly to what happens in forward mode automatic differentiation.}
 However, the cost of evaluating a function on a matrix of size $n$ is usually $O(n^3)$, so the cost of computing $f(A)$ and $L_f(A)[E]$ using~\eqref{eqn:mathias_trick} is $8$ times that of computing $f(A)$ alone.
-\bigskip
 
-\textcolor{red}{Altre proprietà: $AE=EA\implies L_f(A)[E]=f'(A)E$, per $A$ diagonalizzabile il cambio di base esce da $L_f(A)[E]$, formula per $L_f(A)[E]$ per $f$ con serie di potenze (opzionale: usando i prodotti di Kronecker si dà anche una formula a $K(A)$)}
+Using~\eqref{eqn:mathias_trick} one can prove the following Lemma.
+\begin{lemma}(\cite[Cor.~3.12]{higham:matfun_book})
+	Let $f\colon\Sigma\subseteq\C\to\C$ be $2n-1$ times continuously differentiable on $\Sigma$ and let $A\in\C{n}{n}$ have spectrum in $\Sigma$ and be diagonalizable: $A=VDV^{-1}$, $D=\operatorname{Diag}(\lambda_i)$. Then 
+	\[
+		L_f(A)[E] = V\cdot L_f(D)[V^{-1}EV]\cdot V^{-1}.
+	\]
+\end{lemma}
+
+Lemma~\ref{lemma:frechet_power_series} (see~\cite[Problem~3.6]{higham:matfun_book}) gives an explicit formula for the Fréchet differential of matrix functions that have a power series representation.
+\begin{lemma}\label{lemma:frechet_power_series}
+	Let $f$ be defined by the power series $f(z)=\sum_{k=0}^{\infty}c_k(z-\alpha)^k$ with radius of convergence $r>0$. If $A\in\C{n}{n}$ is such that $\norm{A-\alpha I}<r$ then the Fréchet derivative of $f$ at $A$ is given by
+	\begin{equation*}
+		L_f(A) = E\mapsto\sum_{i=1}^{\infty}c_k\sum_{t=1}^k(A-\alpha I)^{t-1}E(A-\alpha I)^{k-t}
+	\end{equation*}
+\end{lemma}
+\begin{proof}
+	The proof will only be sketched. \textcolor{red}{Spero sia giusta.}
+	As a consequence of the product rule~\eqref{eqn:frechet_prod_rule}, for $k>1$,
+	\begin{equation}\label{eqn:differential_kth_power}
+	\begin{aligned}
+		L_{z\mapsto z^k}(A) & = E\mapsto\qty(L_{z\mapsto z^{k-1}}(A)[E]\cdot A+A^{k-1}\cdot L_{z\mapsto z}(A)[E])\\
+		 & = E\mapsto\qty(L_{z\mapsto z^{k-1}}(A)[E]\cdot A+A^{k-1}\cdot E)
+	\end{aligned}
+	\end{equation}
+	where $z\mapsto z^{k}$ denotes the function which raises its argument to the $k$th power.
+	Using~\eqref{eqn:differential_kth_power} one can prove by induction on $k\ge 1$ that 
+	\[
+		L_{z\mapsto z^k}\qty(A-\alpha I) = E\mapsto\sum_{t=1}^k\qty(A-\alpha I)^{t-1}E\qty(A-\alpha I)^{k-t}.
+	\]	
+	A classical result in complex analysis states that power series can be differentiated term by term inside their disk of convergence. Thus,
+	\[
+		L_f(A) = L_{z\mapsto\sum_{\cramped{k=0}}^{\infty} c_kz^k}(A) =  \sum_{k=1}^{\infty}c_k L_{z\mapsto z^k}(A)
+	\]
+	for all $A\in\C{n}{n}$ s.t. $\norm{A-\alpha I}<r$, which completes the proof.
+\end{proof}
 
 \subsection{Computing or estimating the condition number}
 The problem of computing or estimating $\kappa_f(A)$ essentially reduces that of computing or estimating the norm of the Fréchet differential at $A$. There are two aspects to this last problem, namely the computation of $L_f(A)$ and the computation, or estimation, of its norm. 
@@ -389,3 +423,65 @@ and more emphasis will be given on methods that compute matrix powers and matrix
 
 
 \subsection{Matrix polynomials}
+Unlike the scalar case, evaluating a polynomial $p(x)=\sum_{k=0}^m a_kx^k$ of degree $m\ge 1$ at a matrix argument by explicitely forming the matrix powers has the same asymptotical cost as evaluating it via the Horner's method (see~\cite[Algs.~4.2,4.3]{higham:matfun_book}). This is because both methods perform $m-1$ matrix multiplications. Since each one generally requires $O(n^3)$ flops, compared to the $O(n^2)$ typical cost of a linear combination, matrix multiplications dominate the computational cost.
+
+A matrix polynomial can be computed with $O(\sqrt{m})$ matrix-matrix multiplications, using the Paterson-Stockmeyer method~\cite{paterson_stockmeyer:article}.
+In the Paterson-Stockmeyer scheme an integer index $\nu\in[m]$ (which we will call the \emph{``batch size''}) is chosen, $p(A)$ is rewritten as a polynomial in $A^{\nu}$ of degree $\le m$, whose coefficients are linear combinations of $I,A,\dots,A^{\nu-1}$. We now describe the method more rigorously.
+
+The polynomial $p(A)$ is written as 
+\begin{equation}\label{eqn:ps_poly}
+	p(A) = \sum_{k=0}^{r}B_k(A)\cdot\qty(A^{\nu})^k\qq{with}r=\left\lfloor\frac{m}{\nu}\right\rfloor
+\end{equation}
+where the coefficients $B_k(A)$ are given by
+\begin{align*}
+	B_k(A)&\coloneqq\begin{dcases}
+		\sum_{j=0}^{\nu-1}a_{\nu k+j}A^j & k=0,\dots,r-1\\
+		\sum_{j=0}^{[m]_{\nu}}a_{\nu k+j}A^j & k=r
+	\end{dcases}\\
+	&=\begin{dcases}
+		a_{\nu k+\nu-1}A^{\nu-1}+\dots+a_{\nu k+1}A+a_{\nu k}I & k=0,\dots,r-1\\
+		a_mA^{m-\nu r}+\dots+a_{\nu r+1}A+a_{\nu r}I & k=r,
+	\end{dcases}
+\end{align*}
+where $[m]_{\nu}$ is the remainder of the integer division of $m$ by $\nu$, i.e. $m = \nu r + [m]_{\nu}$.
+\begin{esempio}
+	For $m=6,\nu=3$ we have 
+	\begin{align*}
+	p(A)&=a_6\qty(A^3)^{2} + \qty(a_5A^2+a_4A+a_3)A^3+\qty(a_2A^2+a_1A+a_0).
+	\intertext{For $m=6,\nu=2$ we have }
+	p(A)&=a_6\qty(A^2)^3+\qty(a_5A+a_4)(A^2)^2+\qty(a_3A+a_2)A^2+\qty(a_1A+a_0).
+	\intertext{For $m=8,\nu=3$ we have}
+	p(A)&=\begin{multlined}[t]\qty(a_8A^2+a_7A+a_6)\qty(A^3)^2+\\
+		+\qty(a_5A^2+a_4A+a_3)A^3+\qty(a_2A^2+a_1A+a_0).\end{multlined}
+	\end{align*}
+\end{esempio}
+The algorithm proceeds as follows: the powers $I,A,A^2,\dots, A^{\nu}$ are computed beforehand. This requires $s-1$ matrix multiplications. Then~\eqref{eqn:ps_poly} is evaluated through the Horner scheme, forming the coefficients $B_k(A)$ as needed. Note that the cost of forming the $B_k(A)$ coefficients is negligible, because the powers of $A$ have already been computed.
+
+The total number of matrix multiplications is therefore
+\begin{equation}\label{eqn:ps_cost}
+	C(\nu)=\overbrace{\nu - 1}^{\mathclap{\text{Powers of $A$}}} + \underbrace{r - \mathbbm{1}_{\qty{[m]_{\nu}=0}}}_{\mathclap{\text{Evaluation of~\eqref{eqn:ps_poly}}}},\qquad \mathbbm{1}_{\qty{[m]_{\nu}=0}}=\begin{dcases*}
+		1 & if $\nu$ divides $m$\\
+		0 & otherwise.
+	\end{dcases*}
+\end{equation}
+By taking its derivative with respect to $\nu$ (and dropping the $\lfloor\phantom{r}\rfloor$ in $r$), we see that $C(\nu)$ in~\eqref{eqn:ps_cost} is minimized by $\sqrt{m}$; thus the cost is approximately minimized by either $\nu=\lfloor\sqrt{m}\rfloor$ or $\nu=\lceil\sqrt{m}\rceil$. With either choice of ``batch size'', evaluating a polynomial of degree $m$ at a $n$-by-$n$ matrix costs $O(\sqrt{m}n^3)$ flops.
+
+It can be easily seen that the two extreme cases $\nu=1$ and $\nu=m$ correspond to the Horner and to the explicit powers evaluation schemes, respectively.
+
+\begin{oss*}
+	The Paterson-Stockmeyer comes with its tradeoffs. The lower number of matrix-matrix multiplications comes with additional matrix-scalar products and matrix sums. As already discussed, these operations are cheaper than matrix-matrix multiplications.
+	
+	As many intermediate quantities such as the matrix powers $I,A,\dots,A^{\nu}$ have to be repeatedly used, the Paterson-Stockmeyer has a higher memory footprint than the other two methods: it requires more units of storage and more memory operations. This memory cost can be reduced by computing $p(A)$ one column at a time, at the price of additional matrix-matrix multiplications. For details, see~\cite[§~4.2]{higham:matfun_book} and the references therein.
+\end{oss*}
+
+The Paterson-Stockmeyer is an essential building block of the multiprecision algorithm for the Matrix Exponential that this essay presents. \textcolor{red}{Ne riparleremo\dots}
+
+The same error bound holds for the three methods considered in this section, see~\cite[Thm.~4.5]{higham:matfun_book} for the precise statement. The \textcolor{red}{takeaway message} is that if there is significant cancellation in forming $p$, then the error in the computed result can be large. 
+\bigskip
+
+\noindent We conclude this section by mentioning the \emph{binary powering algorithm}, because the Scaling and Squaring algorithm uses a special case of it. The binary powering algorithm efficiently computes $A^m$ (i.e. evaluates the monomial $x^m$ at $A$) by using the binary representation of $m$ instead of explicitely forming all of the previous powers of the matrix. More details can be found in~\cite[§~4.1]{higham:matfun_book}.
+
+
+
+
+

@@ -145,6 +145,47 @@
 	abstract = { Bridging cultures that have often been distant, Julia combines expertise from the diverse fields of computer science and computational science to create a new approach to numerical computing. Julia is designed to be easy and fast and questions notions generally held to be “laws of nature" by practitioners of numerical computing: \beginlist \item High-level dynamic programs have to be slow. \item One must prototype in one language and then rewrite in another language for speed or deployment. \item There are parts of a system appropriate for the programmer, and other parts that are best left untouched as they have been built by the experts. \endlist We introduce the Julia programming language and its design---a dance between specialization and abstraction. Specialization allows for custom treatment. Multiple dispatch, a technique from computer science, picks the right algorithm for the right circumstance. Abstraction, which is what good computation is really about, recognizes what remains the same after differences are stripped away. Abstractions in mathematics are captured as code through another technique from computer science, generic programming. Julia shows that one can achieve machine performance without sacrificing human convenience. }
 }
 
+@article{paterson_stockmeyer:article,
+	author = {Paterson, Michael S. and Stockmeyer, Larry J.},
+	title = {On the Number of Nonscalar Multiplications Necessary to Evaluate Polynomials},
+	journal = {SIAM Journal on Computing},
+	volume = {2},
+	number = {1},
+	pages = {60-66},
+	year = {1973},
+	doi = {10.1137/0202007},
+	URL = {https://doi.org/10.1137/0202007},
+	eprint = {https://doi.org/10.1137/0202007},
+	abstract = { We present algorithms which use only \$O(\sqrt n )\$ nonscalar multiplications (i.e. multiplications involving “x” on both sides) to evaluate polynomials of degree n, and proofs that at least \$\sqrt n \$ are required. These results have practical application in the evaluation of matrix polynomials with scalar coefficients, since the “matrix \$ \times \$ matrix” multiplications are relatively expensive, and also in determining how many multiplications are needed for polynomials with rational coefficients, since multiplications by integers can in principle be replaced by several additions.}
+}
+
+@article{moler_vanloan:19_dubious_ways,
+	author = {Moler, Cleve and Van Loan, Charles},
+	title = {Nineteen Dubious Ways to Compute the Exponential of a Matrix},
+	journal = {SIAM Review},
+	volume = {20},
+	number = {4},
+	pages = {801-836},
+	year = {1978},
+	doi = {10.1137/1020098},
+	URL = {https://doi.org/10.1137/1020098},
+	eprint = {https://doi.org/10.1137/1020098},
+	abstract = { In principle, the exponential of a matrix could be computed in many ways. Methods involving approximation theory, differential equations, the matrix eigenvalues, and the matrix characteristic polynomial have been proposed. In practice, consideration of computational stability and efficiency indicates that some of the methods are preferable to others, but that none are completely satisfactory. }
+}
+
+@article{moler_vanloan:19_dubious_ways_25yrs,
+	author = {Moler, Cleve and Van Loan, Charles},
+	title = {Nineteen Dubious Ways to Compute the Exponential of a Matrix, Twenty-Five Years Later},
+	journal = {SIAM Review},
+	volume = {45},
+	number = {1},
+	pages = {3-49},
+	year = {2003},
+	doi = {10.1137/S00361445024180},
+	URL = {https://doi.org/10.1137/S00361445024180},
+	eprint = {https://doi.org/10.1137/S00361445024180},
+	abstract = { In principle, the exponential of a matrix could be computed in many ways. Methods involving approximation theory, differential equations, the matrix eigenvalues, and the matrix characteristic polynomial have been proposed. In practice, consideration of computational stability and efficiency indicates that some of the methods are preferable to others but that none are completely satisfactory.Most of this paper was originally published in 1978. An update, with a separate bibliography, describes a few recent developments. }
+}
 
 @misc{link:gh_exp_conversation,
     key = {},

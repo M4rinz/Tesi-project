@@ -1,16 +1,77 @@
 \chapter{The Matrix Exponential}\label{capitolo:3}
+While Chapter~\ref{capitolo:2} presented the general theory of matrix functions as a whole, this chapter will focus ofn the matrix function around which this thesis revolves: the matrix exponential function. 
+
+The function and some of its basic properties are introduced in Section~\ref{sect:expm_def_properties}. Section~\ref{sect:expm_conditioning} presents some conditioning results that are specific to the matrix exponential. Finally, Section~\ref{sect:scaling_and_squaring} will describe Scaling and Squaring, the most widely used algorithm for computing the matrix exponential, together with some of the variants that have been proposed throughout the years.
 
 
-Proviamo a citare~\cite{higham:matfun_book}, \cite{higham:alhi09}
+\section{Definition and basic properties}\label{sect:expm_def_properties}
+Historically, the exponential of $A\in\C{n}{n}$ was introduced as
+\begin{equation}\label{eqn:expm_power_series_def}
+	\exp(A)=\sum_{k=0}^{\infty}\frac{A^k}{k!},
+\end{equation}
+which, in light of Corollary~\ref{cor:matfun_power_series}, is mathematically equivalent to the three definitions given in Section~\ref{sect:matfun_defs}.
+The matrix exponential is often first encountered as the matrix power series expansion~\eqref{eqn:expm_power_series_def} to this day.
 
-\section{Definition and basic properties}
-\textcolor{red}{Vorrei farla breve}
+\begin{notazione*}
+	The exponential of the matrix $A$ is often also denoted as $e^A$ in the literature. In this essay, we refrain from using that notation and will stick to $\exp(A)$ as much as possible, to remark the differences between the exponential function and its scalar counterpart.
+\end{notazione*}
 
-\section{Conditioning}
+The matrix exponential is by far the most widely studied matrix function, for its many practical applications. For example, the initial value problem
+\[
+	\dv{y}{t} = Ay,\qquad y(0)=y_0
+\]
+has solution $y(t)=\exp(tA)y_0$. \textcolor{red}{Forse non è un esempio brillantissimo il precedente, perché in realtà compare l'esponenziale per un vettore\dots Altri esempi? Non sono esperto, ma mi sembra che nelle CTMCs compaia l'esponenziale di una certa matrice, per definire l'analoga della matrice di transizione. Mi pare anche di aver sentito parlare di esponenziale di matrice in misure di centralità di grafi\dots Metto qualcosa?}
+\smallskip 
+
+The matrix exponential inherits many identities from the complex exponential function, though not all. For example, $\exp(A)\exp(B)=\exp(A+B)$ is \emph{false} in general, but the property holds if $A$ and $B$ commute. 
+\begin{lemma}\label{lemma:exp_ApB_commute}
+	Let $A,B\in\C{n}{n}$ such that $AB=BA$. Then $\exp(A+B)=\exp(A)\exp(B)$.
+\end{lemma}
+\begin{proof}
+	Using the power series expansion~\eqref{eqn:expm_power_series_def} $\exp(A+B)$ can be written as
+	\[
+		\exp(A+B) = \sum_{n=0}^{\infty}\frac{(A+B)^n}{n!}.
+	\]
+	Since $A$ and $B$ commute, Newton's binomial formula can be applied to $(A+B)^n$, yielding
+	\[
+		\exp(A+B) = \sum_{n=0}^{\infty}\frac{1}{n!}\sum_{k=0}^n \binom{n}{k}A^kB^{n-k} = \sum_{n=0}^{\infty}\,\sum_{k=0}^n\frac{A^k}{k!}\frac{B^{n-k}}{(n-k)!}.
+	\]
+	We recognize in the latter expression the Cauchy product of the series expansions of $\exp(A)$ and of $\exp(B)$.
+\end{proof}
+As an immediate consequence of Lemma~\ref{lemma:exp_ApB_commute} we have the fundamental property
+\begin{equation}\label{eqn:expm_shifting}
+	\exp(A+\mu I) = e^{\mu}\exp(A),
+\end{equation}
+which is often employed by algorithms as a preprocessing techinque called \emph{shifting}. \textcolor{red}{We will further discuss shifting somewhere else.}
+
+Another example of identity that is satisfied by the matrix exponential is 
+\[
+	\exp(A)=\lim_{n\to\infty}\qty(I+\frac{A}{n})^{\mathclap{n}}.
+\]
+
+
+\textcolor{red}{Direi da mettere: expm di una matrice triupper 2x2. expm di una matrice 2x2}
+
+
+
+\section{Conditioning}\label{sect:expm_conditioning}
 \textcolor{red}{Cfr.~\cite[§~3]{higham:matfun_book} and~\cite[§~10.2]{higham:matfun_book}}
 
-\section{Scaling and Squaring}
+
+\section{Computational methods for the matrix exponential}
+\textcolor{red}{Discorso essere tipo: alcuni metodi sono peggio di altri (magari sposto qui la fine della sezione 1). Per questa tesi ci interessiamo di Scaling and Squaring nello specifico, ma è interessante vedere altri metodi per diversi motivi. (1.1) La diagonalizzazione. Perché risponde alla domanda ``si ma perché tutto questo casino per un alg in multiprecisione? Non si può semplicemente diagonalizzare e buonanotte al secchio''? (1.2) La diagonalizz è stata pensata come metodo per calcolare le refsol, ma è stato abbandonato. (1.3) Per alcune matrici la diagonalizz va benissimo. (2.1) Discutere la serie di Taylor permette di presentare l'hump phenomenon, che è qualcosa che riguarda anche Scaling and Squaring.}
+\bigskip
+
+Some of the mathematical identities satisfied by the matrix exponential can be exploited by algorithm. The classic paper ``Nineteen Dubious Ways to Compute the Exponential of a Matrix'' by Moler and Van Loan~\cite{moler_vanloan:19_dubious_ways}, revised and updated in~\cite{moler_vanloan:19_dubious_ways_25yrs}, classifies a broad assortment of methods into five categories, and each method is then thoroughly discussed and analyzed. 
+
+For example, a naive way of computing $\exp(A)$ would be to truncate the Taylor series~\eqref{eqn:expm_power_series_def} to its first few terms. \textcolor{red}{For reasons that we will promptly discuss,} this method is unsatisfactory, so much so that in~\cite{moler_vanloan:19_dubious_ways, moler_vanloan:19_dubious_ways_25yrs} it is taken as a lower bound on the performance of any algorithm for computing the matrix exponential.
+
+Nevertheless, the paper refrains from giving a definitive answer to the question of which method is the best overall. Some methods are better than others. For example, some of the methods are unreliable, i.e. they fail without giving any sort of ``warning''. 
+
+
+
+\subsection{Scaling and Squaring}\label{sect:scaling_and_squaring}
 \textcolor{red}{Cfr.~\cite[§~10.3]{higham:matfun_book} e gli altri articoli (vediamo un po'\dots)}
 
-\subsection{Scaling and Squaring variants}
+\subsubsection{Scaling and Squaring variants}
 \textcolor{red}{L'idea sarebbe quella di riassumere, elencare i piccoli accorgimenti che negli anni sono stati fatti per migliorare l'algoritmo di base (o per lo meno quelli negli articoli che ho trovato): la tecnica di scaling diversa in~\cite{exptayotf18}, l'uso di $\norm{A^t}^{1/t}$ al posto di $\norm{A}$ nel dare una limitazione superiore all'errore analitico (proposto in~\cite{higham:alhi09_new}), il ricalcolo delle diagonali nella fase di squaring proposto in~\cite{higham:alhi09_new}.}
