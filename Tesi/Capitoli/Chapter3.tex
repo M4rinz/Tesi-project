@@ -49,24 +49,110 @@ Another example of identity that is satisfied by the matrix exponential is
 	\exp(A)=\lim_{n\to\infty}\qty(I+\frac{A}{n})^{\mathclap{n}}.
 \]
 
+Let us now fully characterize the exponential of a $2$-by-$2$ matrix $A=\smqty(a & b\\ c & d)$
+(see also~\cite[Prob.~1.9]{higham:matfun_book}).
+A simple computation shows that $A$ has eigenvalues $\lambda_{1,2}=(a+d\pm\mu)/2$ where $\mu=\sqrt{(a-d)^{2}+4bc}$;
+therefore $A$ has repeated (aka confluent) eigenvalues if and only if $\mu=0$.
+Let's suppose that $\lambda_1=\lambda_2$ and that $\lambda$ is not defective, that is, that $A$ is diagonalizable. 
+Then $A=X\operatorname{Diag}(\lambda,\lambda)X^{-1}=\operatorname{Diag}(\lambda,\lambda)$ i.e. $A$ is already diagonal.
+In this case $\exp(A)$ can be computed trivially as $\operatorname{Diag}(e^{\lambda}, e^{\lambda})$.
 
-\textcolor{red}{Direi da mettere: expm di una matrice triupper 2x2. expm di una matrice 2x2}
+Therefore, if $A$ has confluent eigenvalues and is not already diagonal, $A$ is defective. 
+In this case $\exp(A)$ can be computed using a Schur form $A=QTQ^{H}$ as $\exp(A)=Q\exp(T)Q^{H}$,
+where $\exp(T)$ is given by~\eqref{eqn:matfun_2by2_tri}. \textcolor{red}{This will be helpful later} 
 
-
+If $\mu\ne0$ then $A$ has distinct eigenvalues. In this case, there is a closed formula for the 
+exponential of $A$ that doesn't involve neither an eigendecomposition nor a Schur factorization of $A$
+(see~\cite[Eqn.~(2.2)]{higham:alhi09_new}).
+\begin{lemma}
+    Let $A=\smqty(a & b\\ c & d)$ have distinct eigenvalues $\lambda_1\ne\lambda_2$.
+    \begin{equation*}\label{eqn:expm_2by2_full}
+        \exp(A) = e^{\frac{a+d}{2}}
+        \begin{pmatrix}
+            \cosh\qty(\frac{\mu}{2})+\frac{a-d}{2}\sinch\qty(\frac{\mu}{2}) & b\sinch(\frac{\mu}{2})\\
+            c\sinch(\frac{\mu}{2}) & \cosh(\frac{\mu}{2})+\frac{d-a}{2}\sinch(\frac{\mu}{2})
+        \end{pmatrix}
+    \end{equation*}
+    where $\mu=\sqrt{(a-d)^2+4bc}$, and 
+    \[
+        \sinch(x)\coloneqq\begin{dcases}
+            \sinh(x)/x & x\ne 0 \\
+            1 & x = 0
+        \end{dcases}.
+    \]
+\end{lemma}
+\begin{proof}
+    Recall from the previous discussion that $\lambda_1\ne\lambda_2\iff\mu\ne 0$.
+    Using Equation~\eqref{eqn:matfun_2by2_divdiff} and the assumption $\lambda_1\ne\lambda_2$, 
+    $\exp(A)$ can be written as 
+    \[
+        \frac{e^{\lambda_1}-e^{\lambda_2}}{\lambda_1-\lambda_2}A + \qty(e^{\lambda_1}+\lambda_1\frac{e^{\lambda_1}-e^{\lambda_2}}{\lambda_1-\lambda_2})I
+    \]  
+    Now, 
+    \begin{align*}
+        \frac{e^{\lambda_1}-e^{\lambda_2}}{\lambda_1-\lambda_2} &= \frac{1}{\mu}\qty(e^{(a+d+\mu)/2}-e^{(a+d-\mu)/2})=
+        \frac{e^{(a+d)/2}}{\mu}\qty(e^{\mu/2}-e^{-\mu/2})\\
+         & = e^{\frac{a+d}{2}}\frac{\sinh(\mu/2)}{\mu/2}=e^{\frac{a+d}{2}}\sinch\!\qty(\frac{\mu}{2}),
+    \end{align*}
+    and a simple computation shows that 
+    \[
+        e^{\lambda_1}+\lambda_1\frac{e^{\lambda_1}-e^{\lambda_2}}{\lambda_1-\lambda_2}=
+        e^{\frac{a+d}{2}}\qty(e^{\mu/2}-\frac{a+d+\mu}{2}\sinch\qty(\frac{\mu}{2})).
+    \]
+    Putting it all together,
+    \begin{align*}
+        \exp(A) & = \begin{multlined}[t]
+        e^{\frac{a+d}{2}}
+        \begin{pmatrix}
+            \sinch(\mu/2)\,a & \sinch(\mu/2)\,b\\
+            \sinch(\mu/2)\,c & \sinch(\mu/2)\,d
+        \end{pmatrix} + \\
+        e^{\frac{a+d}{2}}
+        \begin{pmatrix}
+            e^{\mu/2}-\frac{a+d+\mu}{2}\sinch\!\qty(\frac{\mu}{2}) & \\
+             & e^{\mu/2}-\frac{a+d+\mu}{2}\sinch\!\qty(\frac{\mu}{2})
+        \end{pmatrix}
+        \end{multlined}\\
+        &= e^{\frac{a+d}{2}}
+        \begin{pmatrix}
+            e^{\frac{\mu}{2}} + \sinch\!\qty(\frac{\mu}{2})\qty(\frac{a-d-\mu}{2}) & \sinch\!\qty(\frac{\mu}{2})\,b\\
+            \sinch\!\qty(\frac{\mu}{2})\,c & e^{\mu/2} + \sinch\!\qty(\frac{\mu}{2})\qty(\frac{d-a-\mu}{2})
+        \end{pmatrix}\\
+    \intertext{noting that $e^{\mu/2}-\frac{\mu}{2}\sinch\qty(\frac{\mu}{2})=e^{\mu/2}-\sinh(\frac{\mu}{2})=\cosh(\frac{\mu}{2})$, }
+        &= e^{\frac{a+d}{2}}
+        \begin{pmatrix}
+            \cosh(\frac{\mu}{2})+\frac{a-d}{2}\sinch\!\qty(\frac{\mu}{2}) & \sinch(\frac{\mu}{2})\,b\\
+            \sinch\!\qty(\frac{\mu}{2})\,c & \cosh(\frac{\mu}{2})+\frac{d-a}{2}\sinch\!\qty(\frac{\mu}{2})
+        \end{pmatrix},
+    \end{align*}
+    which completes the proof.
+\end{proof}
 
 \section{Conditioning}\label{sect:expm_conditioning}
 \textcolor{red}{Cfr.~\cite[§~3]{higham:matfun_book} and~\cite[§~10.2]{higham:matfun_book}}
+
+
 
 
 \section{Computational methods for the matrix exponential}
 \textcolor{red}{Discorso essere tipo: alcuni metodi sono peggio di altri (magari sposto qui la fine della sezione 1). Per questa tesi ci interessiamo di Scaling and Squaring nello specifico, ma è interessante vedere altri metodi per diversi motivi. (1.1) La diagonalizzazione. Perché risponde alla domanda ``si ma perché tutto questo casino per un alg in multiprecisione? Non si può semplicemente diagonalizzare e buonanotte al secchio''? (1.2) La diagonalizz è stata pensata come metodo per calcolare le refsol, ma è stato abbandonato. (1.3) Per alcune matrici la diagonalizz va benissimo. (2.1) Discutere la serie di Taylor permette di presentare l'hump phenomenon, che è qualcosa che riguarda anche Scaling and Squaring.}
 \bigskip
 
-Some of the mathematical identities satisfied by the matrix exponential can be exploited by algorithm. The classic paper ``Nineteen Dubious Ways to Compute the Exponential of a Matrix'' by Moler and Van Loan~\cite{moler_vanloan:19_dubious_ways}, revised and updated in~\cite{moler_vanloan:19_dubious_ways_25yrs}, classifies a broad assortment of methods into five categories, and each method is then thoroughly discussed and analyzed. 
+Some of the mathematical identities satisfied by the matrix exponential can be exploited by algorithms. The classic paper ``Nineteen Dubious Ways to Compute the Exponential of a Matrix'' by Moler and Van Loan~\cite{moler_vanloan:19_dubious_ways}, revised and updated in~\cite{moler_vanloan:19_dubious_ways_25yrs}, classifies a broad assortment of methods into five categories, and each method is then thoroughly discussed and analyzed. 
 
-For example, a naive way of computing $\exp(A)$ would be to truncate the Taylor series~\eqref{eqn:expm_power_series_def} to its first few terms. \textcolor{red}{For reasons that we will promptly discuss,} this method is unsatisfactory, so much so that in~\cite{moler_vanloan:19_dubious_ways, moler_vanloan:19_dubious_ways_25yrs} it is taken as a lower bound on the performance of any algorithm for computing the matrix exponential.
+For example, a na\"ive way of computing $\exp(A)$ would be to truncate the Taylor series~\eqref{eqn:expm_power_series_def} to its first few terms. \textcolor{red}{For reasons that we will promptly discuss,} this method is unsatisfactory, so much so that in~\cite{moler_vanloan:19_dubious_ways, moler_vanloan:19_dubious_ways_25yrs} it is taken as a lower bound on the performance of any algorithm for computing the matrix exponential.
 
 Nevertheless, the paper refrains from giving a definitive answer to the question of which method is the best overall. Some methods are better than others. For example, some of the methods are unreliable, i.e. they fail without giving any sort of ``warning''. 
+
+
+It is not our aim to offer a general overview of the computational methods for the matrix exponential.
+However, reviewing two of them will give us the possibility to observe some \textcolor{red}{critical phenomena} that 
+motivate the introduction of the Scaling and Squaring algorithm and its multiprecision variant introduced in~\cite{higham:hf19_mpexpm},
+which will be presented in Chapter~\ref{capitolo:4}.
+
+\subsection*{Diagonalization}
+
+
 
 
 

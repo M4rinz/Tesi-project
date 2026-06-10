@@ -183,6 +183,41 @@ The assumption $\rho(A-\alpha I)<r$ can also be loosened to $\rho(A-\alpha I)\le
 \begin{proof}
 	The proof can be found in~\cite[Thm.~1.19]{higham:matfun_book} and the references therein. Note that the property can't be proven as a straightforward outcome of the polynomial interpolation definition; i.e. $\lim_{m}f(A_m)=\lim_{m}p(A_m)=p(\lim_{m}A_m)$ is \emph{not} a valid proof, because the interpolating polynomial $p$ depends on $A_m$.
 \end{proof}
+\smallskip 
+
+Let $A\in\C{2}{2}$ be a $2$-by-$2$ matrix. One interpolating polynomial $p(t)$
+such that $p(A)=f(A)$ is given by Netwon's backward difference formula, namely 
+$p(t) = f[\lambda_1] + f[\lambda_1,\lambda_2](t-\lambda_1)$, where $\lambda_1,\lambda_2$ are 
+the eigenvalues of $A$ (not necessarily distinct) and $f[\lambda_1,\lambda_2]$ denotes 
+the \emph{divided difference}, defined as 
+\begin{equation*}\label{eqn:def_divided_difference}
+	f\qty[\lambda_1,\lambda_2]\coloneqq
+	\begin{dcases}
+		\frac{f(\lambda_1)- f(\lambda_2)}{\lambda_1 - \lambda_2} & \lambda_1\ne\lambda_2\\
+		f'(\lambda_1) & \lambda_1=\lambda_2.
+	\end{dcases}
+\end{equation*}
+Thus,
+\begin{equation}\label{eqn:matfun_2by2_divdiff}
+	f(A) = f(\lambda_1)I + f\qty[\lambda_1,\lambda_2](A-\lambda_1I).
+\end{equation}
+One immediate consequence of Equation~\eqref{eqn:matfun_2by2_divdiff} is that if 
+$A=\left(\begin{smallmatrix}a & b \\  & d\end{smallmatrix}\right)$ is upper triangular, 
+$f(A)$ can be easily written as 
+\begin{equation}\label{eqn:matfun_2by2_tri}
+	f\begin{pmatrix}
+		a & b\\ & d
+	\end{pmatrix}=
+	\begin{pmatrix}
+		f(a) & b f[a,c]\\ 
+			 & f(d)
+	\end{pmatrix}.
+\end{equation}
+Equation~\eqref{eqn:matfun_2by2_tri} can also be helpful in practical applications that go 
+beyond algorithms to compute $f\smqty(a & b \\ & d)$, 
+as we will see \textcolor{red}{somewhere, when talking about about improvements to Scaling and Squaring}.
+
+
 
 
 \section{Conditioning of matrix functions}\label{sect:cond_matfun}
@@ -417,9 +452,6 @@ and more emphasis will be given on methods that compute matrix powers and matrix
 
 
 \subsection{Matrix Iterations}
-
-
-\subsection{Matrix powers}
 
 
 \subsection{Matrix polynomials}
