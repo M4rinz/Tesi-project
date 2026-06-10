@@ -57,7 +57,7 @@ def produce_plot(
     ax.plot(range(len(df_sorted)), df_sorted["err_ubound"],
             color="teal", alpha = 0.8, label="k * u")
     
-    ax.set_xlabel("Matrix", fontsize=12)
+    ax.set_xlabel("Sample", fontsize=12)
     ax.set_ylabel("rel_err_F", fontsize=12)
     ax.set_yscale("log")
     ax.legend()
@@ -111,4 +111,4 @@ def produce_perfprof(
     ax.set_ylabel("Fraction of problems", fontsize=12)
     ax.set_xlim(1, max(taus))
     ax.legend()
-    ax.grid(True)
+    ax.grid(True, alpha=0.7)
