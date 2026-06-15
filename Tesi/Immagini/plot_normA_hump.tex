@@ -12,11 +12,14 @@
 		\begin{tikzpicture}
 			\begin{axis}[
 				xlabel={$k$},
-				ylabel={$\norm{A^k}$},
+				ylabel={$\norm{A^k}_2$},
 				xmin=0,
+				ymin=18,
+				ymax=35,
 				grid=major,
 				axis lines=left,
 				]
+				
 				\addplot[
 				thick,
 				mark=*,
@@ -24,12 +27,20 @@
 				table[
 					col sep=comma,
 					x=k,
-					y=norm
-				]{../Varie/norms.csv};
+					y=norm2
+				]{../Varie/hump_data.csv};
+				
+%				\pgfmathsetmacro{\yzero}{13.52} 
+%				
+%				\addplot[
+%					dashed,
+%					thick,
+%					domain=0:20,
+%				] {\yzero};
 			\end{axis}
 		\end{tikzpicture}
 		
-		\caption{Growth of $\norm{A^k}$.}
+		\caption{\emph{Growth of $\norm{A^k}_2$.}}
 	\end{figure}
 	
 \end{document}
