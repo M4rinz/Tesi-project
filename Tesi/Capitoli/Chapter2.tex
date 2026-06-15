@@ -46,7 +46,7 @@ We recall that the \emph{generalized eigenspace} of $\lambda_k$ is given by the 
 	\qty{v\in\mathbb{C}^n\mid \exists\,r\in\mathbb{N}\quad(A-\lambda_k I)^rv=0}\equiv\ker(A-\lambda_k I)^{n(\lambda_k)}
 \]
 where $n(\lambda_k)$ is the \emph{index} of $\lambda_k$, i.e. the size of the largest Jordan block in which $\lambda_k$ appears, or equivalently the multiplicity of $\lambda_k$ as a root of the minimal polynomial of $A$.
-\begin{oss}
+\begin{oss}\label{oss:jordan_unique}
 	Recall that the Jordan canonical form of $A$ is unique up to reordering of the blocks $J_{n_k}$; in particular, the block dimensions $n_1,\dots,n_k$ are unique. However, the change of basis $V$ is not unique. 
 \end{oss}
 More details on the Jordan canonical form can be found in~\cite[§~3]{horn_johnson_2012:book}. 
@@ -79,7 +79,7 @@ We can finally give the definition of matrix function via Jordan form.
 \end{definizione}
 Definition~\ref{def:matfun_Jordan} comes natural if $f$ is a polynomial, in fact~\eqref{eqn:f_Jordan_block} can be proven by a simple computation.
 
-Recall that in~\eqref{eqn:jordan_A} the Jordan normal form of $A$ is unique, but the generalized eigenvectors matrix $V$ is not. It turns out that even though Definition~\ref{def:matfun_Jordan} uses one of many possible changes of basis, it is well posed.
+In light of Remark~\ref{oss:jordan_unique}, it may be objected that Definition~\ref{def:matfun_Jordan} is ill-posed, because it depends on the change of basis $V$. It turns out that $f(A)$ can be defined in alternative ways that don't make use of $V$, and that these definitions are equivalent to Definition~\ref{def:matfun_Jordan}. 
 
 \subsection*{Polynomial interpolation definition}
 The second definition of matrix function is based on polynomial interpolation.
@@ -116,7 +116,7 @@ The function of a matrix can also be defined via a generalization of Cauchy's in
 \noindent The integral in Definition~\ref{def:matfun_integral}is defined on a element-by-element basis.  
 
 \section{Basic properties of matrix functions}
-Many properties follow from the definition of matrix function. Some of the most useful ones will be listed here, for further readings one can refer to~\cite[§~1.3]{higham:matfun_book}. \textcolor{red}{Properties more specific to the matrix exponential will be listed later.}
+Many properties follow from the definition of matrix function. Some of the most useful ones will be listed here, for further readings one can refer to~\cite[§~1.3]{higham:matfun_book}. Some specific properties of the matrix exponential are listed in Section~\vref{sect:expm_def_properties}.
 
 \begin{lemma}\label{lemma:matfun_trivial_properties}
 	Let $A\in\C{n}{n}$ and let $f$ be a function defined on the spectrum of $A$. The following properties hold:
@@ -190,13 +190,13 @@ such that $p(A)=f(A)$ is given by Netwon's backward difference formula, namely
 $p(t) = f[\lambda_1] + f[\lambda_1,\lambda_2](t-\lambda_1)$, where $\lambda_1,\lambda_2$ are 
 the eigenvalues of $A$ (not necessarily distinct) and $f[\lambda_1,\lambda_2]$ denotes 
 the \emph{divided difference}, defined as 
-\begin{equation*}\label{eqn:def_divided_difference}
+\begin{equation}\label{eqn:def_divided_difference}
 	f\qty[\lambda_1,\lambda_2]\coloneqq
 	\begin{dcases}
 		\frac{f(\lambda_1)- f(\lambda_2)}{\lambda_1 - \lambda_2} & \lambda_1\ne\lambda_2\\
 		f'(\lambda_1) & \lambda_1=\lambda_2.
 	\end{dcases}
-\end{equation*}
+\end{equation}
 Thus,
 \begin{equation}\label{eqn:matfun_2by2_divdiff}
 	f(A) = f(\lambda_1)I + f\qty[\lambda_1,\lambda_2](A-\lambda_1I).
@@ -213,11 +213,16 @@ $f(A)$ can be easily written as
 			 & f(d)
 	\end{pmatrix}.
 \end{equation}
-Equation~\eqref{eqn:matfun_2by2_tri} can also be helpful in practical applications that go 
-beyond algorithms to compute $f\smqty(a & b \\ & d)$, 
-as we will see \textcolor{red}{somewhere, when talking about about improvements to Scaling and Squaring}.
+Equation~\eqref{eqn:matfun_2by2_tri} serves as a building block of many algorithms for computing functions of upper triangular matrices. \textcolor{red}{We will see it somewhere, when talking about about improvements to Scaling and Squaring.}
 
-
+\begin{oss*}
+	Computing $f\smqty(a & b\\ & d)$ using~\ref{eqn:matfun_2by2_tri} is not particularly problematic if $a=d$, provided that a stable method for computing the derivative of $f$ is available.
+	
+	The problem arises when $a-d$ is small but not negligible. In this case, a na\"ive evaluation of the divided difference~\eqref{eqn:def_divided_difference} may lead to a larger relative error than necessary. 	
+	For instance, the computation of the divided difference of the exponential function will be reformulated to avoid subtractive cancellation in Remark~\vref{oss:expm_2by2_tri}.
+	
+	\textcolor{red}{Però può essere che questa difficoltà sia ``sintomo'' di malcondizionamento del problema?}
+\end{oss*}
 
 
 \section{Conditioning of matrix functions}\label{sect:cond_matfun}
@@ -454,7 +459,7 @@ and more emphasis will be given on methods that compute matrix powers and matrix
 \subsection{Matrix Iterations}
 
 
-\subsection{Matrix polynomials}
+\subsection{Matrix polynomials}\label{subs:paterson-stockmeyer}
 Unlike the scalar case, evaluating a polynomial $p(x)=\sum_{k=0}^m a_kx^k$ of degree $m\ge 1$ at a matrix argument by explicitely forming the matrix powers has the same asymptotical cost as evaluating it via the Horner's method (see~\cite[Algs.~4.2,4.3]{higham:matfun_book}). This is because both methods perform $m-1$ matrix multiplications. Since each one generally requires $O(n^3)$ flops, compared to the $O(n^2)$ typical cost of a linear combination, matrix multiplications dominate the computational cost.
 
 A matrix polynomial can be computed with $O(\sqrt{m})$ matrix-matrix multiplications, using the Paterson-Stockmeyer method~\cite{paterson_stockmeyer:article}.
@@ -470,7 +475,7 @@ where the coefficients $B_k(A)$ are given by
 		\sum_{j=0}^{\nu-1}a_{\nu k+j}A^j & k=0,\dots,r-1\\
 		\sum_{j=0}^{[m]_{\nu}}a_{\nu k+j}A^j & k=r
 	\end{dcases}\\
-	&=\begin{dcases}
+	&\phantom{:}=\begin{dcases}
 		a_{\nu k+\nu-1}A^{\nu-1}+\dots+a_{\nu k+1}A+a_{\nu k}I & k=0,\dots,r-1\\
 		a_mA^{m-\nu r}+\dots+a_{\nu r+1}A+a_{\nu r}I & k=r,
 	\end{dcases}
@@ -487,16 +492,21 @@ where $[m]_{\nu}$ is the remainder of the integer division of $m$ by $\nu$, i.e.
 		+\qty(a_5A^2+a_4A+a_3)A^3+\qty(a_2A^2+a_1A+a_0).\end{multlined}
 	\end{align*}
 \end{esempio}
-The algorithm proceeds as follows: the powers $I,A,A^2,\dots, A^{\nu}$ are computed beforehand. This requires $s-1$ matrix multiplications. Then~\eqref{eqn:ps_poly} is evaluated through the Horner scheme, forming the coefficients $B_k(A)$ as needed. Note that the cost of forming the $B_k(A)$ coefficients is negligible, because the powers of $A$ have already been computed.
+The algorithm proceeds as follows: the powers $I,A,A^2,\dots, A^{\nu}$ are computed beforehand. This requires $\nu-1$ matrix multiplications. Then~\eqref{eqn:ps_poly} is evaluated through the Horner scheme, forming the coefficients $B_k(A)$ as needed. Note that the cost of forming the $B_k(A)$ coefficients is negligible, because the powers of $A$ have already been computed.
 
 The total number of matrix multiplications is therefore
 \begin{equation}\label{eqn:ps_cost}
-	C(\nu)=\overbrace{\nu - 1}^{\mathclap{\text{Powers of $A$}}} + \underbrace{r - \mathbbm{1}_{\qty{[m]_{\nu}=0}}}_{\mathclap{\text{Evaluation of~\eqref{eqn:ps_poly}}}},\qquad \mathbbm{1}_{\qty{[m]_{\nu}=0}}=\begin{dcases*}
+	C_m(\nu)=
+	\begin{multlined}[t]
+		\overbrace{\nu - 1}^{\mathclap{\text{Powers of $A$}}} + \\
+		\underbrace{\left\lfloor\frac{m}{\nu}\right\rfloor - \mathbbm{1}_{\qty{[m]_{\nu}=0}}}_{\mathclap{\text{Evaluation of~\eqref{eqn:ps_poly}}}}
+	\end{multlined}
+	\qquad \mathbbm{1}_{\qty{[m]_{\nu}=0}}\coloneqq\begin{dcases*}
 		1 & if $\nu$ divides $m$\\
 		0 & otherwise.
 	\end{dcases*}
 \end{equation}
-By taking its derivative with respect to $\nu$ (and dropping the $\lfloor\phantom{r}\rfloor$ in $r$), we see that $C(\nu)$ in~\eqref{eqn:ps_cost} is minimized by $\sqrt{m}$; thus the cost is approximately minimized by either $\nu=\lfloor\sqrt{m}\rfloor$ or $\nu=\lceil\sqrt{m}\rceil$. With either choice of ``batch size'', evaluating a polynomial of degree $m$ at a $n$-by-$n$ matrix costs $O(\sqrt{m}n^3)$ flops.
+By taking its derivative with respect to $\nu$ (and dropping the $\lfloor\phantom{r}\rfloor$ in $r$), we see that $C_m(\nu)$ in~\eqref{eqn:ps_cost} is minimized by $\sqrt{m}$; thus the cost is approximately minimized by either $\nu=\lfloor\sqrt{m}\rfloor$ or $\nu=\lceil\sqrt{m}\rceil$. With either choice of ``batch size'', evaluating a polynomial of degree $m$ at a $n$-by-$n$ matrix costs $O(\sqrt{m}n^3)$ flops.
 
 It can be easily seen that the two extreme cases $\nu=1$ and $\nu=m$ correspond to the Horner and to the explicit powers evaluation schemes, respectively.
 
@@ -506,12 +516,14 @@ It can be easily seen that the two extreme cases $\nu=1$ and $\nu=m$ correspond 
 	As many intermediate quantities such as the matrix powers $I,A,\dots,A^{\nu}$ have to be repeatedly used, the Paterson-Stockmeyer has a higher memory footprint than the other two methods: it requires more units of storage and more memory operations. This memory cost can be reduced by computing $p(A)$ one column at a time, at the price of additional matrix-matrix multiplications. For details, see~\cite[§~4.2]{higham:matfun_book} and the references therein.
 \end{oss*}
 
-The Paterson-Stockmeyer is an essential building block of the multiprecision algorithm for the Matrix Exponential that this essay presents. \textcolor{red}{Ne riparleremo\dots}
+The Paterson-Stockmeyer is an essential building block of the multiprecision algorithm for the matrix exponential that this essay presents. \textcolor{red}{Ne riparleremo\dots}
 
-The same error bound holds for the three methods considered in this section, see~\cite[Thm.~4.5]{higham:matfun_book} for the precise statement. The \textcolor{red}{takeaway message} is that if there is significant cancellation in forming $p$, then the error in the computed result can be large. 
+The same error bound holds for the three methods considered in this section, see~\cite[Thm.~4.5]{higham:matfun_book} for the precise statement. The essential point is that if there is significant cancellation in forming the polynomial $p$, then the error in the computed result can be large. 
+\bigskip
+\textcolor{red}{Forse: ultimamente, è uscita tutta una serie di articoli che cercano di ``battere'' Paterson-Stockmeyer.}
 \bigskip
 
-\noindent We conclude this section by mentioning the \emph{binary powering algorithm}, because the Scaling and Squaring algorithm uses a special case of it. The binary powering algorithm efficiently computes $A^m$ (i.e. evaluates the monomial $x^m$ at $A$) by using the binary representation of $m$ instead of explicitely forming all of the previous powers of the matrix. More details can be found in~\cite[§~4.1]{higham:matfun_book}.
+\noindent We conclude this section by mentioning the \emph{binary powering algorithm}, because the Scaling and Squaring algorithm uses a special case of it. The binary powering algorithm efficiently computes $A^m$ (i.e. it evaluates the monomial $x^m$ at $A$) by using the binary representation of $m$ instead of explicitely forming all of the previous powers of the matrix. More details can be found in~\cite[§~4.1]{higham:matfun_book}.
 
 
 

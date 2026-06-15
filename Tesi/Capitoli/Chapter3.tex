@@ -1,7 +1,7 @@
 \chapter{The Matrix Exponential}\label{capitolo:3}
-While Chapter~\ref{capitolo:2} presented the general theory of matrix functions as a whole, this chapter will focus ofn the matrix function around which this thesis revolves: the matrix exponential function. 
+While Chapter~\ref{capitolo:2} presented the general theory of matrix functions as a whole, this chapter will focus on the matrix function around which this thesis revolves: the matrix exponential. 
 
-The function and some of its basic properties are introduced in Section~\ref{sect:expm_def_properties}. Section~\ref{sect:expm_conditioning} presents some conditioning results that are specific to the matrix exponential. Finally, Section~\ref{sect:scaling_and_squaring} will describe Scaling and Squaring, the most widely used algorithm for computing the matrix exponential, together with some of the variants that have been proposed throughout the years.
+The function and some of its basic properties are introduced in Section~\ref{sect:expm_def_properties}. Section~\ref{sect:expm_conditioning} presents some conditioning results that are specific to the matrix exponential. Section~\ref{sect:comp_methods_expm} focuses on computational methods. In particular, a detailed description of scaling and squaring -- the most widely used algorithm for computing the matrix exponential -- and on some of the variants that have been proposed in recent years is given (Section~\ref{subs:scaling_and_squaring}).
 
 
 \section{Definition and basic properties}\label{sect:expm_def_properties}
@@ -13,7 +13,7 @@ which, in light of Corollary~\ref{cor:matfun_power_series}, is mathematically eq
 The matrix exponential is often first encountered as the matrix power series expansion~\eqref{eqn:expm_power_series_def} to this day.
 
 \begin{notazione*}
-	The exponential of the matrix $A$ is often also denoted as $e^A$ in the literature. In this essay, we refrain from using that notation and will stick to $\exp(A)$ as much as possible, to remark the differences between the exponential function and its scalar counterpart.
+	In this essay -- in order to emphasize the distinction between the matrix exponential and its scalar counterpart -- the notation $\exp(A)$ will be preferred to $e^A$, reserving the latter for situations where it is particularly convenient.
 \end{notazione*}
 
 The matrix exponential is by far the most widely studied matrix function, for its many practical applications. For example, the initial value problem
@@ -44,27 +44,27 @@ As an immediate consequence of Lemma~\ref{lemma:exp_ApB_commute} we have the fun
 \end{equation}
 which is often employed by algorithms as a preprocessing techinque called \emph{shifting}. \textcolor{red}{We will further discuss shifting somewhere else.}
 
-Another example of identity that is satisfied by the matrix exponential is 
-\[
-	\exp(A)=\lim_{n\to\infty}\qty(I+\frac{A}{n})^{\mathclap{n}}.
-\]
+Another corollary of Lemma~\ref{lemma:exp_ApB_commute} is the identity
+\begin{equation}\label{eqn:expm_sas_identity}
+	\exp(A)=\exp(\sigma^{-1}A)^{\sigma}\qquad\forall\,\sigma\in\mathbb{Z},
+\end{equation}
+which is at the core of the widely popular scaling and squaring algorithm, described in Section~\ref{subs:scaling_and_squaring}.
+\smallskip
 
 Let us now fully characterize the exponential of a $2$-by-$2$ matrix $A=\smqty(a & b\\ c & d)$
 (see also~\cite[Prob.~1.9]{higham:matfun_book}).
 A simple computation shows that $A$ has eigenvalues $\lambda_{1,2}=(a+d\pm\mu)/2$ where $\mu=\sqrt{(a-d)^{2}+4bc}$;
-therefore $A$ has repeated (aka confluent) eigenvalues if and only if $\mu=0$.
-Let's suppose that $\lambda_1=\lambda_2$ and that $\lambda$ is not defective, that is, that $A$ is diagonalizable. 
+therefore $A$ has repeated (also known as \emph{confluent}) eigenvalues if and only if $\mu=0$.
+Let's suppose that $\lambda_1=\lambda_2\equiv\lambda$ and that $\lambda$ is not defective, that is, that $A$ is diagonalizable. 
 Then $A=X\operatorname{Diag}(\lambda,\lambda)X^{-1}=\operatorname{Diag}(\lambda,\lambda)$ i.e. $A$ is already diagonal.
 In this case $\exp(A)$ can be computed trivially as $\operatorname{Diag}(e^{\lambda}, e^{\lambda})$.
 
 Therefore, if $A$ has confluent eigenvalues and is not already diagonal, $A$ is defective. 
 In this case $\exp(A)$ can be computed using a Schur form $A=QTQ^{H}$ as $\exp(A)=Q\exp(T)Q^{H}$,
-where $\exp(T)$ is given by~\eqref{eqn:matfun_2by2_tri}. \textcolor{red}{This will be helpful later} 
+where $\exp(T)$ is given by~\eqref{eqn:matfun_2by2_tri}. See also Remark~\vref{oss:expm_2by2_tri}. 
 
-If $\mu\ne0$ then $A$ has distinct eigenvalues. In this case, there is a closed formula for the 
-exponential of $A$ that doesn't involve neither an eigendecomposition nor a Schur factorization of $A$
-(see~\cite[Eqn.~(2.2)]{higham:alhi09_new}).
-\begin{lemma}
+If $\mu\ne0$ then $A$ has distinct eigenvalues. In this case, $\exp(A)$ could be computed using~\eqref{eqn:matfun_2by2_divdiff}. That equation, however, makes use of the eigenvalues of $A$, and rounding errors in the evaluation of the divided difference $\exp\qty[\lambda_1,\lambda_2]$ may hinder the accuracy of the result. Instead, by doing some algebraic manipulations, another closed formula for the exponential of $A$ can be obtained. Equation~\eqref{eqn:expm_2by2_full} (first introduced in~\cite[Eqn.~(2.2)]{higham:alhi09_new}) uses directly the matrix's elements instead of an eigendecomposition or a Schur factorization of $A$; it is more stable than~\eqref{eqn:matfun_2by2_divdiff}, provided that stable algorithms to evaluate hyperbolic functions exist.
+\begin{lemma}\label{lemma:expm_2by2_full}
     Let $A=\smqty(a & b\\ c & d)$ have distinct eigenvalues $\lambda_1\ne\lambda_2$.
     \begin{equation*}\label{eqn:expm_2by2_full}
         \exp(A) = e^{\frac{a+d}{2}}
@@ -82,19 +82,22 @@ exponential of $A$ that doesn't involve neither an eigendecomposition nor a Schu
     \]
 \end{lemma}
 \begin{proof}
-    Recall from the previous discussion that $\lambda_1\ne\lambda_2\iff\mu\ne 0$.
+	Let $\lambda_1=(a+d+\mu)/2$ and $\lambda_2=(a+d-\mu)/2$. 
+    Recall that $\lambda_1\ne\lambda_2\iff\mu\ne 0$.
     Using Equation~\eqref{eqn:matfun_2by2_divdiff} and the assumption $\lambda_1\ne\lambda_2$, 
     $\exp(A)$ can be written as 
     \[
-        \frac{e^{\lambda_1}-e^{\lambda_2}}{\lambda_1-\lambda_2}A + \qty(e^{\lambda_1}+\lambda_1\frac{e^{\lambda_1}-e^{\lambda_2}}{\lambda_1-\lambda_2})I
+        \exp(A) = \frac{e^{\lambda_1}-e^{\lambda_2}}{\lambda_1-\lambda_2}A + \qty(e^{\lambda_1}+\lambda_1\frac{e^{\lambda_1}-e^{\lambda_2}}{\lambda_1-\lambda_2})I.
     \]  
     Now, 
-    \begin{align*}
+    \begin{equation}\label{eqn:exp_divdiff_sinch}
+    \begin{aligned}
         \frac{e^{\lambda_1}-e^{\lambda_2}}{\lambda_1-\lambda_2} &= \frac{1}{\mu}\qty(e^{(a+d+\mu)/2}-e^{(a+d-\mu)/2})=
         \frac{e^{(a+d)/2}}{\mu}\qty(e^{\mu/2}-e^{-\mu/2})\\
-         & = e^{\frac{a+d}{2}}\frac{\sinh(\mu/2)}{\mu/2}=e^{\frac{a+d}{2}}\sinch\!\qty(\frac{\mu}{2}),
-    \end{align*}
-    and a simple computation shows that 
+         & = e^{\frac{a+d}{2}}\frac{\sinh(\mu/2)}{\mu/2}=e^{\frac{a+d}{2}}\sinch\!\qty(\frac{\mu}{2}).
+    \end{aligned}
+	\end{equation}
+    Using~\eqref{eqn:exp_divdiff_sinch}, a simple computation shows that 
     \[
         e^{\lambda_1}+\lambda_1\frac{e^{\lambda_1}-e^{\lambda_2}}{\lambda_1-\lambda_2}=
         e^{\frac{a+d}{2}}\qty(e^{\mu/2}-\frac{a+d+\mu}{2}\sinch\qty(\frac{\mu}{2})).
@@ -107,57 +110,342 @@ exponential of $A$ that doesn't involve neither an eigendecomposition nor a Schu
             \sinch(\mu/2)\,a & \sinch(\mu/2)\,b\\
             \sinch(\mu/2)\,c & \sinch(\mu/2)\,d
         \end{pmatrix} + \\
-        e^{\frac{a+d}{2}}
+        +e^{\frac{a+d}{2}}
         \begin{pmatrix}
-            e^{\mu/2}-\frac{a+d+\mu}{2}\sinch\!\qty(\frac{\mu}{2}) & \\
-             & e^{\mu/2}-\frac{a+d+\mu}{2}\sinch\!\qty(\frac{\mu}{2})
+            e^{\mu/2}-\frac{a+d+\mu}{2}\sinch\!\qty(\frac{\mu}{2}) & 0\\
+            0 & e^{\mu/2}-\frac{a+d+\mu}{2}\sinch\!\qty(\frac{\mu}{2})
         \end{pmatrix}
         \end{multlined}\\
         &= e^{\frac{a+d}{2}}
         \begin{pmatrix}
-            e^{\frac{\mu}{2}} + \sinch\!\qty(\frac{\mu}{2})\qty(\frac{a-d-\mu}{2}) & \sinch\!\qty(\frac{\mu}{2})\,b\\
-            \sinch\!\qty(\frac{\mu}{2})\,c & e^{\mu/2} + \sinch\!\qty(\frac{\mu}{2})\qty(\frac{d-a-\mu}{2})
-        \end{pmatrix}\\
-    \intertext{noting that $e^{\mu/2}-\frac{\mu}{2}\sinch\qty(\frac{\mu}{2})=e^{\mu/2}-\sinh(\frac{\mu}{2})=\cosh(\frac{\mu}{2})$, }
+            e^{\frac{\mu}{2}} + \sinch\!\qty(\frac{\mu}{2})\qty(\frac{a-d-\mu}{2}) & \sinch\!\qty(\mu/2)\,b\\
+            \sinch\!\qty(\mu/2)\,c & e^{\mu/2} + \sinch\!\qty(\frac{\mu}{2})\qty(\frac{d-a-\mu}{2})
+        \end{pmatrix},\\
+    \intertext{and noting that $e^{\mu/2}-\frac{\mu}{2}\sinch\qty(\frac{\mu}{2})=e^{\mu/2}-\sinh(\frac{\mu}{2})=\cosh(\frac{\mu}{2})$, }
         &= e^{\frac{a+d}{2}}
         \begin{pmatrix}
-            \cosh(\frac{\mu}{2})+\frac{a-d}{2}\sinch\!\qty(\frac{\mu}{2}) & \sinch(\frac{\mu}{2})\,b\\
-            \sinch\!\qty(\frac{\mu}{2})\,c & \cosh(\frac{\mu}{2})+\frac{d-a}{2}\sinch\!\qty(\frac{\mu}{2})
+            \cosh(\frac{\mu}{2})+\frac{a-d}{2}\sinch\!\qty(\frac{\mu}{2}) & \sinch(\mu/2)\,b\\
+            \sinch\!\qty(\mu/2)\,c & \cosh(\frac{\mu}{2})+\frac{d-a}{2}\sinch\!\qty(\frac{\mu}{2})
         \end{pmatrix},
     \end{align*}
     which completes the proof.
 \end{proof}
 
+\begin{oss}\label{oss:expm_2by2_tri}
+	The same computation~\eqref{eqn:exp_divdiff_sinch} can be used in the $2$-by-$2$ upper triangular case, leading to an alternative expression for the divided difference that appears therein. The resulting formula is given in Equation~\eqref{eqn:expm_2by2_tri} (see also~\cite[§~10.4.3]{higham:matfun_book}), which will also be used in the algorithm presented in this work\textcolor{red}{, as we will see later}.
+	\begin{equation}\label{eqn:expm_2by2_tri}
+		\exp\begin{pmatrix} a & b \\ 0 & d \end{pmatrix}=
+		\begin{pmatrix}
+			e^a & b\,e^{(a+d)/2}\sinch\!\qty(\frac{a-d}{2})\\
+			0	& e^d
+		\end{pmatrix}.
+	\end{equation}
+	This formula is valid for all $a,d$, and will provide an accurate result, assuming that an accurate implementation of $\sinch(z)$ is available. In particular, the element in position $(1,2)$ can be accurately computed even when $a$ and $d$ are close but their difference is not negligible.
+\end{oss}
+
 \section{Conditioning}\label{sect:expm_conditioning}
-\textcolor{red}{Cfr.~\cite[§~3]{higham:matfun_book} and~\cite[§~10.2]{higham:matfun_book}}
+\textcolor{red}{Cfr.~\cite[§~3]{higham:matfun_book} and~\cite[§~10.2]{higham:matfun_book}. Forse anche un articolo di VanLoan piuttosto datato.}
 
 
 
 
-\section{Computational methods for the matrix exponential}
+\section{Computational methods for the matrix exponential}\label{sect:comp_methods_expm}
 \textcolor{red}{Discorso essere tipo: alcuni metodi sono peggio di altri (magari sposto qui la fine della sezione 1). Per questa tesi ci interessiamo di Scaling and Squaring nello specifico, ma è interessante vedere altri metodi per diversi motivi. (1.1) La diagonalizzazione. Perché risponde alla domanda ``si ma perché tutto questo casino per un alg in multiprecisione? Non si può semplicemente diagonalizzare e buonanotte al secchio''? (1.2) La diagonalizz è stata pensata come metodo per calcolare le refsol, ma è stato abbandonato. (1.3) Per alcune matrici la diagonalizz va benissimo. (2.1) Discutere la serie di Taylor permette di presentare l'hump phenomenon, che è qualcosa che riguarda anche Scaling and Squaring.}
 \bigskip
 
 Some of the mathematical identities satisfied by the matrix exponential can be exploited by algorithms. The classic paper ``Nineteen Dubious Ways to Compute the Exponential of a Matrix'' by Moler and Van Loan~\cite{moler_vanloan:19_dubious_ways}, revised and updated in~\cite{moler_vanloan:19_dubious_ways_25yrs}, classifies a broad assortment of methods into five categories, and each method is then thoroughly discussed and analyzed. 
 
-For example, a na\"ive way of computing $\exp(A)$ would be to truncate the Taylor series~\eqref{eqn:expm_power_series_def} to its first few terms. \textcolor{red}{For reasons that we will promptly discuss,} this method is unsatisfactory, so much so that in~\cite{moler_vanloan:19_dubious_ways, moler_vanloan:19_dubious_ways_25yrs} it is taken as a lower bound on the performance of any algorithm for computing the matrix exponential.
+For example, a na\"ive way of computing $\exp(A)$ would be to truncate the Taylor series~\eqref{eqn:expm_power_series_def} to its first few terms. As we will see shortly, this method is unsatisfactory, so much so that in~\cite{moler_vanloan:19_dubious_ways, moler_vanloan:19_dubious_ways_25yrs} it is taken as a lower bound on the performance of any algorithm for computing the matrix exponential.
 
-Nevertheless, the paper refrains from giving a definitive answer to the question of which method is the best overall. Some methods are better than others. For example, some of the methods are unreliable, i.e. they fail without giving any sort of ``warning''. 
-
+Nevertheless, the paper refrains from giving a definitive answer to the question of which method is the best overall. This doesn't mean that there aren't some methods that are better than others.
 
 It is not our aim to offer a general overview of the computational methods for the matrix exponential.
-However, reviewing two of them will give us the possibility to observe some \textcolor{red}{critical phenomena} that 
-motivate the introduction of the Scaling and Squaring algorithm and its multiprecision variant introduced in~\cite{higham:hf19_mpexpm},
-which will be presented in Chapter~\ref{capitolo:4}.
+However, reviewing two na\"ive algorithms will give us the possibility to observe some \textcolor{red}{critical phenomena} that 
+illustrate why the scaling and squaring algorithm is so successful, and motivate the introduction of its multiprecision variant presented in~\cite{higham:hf19_mpexpm}, which will be described in Chapter~\ref{capitolo:4}.
 
-\subsection*{Diagonalization}
+\subsection{Diagonalization}\label{subs:diagonalization}
+One na\"ive approach for computing $\exp(A)$ for a diagonalizable $A$ would be to compute the eigendecomposition $A=VDV^{-1}$, so that $\exp(A)=V\exp(D)V^{-1}$, where $\exp(D)=\operatorname{Diag}(\lambda_1,\dots,\lambda_n)$. This is described in pseudocode in Algorithm~\ref{alg:fA_diagonalization}.
+
+\begin{algorithm}[H]
+	\centering
+	\caption{\emph{Computing $f(A)$ by diagonalization}}
+	\label{alg:fA_diagonalization}
+	\begin{algorithmic}[1]
+		\State $V,D = \mathtt{eigen}(A)$\Comment{Compute eigendecomposition of $A$}
+		\State $K=\tilde{f}(D)$
+		\State $\hat{Y}=V\mathtt{*}K\,/\,V$
+		\State \Return $\hat{Y}$
+	\end{algorithmic}
+\end{algorithm}
+
+The diagonalization approach is unsatisfactory because it's limited by the conditioning of $V$. 
+
+Let's assume that the only error in the process occurs while evaluating $f(D)$ (hence in the evaluation of the scalar function $f$), so that at line $2$ of Algorithm~\ref{alg:fA_diagonalization} $K=f(D)+E$ with $\norm{E}/\norm{f(D)}=O(u)$. In other words, let's assume that lines $1$ and $3$ of Algorithm~\ref{alg:fA_diagonalization} are executed in exact arithmetic. Then the algorithm would compute an approximation $\hat{Y}$ of $f(A)$ such that 
+\[
+	\norm{\hat{Y}-f(A)}=\norm{V\big(\tilde{f}(D)-f(D)\big)V^{-1}}=\norm{VEV^{-1}}\le\kappa(V)\norm{E}.
+\]
+This tells us that we must expect errors proportional to $\kappa(V)$ in our computed function.
+Since the conditioning of $f(A)$ is not necessarily related to $\kappa(V)$, the diagonalization method may be numerically unstable.
+
+In particular, if $A$ is nearly defective, $f(A)$ may be computed with a bigger error than necessary, due to the ill-conditioning of $V$. \textcolor{red}{Forse altro, togliendo da capitolo 6}
+
+One could object that this issue can be circumvented by increasing the precision at which Algorithm~\ref{alg:fA_diagonalization} is executed, as the upper bound $\kappa(V)O(u_p)$ on the relative error decreases as $p$ is increased. Unfortunately, this is not necessarily the case, as the matrix $V$ computed at line $1$ depends on $p$ as well. The condition number of the computed $V$ may grow as $p$ is increased. This behaviour can be observed when $A$ is defective. Note that the diagonalizability of $A$ is assumed in this approach.
+
+\begin{esempio}{\cite[Method~14]{moler_vanloan:19_dubious_ways}}
+	If $A=\smqty(1+\epsilon & 1\\ 0 & 1-\epsilon)$, then $V=\smqty(1 & -1\\ 0 & 2\epsilon)$ and $D=\operatorname{Diag}(1+\epsilon,1-\epsilon)$.
+	So $\kappa(V)=O(\epsilon^{-1})$, and if $\epsilon=O(u_p)$ we have that $\kappa(V)O(u_p)=O(1)$.
+\end{esempio}
+
+The diagonalization method works very well if $A$ is normal. Normal matrices are diagonalizable by a unitary matrix, and unitary matrices are perfectly conditioned in the 2-norm. There are backward stable algorithms to compute the eigendecomposition of normal matrices, and the symmetric eigenvalue problem is well conditioned. \textcolor{red}{Ho scritto cose sbagliate?} 
+
+A deeper analysis of this approach, with numerical examples, can be found in~\cite[§~4.5]{higham:matfun_book}. 
+
+\subsection*{Taylor series}
+The Taylor series method relies on Corollary~\ref{cor:matfun_power_series}. It computes $\exp(A)$ by truncating~\eqref{eqn:expm_power_series_def} to the $d$th term, for some $d\in\mathbb{N}$. The degree $d$ can be chosen in many ways; for example, through upper bounds on the truncation error, or to be the first index for which $\norm{A^d}/d!<u$.
+
+This method is not limited by the conditioning of the eigenvector basis, and can work well if the eigenvalues of $A$ are well clustered. However, it comes with many disadvantages. Most of them can ultimately be traced back to the \emph{hump phenomenon}.
+We recall that this phenomenon arises when the powers of a matrix grow before ultimately decaying to zero; the name is due to the fact that a hump is visible in the plot of the norms of the matrix powers.
+This behaviour is typical of highly nonnormal matrices and of matrices with badly scaled entries.
+
+As a consequence of the hump phenomenon, $d$ may be very big, making the evaluation of the Taylor polynomial quite expensive. Another and more serious consequence is that the intermediate quantities produced by the algorithm have elements that are large in magnitude, thus the results of the intermediate computations are affected by an error which, albeit small relatively to the operands, is large with respect to the final result. In fact, when $A$ displays the hump phenomenon, $\exp(A)$ is small relatively to some powers of $A$.
+
+%The problem is that if the final result is smaller than the intermediate quantities, then the algorithm's internal computations -- having operated on big elements, reducing them -- are affected by 
+
+More specifically to the case at hand, it can happen that $A^k/k!$ and $A^{k+1}/(k+1)!$ ($k<d$) have elements that are big and have opposite signs, thus catastrophic cancellation occurs when they are summed.
+
+\begin{oss}
+	\textcolor{red}{problem is not operating on matrix powers. The problem is that the final result is smaller than the intermediate computations.}
+\end{oss}
+
+\begin{oss}
+	\textcolor{red}{The problem is not the truncation of the series, but the limitation of floating point arithmetic}
+\end{oss}
+
+\textcolor{red}{Also Scaling and Squaring is affected by the hump phenomenon.}
 
 
+\subsection{Scaling and squaring}\label{subs:scaling_and_squaring}
+The scaling and squaring method to compute the matrix exponential has been originally proposed by Lawson~\cite{lawson:sas_original} in 1967. Despite its conceptual simplicity, it remains the algorithm of choice to compute $\exp(A)$. 
+Many authors have studied the method, proposing refinements over the years, with research on in remaining active to this day. Nevertheless, its numerical stability is not fully understood.
+
+After a general introduction, this section will describe Higham's implementation of the scaling and squaring algorithm, loosely following~\cite{higham:SaS_revisited} (it can also be found in~\cite[§~10.3]{higham:matfun_book}). This implementation still forms the basis of the matrix exponential routines employed by software such as Julia and \matlab{}, which in turn improve on it. Indeed, the implementation has undergone several refinements over the years, some of which will be discussed later in this section.
+\smallskip 
+
+As already anticipated, the scaling and squaring algorithm exploits the identity~\eqref{eqn:expm_sas_identity}; as we will see, $\sigma$ will be chosen to be a power of $2$. The second idea that the algorithm exploits is that $\exp(A)$ is well approximated by a rational function near the origin. Algorithm~\ref{alg:sas_pseudocode} illustrates how scaling and squaring works, in its essence.
+\begin{algorithm}[H]
+	\centering
+	\caption{\emph{High level description of the scaling and squaring method.}}
+	\label{alg:sas_pseudocode}
+	\begin{algorithmic}
+		\State $s\gets\mathtt{scaling\_factor}(A)$
+		\State $X\gets 2^{-s}A$\Comment{Scaling}
+		\State $Y \gets r(X)$\Comment{$r(A/2^s)\approx\exp(A/2^s)$}
+		\For{$k=1,\dots,s$}\Comment{Repeated squaring}
+			\State $Y\gets Y^2$
+		\EndFor
+		\State \Return $Y$
+	\end{algorithmic}
+\end{algorithm}
+The main steps involve choosing a scaling factor $s$ and an approximant $r$, scaling $A$, computing the approximation $r(2^{-s}A)\approx\exp(2^{-s}A)$ and finally obtaining an approximation of $\exp(A)$ by repeated squaring.
+
+The most popular choice for $r$ is the $[k/m]$ Padé approximant to $e^{z}$ at $0$, whose definition we now recall.
+\begin{definizione}
+	Let $f\colon\Sigma\subseteq\C\to\C$ be analytic at $0$, let $k,m\in\mathbb{N}$.	
+	A \emph{Padé approximant} of $f$ at $z=0$ of degree $[k/m]$ is a rational function $r_{km}=p_{km}(z)/q_{km}(z)$, with $p_{km}\in\C[\le k][z]$, $q_{km}\in\C[\le m][z]$ and $q_{km}(0)=1$, such that $f(z)-r_{km}(z)=O\qty(z^{k+m+1})$.
+\end{definizione} 
+If a $[k/m]$ Padé approximant of $f$ exists, then it is unique. The numerator and denominator of the $[k/m]$ Padé approximant to the exponential at $0$ are given by
+\begin{equation}\label{eqn:pade_p_q_formulas}
+\begin{aligned}
+	p_{km}(z) &= \sum_{j=0}^k\binom{k}{j}\frac{(k+m-j)!}{(k+m)!}z^j\\
+	q_{km}(z) &= \sum_{j=0}^m(-1)^j\binom{m}{j}\frac{(k+m-j)!}{(k+m)!}z^j.
+\end{aligned}
+\end{equation}
+Among the many possible ones, two families of Padé approximants are most often chosen: the Taylor approximants and the diagonal Padé approximants. 
+
+Diagonal Padé approximants are the more popular of the two, although newer state-of-the-art scaling and squaring implementations employ Taylor approximants \textcolor{red}{citare spagnoli}. Yet, the default \matlab{} and Julia implementations use diagonal Padé approximants.
+Diagonal approximants have many advantages over their nondiagonal counterparts. Firstly, they achieve a higher order of approximation for a given number of matrix multiplications. Secondly, as we will see, symmetries in their coefficients considerably simplify their evaluation. Finally, diagonal Padé approximants enjoy favourable stability properties when $\Sigma(A)\subseteq\qty{z\in\C\mid\Re(z)<0}$, see~\cite[§~3, Method 2]{moler_vanloan:19_dubious_ways, moler_vanloan:19_dubious_ways_25yrs}.
+
+The fact that in Taylor approximants the denominator is a constant simplifies both the computations and the theoretical analysis. There are evaluation schemes that are tailored for Taylor polynomials \textcolor{red}{di nuovo citare spagnoli}, making their computations particularly efficient. Error bounds are easier to derive and to work with.
+\begin{notazione*}
+	Even though Taylor approximants are Padé approximants, we will reserve the latter term to diagonal Padé approximants. 
+	We will be primarily concerned with diagonal Padé approximants; thus the term \emph{Padé approximant} will denote a diagonal Padé approximant, unless otherwise specified.
+\end{notazione*}
+\begin{notazione*}
+	For the rest of this section, $r_m$ may denote either the Taylor polynomial of degree $m$ of the exponential function or its $[m/m]$ Padé approximant. In both cases, to simplify the notation, we will write $r_m= p_m(z)/q_m(z)$. In particular, if $r_m$ is the Padé approximant, $p_m$ and $q_m$ stand for $p_{mm}$ and $q_{mm}$ respectively.
+\end{notazione*}
+In Higham's implementation of scaling and squaring, the aim is to choose the scaling parameter $s$ and the approximant degree $m$ so that the exponential is computed with backward error bounded by the unit roundoff and with minimal cost.
+
+We begin our discussion with the choice of the scaling parameter $s$. Let $r_m$ be the $[m/m]$ Padé approximant of the exponential. The main backward error result is given by the following theorem, which is a slight reformulation of~\cite[Thm.~2.1]{higham:SaS_revisited}.
+\begin{teorema}\label{teor:sas_backerr}
+	Let $s>0$ such that	$r_m(z)$ satisfies $\exp(2^{-s}A)r_m(2^{-s}A)=I+O\qty(A^{2m+1})$ so that $\norm{I-\exp(-2^{-s}A)r_m(2^{-s}A)}<1$. Then
+	\[
+		r_m(2^{-s}A)^{2^s}=\exp(A+\Delta{A}),
+	\]
+	where $\Delta{A}$ commutes with $A$ and is such that 
+	\begin{equation}\label{eqn:backerr_bound_log}
+		\frac{\norm{\Delta{A}}}{\norm{A}}\le{-\log(1-\norm{I-e^{-2^{-s}A}r_m(2^{-s}A)})}/{\norm{2^{-s}A}}.
+	\end{equation}
+\end{teorema}
+\begin{proof}
+	The proof will only be sketched. A full discussion can be found in~\cite[§~10.3]{higham:matfun_book} and in~\cite{higham:SaS_revisited}. 
+	
+	Recall that $e^{z}-r_m(z)=O(z^{2m+1})$, thus $e^{-z}r_m(z) = 1 + O(z^{2m+1})$. Let 
+	$h_{2m+1}(z)\coloneqq\log(e^{-z}r_m(z))$, where $\log$ denotes the principal logarithm.
+	Remembering the series expansion of the logarithm, and using the properties of $r_m$, we have that 
+	$h_{2m+1}$ has the power series expansion
+	\[
+		h_{2m+1}(z)=\smashoperator[lr]{\sum_{k=2m+1}^{\infty}}c_{k}x^k,
+	\]
+	which converges for $\abs{x}<\min\qty{\abs{t}\mid q(t)=0}\eqqcolon\nu_m$.
+	
+	If $X\in\C{n}{n}$ is such that $\rho\qty(\exp(-X)r_m(X)-I)<1$ then $h_{2m+1}(X)$ is guaranteed to exist. Now, 
+	\[h_{2m+1}(X)=\log\qty(\exp(-X)r_m(X))=\log(I+O\qty(X^{2m+1}))\]
+	is a function of $X$, so it commutes with $X$. Thus we have
+	\begin{align}\label{eqn:X_backerr_result}
+		\exp(h_{2m+1}(X))&=\exp(-X)r_m(X) \quad\iff\nonumber\\
+		\exp(X)\exp(h_{2m+1}(X))&=r_m(X)\phantom{\exp(-X)} \quad\iff \nonumber\\
+		e^{X+h_{2m+1}(X)} &=r_m(X) 
+	\end{align}
+	Let now $s$ be such that $2^{-s}A$ satisfies $\norm{I-\exp(2^{-s}A)r_m(2^{-s}A)}<1$. Then Equation~\eqref{eqn:X_backerr_result} holds with $X=2^{-s}A$. By raising both sides of that equation to the power $2^s$ we obtain
+	\begin{align}\label{eqn:A_backerr_result}
+		\exp\!\qty(2^{-s}A+h_{2m+1}(2^{-s}A))^{2^s}&=r_m\qty(2^{-s}A)^{2^s} \iff\nonumber\\
+		\exponential\!\Big(A+\underbrace{2^sh_{2m+1}(2^{-s}A)}_{\coloneqq\Delta{A}}\Big)&=r_m\qty(2^{-s}A)^{2^s}.
+	\end{align}
+	Now, the quotient $\norm{\Delta{A}}/\norm{A}$ is such that
+	\begin{equation}\label{eqn:backerr_h_m}
+		\frac{\norm{\Delta{A}}}{\norm{A}}=\frac{\norm{h_{2m+1}(2^{-s}A)}}{\norm{2^{-s}A}}.
+	\end{equation}
+	To obtain the upper bound in the theorem's statement, we note that 
+	\begin{align*}
+		h_{2m+1}(2^{-s}A) &= \log(e^{-2^{-s}A}r_m(2^{-s}A)) \\[-1.5em]
+		 &= \log\qty(I + \qty(\exp(-2^{-s}A)r_m(2^{-s}A) - I)) = \logarithm(I+\overbrace{G}^{\mathclap{\in O\qty(A^{2m+1})}})\\
+		 &= \norm{\sum_{k=1}^{\infty}\frac{(-1)^{k+1}}{k}\,G^k}\le\sum_{k=1}^{\infty}\frac{\norm{G^k}}{k}\le\sum_{k=1}^{\infty}\frac{\norm{G}^k}{k}\\
+		 &= -\log(1-\norm{G})= -\log(1-\norm{I-e^{-2^{-s}A}r_m(2^{-s}A)}),
+	\end{align*}
+	which completes the proof.
+\end{proof}
+\begin{oss*}
+	The only property of the Padé approximant that was used in the proof was the approximation property $e^{z}-r_m(z)=O(z^{2m+1})$. 	
+	Adjusting some minor aspects in the theorem's statement, any rational approximant with an analogous property would serve its proof equally well.
+\end{oss*}
+
+In Theorem~\ref{teor:sas_backerr}, the \emph{truncation error} in the Padé approximant is being interpreted as a perturbation in the original matrix $A$. Therefore, by bounding $\norm{\Delta{A}}/\norm{A}$, an upper bound on the relative backward error of the approximation is obtained.
+
+One approach is to bound the right-hand-side term in Equation~\eqref{eqn:backerr_bound_log}, which is the strategy that Higham adopted in his paper~\cite{higham:SaS_revisited}. Other methods were tried by other authors, see for example the discussion in~\cite[§~10.3]{higham:matfun_book} and the references therein. Instead, we present Higham's idea by following the approach in~\cite{higham:alhi09_new}. This allows us to illustrate the same core concepts while ultimately arriving at the same conclusions, in a way that is more amenable to the improvements that were introduced in~\cite{higham:alhi09_new} and that will be described later in this section.
+
+We want to bound the right hand side of Equation~\eqref{eqn:backerr_h_m}. 
+It holds that 
+\begin{align*}
+	\norm{h_{2m+1}\qty(2^{-s}A)} &= \norm{\smashoperator[r]{\sum_{k=2m+1}^{\infty}}c_k\qty(2^{-s}A)^k}\le\,\smashoperator[lr]{\sum_{k=2m+1}^{\infty}}\,\norm{c_k\qty(2^{-s}A)^k}\\
+	&=\smashoperator[lr]{\sum_{k=2m+1}^{\infty}}\abs{c_k}\norm{\qty(2^{-s}A)^k}\le\smashoperator[lr]{\sum_{k=2m+1}^{\infty}}\abs{c_k}\norm{2^{-s}A}^k\!\eqqcolon\tilde{h}_{2m+1}\qty(\norm{2^{-s}A}),
+\end{align*}
+where we defined $\tilde{h}_{2m+1}(z)=\sum_{k=2m+1}^{\infty}\abs{c_k}z^k$. We obtained the upper bound 
+\begin{equation}\label{eqn:backerr_bound_htilde}
+	\frac{\norm{\Delta{A}}}{\norm{A}}\le\frac{\tilde{h}_{2m+1}(\norm{2^{-s}A})}{\norm{2^{-s}A}}
+\end{equation}
+\begin{oss*}
+	If all the coefficients $c_k$ were one-signed, then $\tilde{h}_{2m+1}(\norm{2^{-s}A})$ would be equal to $\abs{h_{2m+1}(\norm{2^{-s}A})}$. Unfortunately, this is not the case in general. 
+	In Equation~\eqref{eqn:backerr_bound_htilde}, the relative error is being bounded by something larger than $\abs{h_{2m+1}(\norm{2^{-s}A})}$.
+\end{oss*}
+For $m\in[21]$ the values
+\begin{equation*}
+	\theta_m=\max\qty{\theta\mid\tilde{h}_{2m+1}(\theta)/\theta\le u_{53}}
+\end{equation*}
+are computed using high precision arithmetic and symbolic computation software. They are listed in~\cite[Table~2.1]{higham:SaS_revisited}, together with the corresponding $\nu_m$ values introduced in the proof of Theorem~\ref{teor:sas_backerr}.
+\begin{oss*}
+	It holds that $\nu_m<\theta_m$ for all $m\in[21]$; this fact confirms that the upper bound~\eqref{eqn:backerr_bound_htilde} is valid, and that $q_m(2^{-s}A)$ is nonsingular for $\norm{2^{-s}A}\le\theta_m$.
+\end{oss*}
+If $s$ is chosen so that $\norm{2^{-s}A}\le\theta_m$, then the backward error in the Padé approximation is such that $\norm{\Delta{A}}/\norm{A}\le u_{53}$.
+\begin{oss*}
+	This property \emph{does not} imply the backward stability of the algorithm as a whole. Rather, it states that the approximation $r_m(2^{-s}A)^{2^s}$ of $\exp(A)$ is backward stable, \emph{in exact arithmetic}. Indeed, exact arithmetic was assumed throughout all of the backward error analysis that was just conducted.
+\end{oss*}
+Consequently, for a given degree $m$, one natural choice of $s$ would be 
+\begin{equation}\label{eqn:def_scaling_factor}
+	\begin{aligned}
+	s &= \begin{dcases*}
+		\lceil\log_2(\norm{A}/\theta_m)\rceil & If $\norm{A}\ge\theta_m$\\
+		0 & otherwise
+	\end{dcases*}\\
+	&= \max\qty{\lceil\log_2\norm{A}-\log_2\theta_m\rceil,0}.
+	\end{aligned}
+\end{equation}
+Before moving to the discussion of the $m$ parameter, we make an important remark.
+\begin{oss*}
+	This backward error analysis is specific to \textsc{IEEE}754 double precision. The $\theta_m$ values are internal parameters of Higham's implementation of the scaling and squaring algorithm, thus making it tailored to that precision.
+	
+	In order to obtain a higher precision variant, the upper bound~\eqref{eqn:backerr_bound_htilde} would have to be re-evaluated, and different $\theta_m$ values specific to the target precision would have to be computed. 
+\end{oss*}
+
+The choice of $m$ is dictated by three factors: the cost of evaluating $r_m$, the conditioning of $q_m$ (with respect to inversion) and, ultimately, the norm of $A$.
+
+Let $X$ denote a rescaling of $A$, where the scaling factor will be later related to the $s$ parameter.
+As a consequence of~\eqref{eqn:pade_p_q_formulas} the diagonal Padé approximant $r_m$ satisfies $p_m(z)=q_m(-z)$. 
+Thus $p_m(X)$ and $q_m(X)$ can be efficiently evaluated by splitting the even and odd powers. By rewriting the numerator as 
+\[
+	p_m(X) = \sum_{i=0}^{m}\beta_iX^i = \underbrace{\smashoperator[lr]{\sum_{k=0}^{\left\lfloor m/2\right\rfloor}}\beta_{2k}X^{2k}}_{\coloneqq U} + X\underbrace{\smashoperator[lr]{\sum_{k=0}^{\left\lceil -1+m/2\right\rceil}}\beta_{2k+1}X^{2k}}_{\coloneqq V}
+\]
+we have that $q_m(X)=U-V$. The $U$ and $V$ terms can be evaluated using the Paterson-Stockmeyer scheme on $X^2$, with ``batch size'' $\nu$, see Section~\ref{subs:paterson-stockmeyer}. We note that the matrix powers can be computed once and used to evaluate both terms, but forming $V$ requires one extra multiplication by $X$. Recalling Equation~\eqref{eqn:ps_cost}, the total cost in matrix multiplications to evaluate $U$ and $V$ is given by
+\[
+	C_m^{\textup{tot}}(\nu)=\nu+1+\left\lfloor\frac{\lfloor m/2\rfloor}{\nu}\right\rfloor-\mathbbm{1}_{\big\{[\,\lfloor m/2\rfloor\,]_{\nu}=0\big\}}+ \left\lfloor\frac{\lceil m/2-1\rceil}{\nu}\right\rfloor - \mathbbm{1}_{\big\{[\,\lceil m/2-1\rceil\,]_{\nu}=0\big\}},
+\]
+which -- as discussed in Section~\ref{subs:paterson-stockmeyer} -- is approximately minimized by taking either $\nu=\lfloor\sqrt{m-1/2}\rfloor$ or $\nu=\lceil\sqrt{m-1/2}\,\rceil$ \textcolor{red}{(devo rivedere le parentesi qui)}. 
+\begin{oss}
+	The evaluation scheme for $p_m(A)$ and $q_m(A)$ that was just described can be applied to any degree $m$, but not all of them are worth considering.
+	
+	For $m=1,\dots,21$ the optimal costs $\pi_m=\min\qty{C_m^{\textup{tot}}\qty(\lfloor\sqrt{m}\rfloor), C_m^{\textup{tot}}(\lceil\sqrt{m}\,\rceil)}$ are tabulated in~\cite[Table~2.2]{higham:SaS_revisited}.
+	Some values of $m$ can be discarded because there exist higher degrees with the same cost $\pi_m$.
+	
+%	In general, we can define a notion of \emph{optimal degree}. If evaluating the approximant of order $m$ has cost $\pi_m$, optimal degrees are defined as
+%	\[
+%		m'(\xi)\coloneqq\max\qty{m\mid\pi_m=\xi}\qquad\text{for some }\xi\in\mathbb{N}.
+%	\] 
+%	Namely, an optimal degree is the maximum $m$ among those that achieve the same given cost $\pi_m$.
+	
+	In Chapter~\ref{capitolo:4}, we will introduce a more general notion of \emph{optimal degree}, for which there are explicit formulas (see \textcolor{red}{(metti la ref)}) that agree with the aforementioned non discarded values of $m$.
+\end{oss}
+\begin{oss*}
+	It turns out that, for $\norm{X}_1\le\theta_m$, this evaluation scheme is able to produce accurate approximations $\tilde{p}(X)$ and $\tilde{q}(X)$ of the exact matrix polynomials $p_m(X)$ and $q_m(X)$ respectively, thanks to the fact that they have positive coefficients and that the $\theta_m$ values are small. 
+\end{oss*}
+Once $p_m(X)$ and $q_m(X)$ are computed, the approximant can be evaluated as $r_m(X)=q_m(X)^{-1}p_m(X)$ by solving a multiple right-hand-side linear system.
+One concern is the conditioning of this operation. For $\norm{X}\le\theta_m$, the condition number of $q_m(X)$ can be bounded using similar techniques to those through which the $\theta_m$ constants were derived, i.e. by making use of symbolic and multiprecision arithmetic. This computation confirms that $q_m(X)$ is very well conditioned for $m\le13$, when $\norm{X}\le\theta_m$; thus the inversion is numerically stable in this case. The upper bounds for $\norm{q_m(X)^{-1}}$ found by Higham are reported in~\cite[Table~10.2]{higham:matfun_book}.
+
+If $A$ were to be scaled by a factor $s$, then the total cost of scaling and squaring in matrix multiplications would be $\pi+s$, since $s$ matrix multiplications would be performed in the final squaring phase, to undo the scaling. Defining $s$ as in~\eqref{eqn:def_scaling_factor} and assuming that $\norm{A}\ge\theta_m$, the total cost is minimized by $m=13$.
+
+The overall algorithm thus proceeds as follows. It first checks whether $\norm{A}\le\theta_m$ for the optimal degrees $m$ such that $2<m<13$. If so, it evaluates $r_m(A)$ for the smallest such $m$.
+Otherwise it computes $X=2^{-s}A$ where $s$ is as in~\eqref{eqn:def_scaling_factor} with $m=13$; then it evaluates $r_{13}(X)$ as described eariler; and finally computes $r_{13}(X)^{2^s}$ by repeated squaring.
 
 
-
-\subsection{Scaling and Squaring}\label{sect:scaling_and_squaring}
-\textcolor{red}{Cfr.~\cite[§~10.3]{higham:matfun_book} e gli altri articoli (vediamo un po'\dots)}
-
-\subsubsection{Scaling and Squaring variants}
+\subsubsection{Drawbacks and refinements}
 \textcolor{red}{L'idea sarebbe quella di riassumere, elencare i piccoli accorgimenti che negli anni sono stati fatti per migliorare l'algoritmo di base (o per lo meno quelli negli articoli che ho trovato): la tecnica di scaling diversa in~\cite{exptayotf18}, l'uso di $\norm{A^t}^{1/t}$ al posto di $\norm{A}$ nel dare una limitazione superiore all'errore analitico (proposto in~\cite{higham:alhi09_new}), il ricalcolo delle diagonali nella fase di squaring proposto in~\cite{higham:alhi09_new}.}
+\bigskip 
+
+The part of the scaling and squaring algorithm that is most sensitive to rounding errors is the final squaring phase. The main reason is the sensitivity of the matrix product to perturbations in the data. Let $Y=r_m(2^{-s}A)$ and let $\hat{M}$ be the approximation of a matrix $M\in\C{n}{n}$ computed by the algorithm, in floating point arithmetic. 
+
+The usual forward error bound (see~\cite[§~3.5]{higham:accuracy_book})
+\begin{equation}\label{eqn:matmul_fwderr_bound}
+	\norm{\widehat{M_1M_2}-M_1M_2}\le\norm{M_1}\norm{M_2}O(u)\qquad\forall\,M_1,M_2\in\C{n}{n}
+\end{equation}
+implies that the computed approximation of the square of a matrix $M$ is small relative to $\norm{M}^2$, which can be much larger than $\norm{M^2}$ because of numerical cancellation in the matrix multiplication.
+
+The powers of $A$ can display the \emph{hump phenomenon}. Quantities of the form $Y^{\cramped{2^k}}$ ($k<s$) with a bigger norm than the final result are produced by the algorithm. 
+
+- there are arithmetic operations between "big elements"
+- these operations, when performed in finite precision, introduce a small relative error
+- but rel err smol with respect to a quantity big...
+- therefore, error big...
+
+
+
+
+
+
+
+%It can be proven that (see~\cite[Eqn.~(10.37)]{higham:matfun_book} and the surrounding discussion)
+%\[
+%	\frac{\norm*{Y-\widehat{Y^{\cramped{2^s}}}}}{\norm{Y}}\le\mu(2^s-1)nu+O(u^2)
+%\]
+%where
+%\[
+%	\mu=\frac{\norm{Y}\cdot\prod_{k=0}^{s-1}\norm{Y^{2^k}}}{\norm{Y^{2^s}}}=\frac{\norm{Y}^2\norm{Y^2}\norm{Y^4}\cdot\ldots\cdot\norm{Y^{2^s-1}}}{\norm{Y^{2^s}}}\ge 1.
+%\]
+%Numerical cancellation in the matrix products can cause the intermediate powers of $Y$ appearing in the numerator to be much larger than the final quantity $Y^{2^s}$

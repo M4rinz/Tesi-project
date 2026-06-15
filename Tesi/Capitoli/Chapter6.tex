@@ -126,7 +126,7 @@ Similarly to the first strategy, some confusion may arise by the fact that, by p
 	\end{equation}
 	Now, $A=H^{\top}D\,H+H^{\top}\Delta{D}\,H+\Delta{K}\,H$, hence 
 	\begin{align*}
-		\norm*{A-H^{\top}\,D\,H} &= \norm*{H^{\top}\Delta{D}\,H + \Delta{K}\,H} = \norm*{H^{\top}\Delta{D} + \Delta{K}}\\
+		\norm*{A-H^{\top}D\,H} &= \norm*{H^{\top}\Delta{D}\,H + \Delta{K}\,H} = \norm*{H^{\top}\Delta{D} + \Delta{K}}\\
 		 &\le\norm{\Delta D} + \norm{\Delta{K}}\le O(u)\qty(\norm{D}+\norm{K})\\
 		 &\le O(u)\qty(\norm{D}+\norm{D+\Delta D})\le 3\,O(u)\norm{D}
 	\end{align*}
@@ -259,7 +259,7 @@ The exponential of some of the test matrices is known in closed formula. For $8$
 For the vast majority of the test matrices, the reference solution was computed using another numerical method.
 \smallskip 
 
-In an earlier phase of testing, $Y_{\textup{true}}$ was being computed via diagonalization, i.e. as $Y_{\textup{true}}=\mathtt{V}*\exp(\mathtt{D})\,/\,\mathtt{V}$, where $\mathtt{V}$ and $\mathtt{D}$ are, respectively, the eigenvector and eigenvalue matrices returned by a high precision eigendecomposition. 
+\textcolor{red}{Rivisitare alla luce di paragrafo~\ref{subs:diagonalization}} In an earlier phase of testing, $Y_{\textup{true}}$ was being computed via diagonalization, i.e. as $Y_{\textup{true}}=\mathtt{V}*\exp(\mathtt{D})\,/\,\mathtt{V}$, where $\mathtt{V}$ and $\mathtt{D}$ are, respectively, the eigenvector and eigenvalue matrices returned by a high precision eigendecomposition. 
 This strategy was not viable in many cases, though, because of the conditioning of the returned $\mathtt{V}$. 
 In fact, many matrices are badly scaled or severely non-normal, thus their computed eigenvector matrices were so ill-conditioned that a numerically accurate reconstruction of $A$ as $\mathtt{V}*\mathtt{D}\,/\,\mathtt{V}$ could not be obtained. Even worse, many test matrices are defective, thus they don't have a full set of linearly independent eigenvectors. Consequently, the condition number of the computed $\mathtt{V}$ grew, as the working precision was increased.
 
@@ -347,7 +347,7 @@ To make the plots in Figure~\ref{fig:exp_mp_fwerrs} more readable and visually a
 \smallskip 
 
 The figure suggests that the relation $E_{\textup{rel}}(\hat{Y})=\kappa_{\exp}(A)\cdot O(u_p)$ is satisfied by almost all samples, for all the working precision values $p$. A closer inspection reveals that some configurations consistently outperform the others, as their related datapoints fall lower in the plot.
-Figure~\ref{fig:exp_mp_fwerrs} alone, however, is not sufficient to precisely assess the performance of the \texttt{exp\_mp} variants on our test matrices. The \texttt{exp\_mp} configurations can be more easily compared using Performance profiles~\cite{dolan_more:perfprof}. The same experimental results are thus presented in the form of performance profiles in Figure~\vref{fig:perfprof_cplxschur}.
+Figure~\ref{fig:exp_mp_fwerrs} alone, however, is not sufficient to precisely assess the performance of the \texttt{exp\_mp} variants on our test matrices. The \texttt{exp\_mp} configurations can be more easily compared using performance profiles~\cite{dolan_more:perfprof}. The same experimental results are thus presented in the form of performance profiles in Figure~\vref{fig:perfprof_cplxschur}.
 \begin{figure}[hbp]
 	\centering
 	\includegraphics[width=0.8\textwidth]{Immagini/perfprof_complexschur}

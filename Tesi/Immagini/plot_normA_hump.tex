@@ -1,0 +1,35 @@
+\documentclass{article}
+
+\usepackage{AndreaStyle}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\begin{document}
+	
+	\begin{figure}
+		\centering
+		
+		\begin{tikzpicture}
+			\begin{axis}[
+				xlabel={$k$},
+				ylabel={$\norm{A^k}$},
+				xmin=0,
+				grid=major,
+				axis lines=left,
+				]
+				\addplot[
+				thick,
+				mark=*,
+				]
+				table[
+					col sep=comma,
+					x=k,
+					y=norm
+				]{../Varie/norms.csv};
+			\end{axis}
+		\end{tikzpicture}
+		
+		\caption{Growth of $\norm{A^k}$.}
+	\end{figure}
+	
+\end{document}
