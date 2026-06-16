@@ -97,7 +97,7 @@ def produce_perfprof(
         # escludiamo i "realschur" e "complexschur" dai solvers
         solvers = [s for s in solver_vals.keys() if not ("realschur" in s or "complexschur" in s)]
 
-    for solver in solvers:
+    for solver in sorted(solvers)[::-1]:
         label = "exp"
         alg, *appx_parts = solver.split("_")
         appx = "_".join(appx_parts)

@@ -443,6 +443,8 @@ function expm_testmats(
         # Awad
         id = "awad_25"
         A = [1 1e17; 0 1]
+        el = exp(big(1))
+        Y_true = [el 1e17*el; 0 el]
     elseif k == 26
         # Awad
         id = "awad_26"
@@ -456,7 +458,7 @@ function expm_testmats(
         id = "awad_27"
         b = 1e4
         A = [1 - b/2   b/2; -b/2   1 + b/2]
-        # see \cite[(1.13), p. 9]{higham:matfun_book}
+        # see \cite[(1.16), p. 10]{higham:matfun_book}
         Y_true = big(ℯ) * [(1-big(b)/2) b/2; -b/2 (1+b/2)]
     elseif k == 28
         # Awad
