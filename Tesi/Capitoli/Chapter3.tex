@@ -207,6 +207,23 @@ This method is not limited by the conditioning of the eigenvector basis, and can
 We recall that this phenomenon arises when the powers of a matrix grow before ultimately decaying to zero; the name is due to the fact that a hump is visible in the plot of the norms of the matrix powers.
 This behaviour is typical of highly nonnormal matrices and of matrices with badly scaled entries.
 
+\begin{esempio}
+	Let 
+	\begin{equation}\label{eqn:A_hump_phenomenon}
+		A = \begin{pmatrix}
+			-0.97 & 25\\ 0 & 0.3
+		\end{pmatrix}.
+	\end{equation}
+	The norms of the first $20$ powers of $A$ are displayed in Figure~\ref{fig:plot_normA_hump}.
+\end{esempio}
+
+\begin{figure}[htp]
+	\centering
+	\includegraphics[width=0.6\textwidth]{Immagini/plot_normA_hump.pdf}	
+	\caption{\emph{2-norms of the first 20 powers of $A$ in~\eqref{eqn:A_hump_phenomenon}.}}
+	\label{fig:plot_normA_hump}
+\end{figure}
+
 As a consequence of the hump phenomenon, $d$ may be very big, making the evaluation of the Taylor polynomial quite expensive. Another and more serious consequence is that the intermediate quantities produced by the algorithm have elements that are large in magnitude, thus the results of the intermediate computations are affected by an error which, albeit small relatively to the operands, is large with respect to the final result. In fact, when $A$ displays the hump phenomenon, $\exp(A)$ is small relatively to some powers of $A$.
 
 %The problem is that if the final result is smaller than the intermediate quantities, then the algorithm's internal computations -- having operated on big elements, reducing them -- are affected by 
@@ -392,7 +409,7 @@ which -- as discussed in Section~\ref{subs:paterson-stockmeyer} -- is approximat
 \begin{oss}
 	The evaluation scheme for $p_m(A)$ and $q_m(A)$ that was just described can be applied to any degree $m$, but not all of them are worth considering.
 	
-	For $m=1,\dots,21$ the optimal costs $\pi_m=\min\qty{C_m^{\textup{tot}}\qty(\lfloor\sqrt{m}\rfloor), C_m^{\textup{tot}}(\lceil\sqrt{m}\,\rceil)}$ are tabulated in~\cite[Table~2.2]{higham:SaS_revisited}.
+	For $m\in[21]$ the optimal costs $\pi_m=\min\qty{C_m^{\textup{tot}}\qty(\lfloor\sqrt{m}\rfloor), C_m^{\textup{tot}}(\lceil\sqrt{m}\,\rceil)}$ are tabulated in~\cite[Table~2.2]{higham:SaS_revisited}.
 	Some values of $m$ can be discarded because there exist higher degrees with the same cost $\pi_m$.
 	
 %	In general, we can define a notion of \emph{optimal degree}. If evaluating the approximant of order $m$ has cost $\pi_m$, optimal degrees are defined as

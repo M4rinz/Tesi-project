@@ -7,7 +7,7 @@ This is \emph{very} different from applying (the scalar) $f$ to the elements of 
 
 \begin{esempio*}
 	By analogy with the complex exponential, the matrix exponential function $\exp\colon\C{n}{n}\to\C{n}{n}$ should map the zero matrix to the identity matrix.  
-	Instead, the element-wise application of the complex exponential, denoted -- using Julia notation -- by $e.$, returns $e.(0_{n\times n})=\mathrm{e}\,\mathrm{e}^{\!\top}$, where $\mathrm{e}\in\C{n}$ is the vector of all ones.
+	Instead, the element-wise application of the complex exponential, denoted -- using Julia notation -- by $\exp\!.$, returns $\exp\!.(0_{n\times n})=\mathrm{e}\,\mathrm{e}^{\!\top}$, where $\mathrm{e}\in\C{n}$ is the vector of all ones.
 \end{esempio*}
 
 \textcolor{red}{Funzioni di matrici che conoscono tutti: i polinomi di matrici, e la funzione $f(A)=A^{-1}$.}
@@ -249,7 +249,7 @@ The Fréchet derivative of $f$ at $A$ may not exist, but if it exists then it is
 	The notation $L_{f}(A)[E]$ can be read as ``the (Fréchet) derivative of $f$, in $A$, applied to $E$'', or ``the (Fréchet) derivative of $f$, computed in $A$, along the direction $E$''. 
 	$L(A)$ denotes the linear operator $E\mapsto L(A)[E]$.
 	
-	\textcolor{red}{Forse introdurre notazione $\dd f(A)$?}
+	%\textcolor{red}{Forse introdurre notazione $\dd f(A)$?}
 \end{notazione*}
 
 \begin{oss}\label{oss:frechet_generalizza}
@@ -271,11 +271,11 @@ In equation~\eqref{eqn:cond_frechet}, the norm of the Fréchet differential at $
 \begin{equation}\label{eqn:def_norm_frechet}
 	\norm{L_f(A)}\coloneqq\max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{L_f(A)[E]}}{\norm{E}}.
 \end{equation} 
-The norm of the operator $L_f(A)$ is the one induced by the norms of the input and output vector spaces. Being them $\C{n}{n}$, these norms are matrix norms. 
-\smallskip 
+The norm of the operator $L_f(A)$ is the one induced by the norms of the input and output vector spaces. Being them $\C{n}{n}$, these norms are matrix norms.  
 
-\textcolor{red}{Note that from Remark~\ref{oss:frechet_generalizza} it follows that the~\eqref{eqn:cond_frechet} generalizes the definitions of condition numbers for differentiable functions that we already know.}
-\smallskip 
+\begin{oss*}
+	Note that from Remark~\ref{oss:frechet_generalizza} it follows that the~\eqref{eqn:cond_frechet} generalizes the definitions of condition numbers for differentiable vector-valued functions that we encountered in Section~\ref{sect:conditioning_general}.
+\end{oss*}
 
 The differential $\dd f(x)$ of a function $f\colon\R{n}\to\R{n}$ at a point $x\in\R{n}$ is a linear map from $\R{n}$ to $\R{n}$ which is represented in the canonical basis by the Jacobian matrix. An analogous phenomenon happens for matrix functions: the action of the Fréchet derivative can closely related to the multiplication by a matrix. Unlike the $\R{n}$ case however, the isomorphism is not the identity.
 
@@ -306,7 +306,7 @@ Equation~\eqref{eqn:frechet_vec} not only very useful for deriving properties of
 
 If the vector spaces $\C{n}{n}$ and $\C{n^2}$ are equipped with, respectively, the inner products 
 $\langle\cdot,\cdot\rangle_F$ and $\langle\cdot,\cdot\rangle_2$, where the latter is the 
-standard euclidean \textcolor{red}{(Hermitian?)} inner product $\langle u,v\rangle=u^{H}v$
+standard Hermitian inner product $\langle u,v\rangle=u^{H}v$
 and the former is defined as $\langle U,V\rangle_F\coloneqq\tr(U^{H}V)$, 
 then $\operatorname{Vec}$ is an \emph{isometric isomorphism}, i.e. it satisfies
 \begin{equation}\label{eqn:vec_isometry}
@@ -357,9 +357,9 @@ If $f\colon\Omega\subseteq\C{n}\to\C{n}$ is $2n-1$ times continuously differenti
 		f(A) & L_f(A)[E] \\ \hline & f(A)
 	\end{array}\right)
 \end{equation}
-holds for any $A\in\C{n}{n}$ such that $\Lambda(A)\subseteq\Omega$ and for any direction $E\in\C{n}{n}$ for which $L_f(A)$ is defined.
+holds for any $A\in\C{n}{n}$ such that $\Lambda(A)\subseteq\Omega$ and for any direction $E\in\C{n}{n}$ for which $L_f(A)$ is defined. The reader is referred to~\cite[Thm.~3.6]{higham:matfun_book} for a proof of this result and additional details.
 
-Thanks to formula~\eqref{eqn:mathias_trick}, the problem of evaluating the Fréchet derivative is converted to that of computing the function on a matrix of twice the size. This computation returns both $f(A)$ and $L_f(A)[E]$\textcolor{red}{, similarly to what happens in forward mode automatic differentiation.}
+Thanks to formula~\eqref{eqn:mathias_trick}, the problem of evaluating the Fréchet derivative is converted to that of computing the function on a matrix of twice the size. This computation returns both $f(A)$ and $L_f(A)[E]$, similarly to what happens in forward mode automatic differentiation.
 However, the cost of evaluating a function on a matrix of size $n$ is usually $O(n^3)$, so the cost of computing $f(A)$ and $L_f(A)[E]$ using~\eqref{eqn:mathias_trick} is $8$ times that of computing $f(A)$ alone.
 
 Using~\eqref{eqn:mathias_trick} one can prove the following Lemma.
@@ -378,7 +378,7 @@ Lemma~\ref{lemma:frechet_power_series} (see~\cite[Problem~3.6]{higham:matfun_boo
 	\end{equation*}
 \end{lemma}
 \begin{proof}
-	The proof will only be sketched. \textcolor{red}{Spero sia giusta.}
+	The proof will only be sketched.
 	As a consequence of the product rule~\eqref{eqn:frechet_prod_rule}, for $k>1$,
 	\begin{equation}\label{eqn:differential_kth_power}
 	\begin{aligned}

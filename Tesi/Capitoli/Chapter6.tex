@@ -181,7 +181,7 @@ The bound for $\norm*{\exp(A)-Y_{\textup{true}}}$ depends on the conditioning of
 \begin{oss*}
 	In~\cite{exptayotf18}, the authors also propose numerical experiments analogous to those described in Algorithm~\ref{alg:second_test_strat}, but in which $\mathcal{A}$ is of the form $H^{\top}\!JH$ with $J$ being a Jordan form that makes $\mathcal{A}$ defective.
 	
-	The error bounds and the discussions in this section hold in this case as well. In fact, the \textcolor{red}{crucial aspects / grounding elements} are the unitary change of basis $H$ and the matrix multiplications performed in floating-point arithmetic. 
+	The error bounds and the discussions in this section hold in this case as well. In fact, the crucial aspects are the unitary change of basis $H$ and the matrix multiplications performed in floating-point arithmetic. 
 \end{oss*}
 
 \subsubsection{Experimental setup, in conclusion}
@@ -222,13 +222,14 @@ Some configurations of the algorithm haven't been executed on all of the test ma
 \smallskip 
 
 Figure~\vref{fig:hist_matrix_sizes} shows how many $n\times n$ matrices are present in the test set, for each available size $n$.
-\begin{figure}[hbp]
+\begin{figure}[htp]
 	\centering
 	\includegraphics[width=0.8\textwidth]{Immagini/hist_matrix_sizes}
 	\caption{\emph{Number of distinct test matrices per matrix size.}}
 	\label{fig:hist_matrix_sizes}
 \end{figure}
-Most matrices are $10$-by-$10$, the maximum size is $24$-by-$24$. Such small sizes are motivated by performance considerations, as the algorithm to compute $\kappa_{\exp}$ (Algorithm~\ref{alg:exact_cond_n}) struggles even on matrices of moderate size, and \textcolor{red}{-- as already discussed somewhere --} \texttt{exp\_mp} is computationally expensive as well. We remark that most test matrices are the same that were used in the accuracy tests in~\cite{higham:hf19_mpexpm}. This included their sizes. \textcolor{red}{La tolgo questa osservazione se è troppo passivo-aggressiva senza essere davvero necessaria.}
+Most matrices are $10$-by-$10$, the maximum size is $24$-by-$24$. Such small sizes are motivated by performance considerations, as the algorithm to compute $\kappa_{\exp}$ (Algorithm~\ref{alg:exact_cond_n}) struggles even on matrices of moderate size, and \textcolor{red}{-- as already discussed somewhere --} \texttt{exp\_mp} is computationally expensive as well. 
+The accuracy tests in~\cite{higham:hf19_mpexpm} also use small matrices only, presumably for the same reasons.
 
 Table~\ref{tab:hermitian_test_matrices} specifies how many samples refer to Hermitian matrices and how many refer to non Hermitian matrices.
 \begin{table}[htp]
@@ -254,9 +255,38 @@ Table~\ref{tab:hermitian_test_matrices} specifies how many samples refer to Herm
 
 
 \subsection{Computing the reference solution}
-The exponential of some of the test matrices is known in closed formula. For $8$ test matrices ($152$ samples), $Y_{\textup{true}}$ was computed in advance, by evaluating the formula at a high precision $\hat{p}$. This was done only for the matrices $A$ for which it would be guaranteed that $Y_{\textup{true}}=\exp(A)+E$ s.t. $\norm{E}/\norm{\exp(A)}=O(u_{\hat{p}})$, and for which there was the ``suspicion'' that the methods to compute the reference solution wouldn't return a good approximation of $\exp(A)$, or at least not as good as the high precision evaluation of its closed formula.\newline
-\textcolor{red}{Se serve posso mettere un esempio un po' interessante, diverso dall'esponenziale di una matrice diagonale. Se l'approccio è sbagliato, faccio che tutte le soluzioni di riferimento le calcola mpmath e via.}\newline
-For the vast majority of the test matrices, the reference solution was computed using another numerical method.
+The exponential of some of the test matrices is known in closed formula. For $8$ test matrices ($152$ samples), $Y_{\textup{true}}$ was computed in advance, by evaluating the formula at a high precision $\hat{p}$. This was done only for the matrices $A$ for which it would be guaranteed that $Y_{\textup{true}}=\exp(A)+E$ such that $\norm{E}/\norm{\exp(A)}=O(u_{\hat{p}})$, and for which there was the ``suspicion'' that the methods to compute the reference solution wouldn't return a good approximation of $\exp(A)$, or at least not as good as the high precision evaluation of its closed formula.
+\begin{esempio}
+	Let $b=10^4$ and let
+	\vspace{-1em}
+	\[
+		A = \begin{pmatrix}
+			1-\frac{b}{2} & \frac{b}{2}\\
+			-\frac{b}{2} & 1+\frac{b}{2}
+		\end{pmatrix}=
+		\begin{pmatrix}
+			1 & 0 \\ 0 & 1
+		\end{pmatrix}+\!\quad\raisebox{6.5pt}{$
+		\begin{NiceArray}{ccc}[first-row]
+			 \Hbrace{1}{\coloneqq u} & \Hbrace{2}{\coloneqq v^{\top}}\\
+			-1 & \frac{b}{2} & -\frac{b}{2}\\
+			 1 & & \\
+		\CodeAfter
+			\SubMatrix({1-1}{2-1})
+			\SubMatrix({1-2}{1-3})
+			%\OverBrace[shorten, yshift=3pt]{1-1}{2-1}{\mathsmaller{\coloneqq u}}
+			%\OverBrace[shorten, yshift=3pt]{1-2}{1-3}{\tiny\coloneqq v^\top}
+		\end{NiceArray}$}\,\ =I+uv^{\top}
+	\]
+	A is a rank 1 correction of the identity. There is an explicit formula for the function of such matrices, see~\cite[Eqn.~1.16]{higham:matfun_book}. By applying it, we get
+	\begin{align*}
+		\exp(A) &= \exp(I+uv^{\top}) = \exp(1)I + \exp\!\qty[1+\langle u,v\rangle,1]\,uv^{\top}\\
+		&=\exp(1)I+\exp[1,1]\,uv^{\top} = \exp(1)I+\exp'(1)\,uv^{\top}\\
+		&=\exp(1)\qty(I+uv^{\top}) = \exp(1) A,
+	\end{align*}
+	which can be easily evaluated in arbitrary precision.
+\end{esempio}
+For the vast majority of the test matrices, the reference solution was computed using another numerical method, which we will now describe.
 \smallskip 
 
 \textcolor{red}{Rivisitare alla luce di paragrafo~\ref{subs:diagonalization}} In an earlier phase of testing, $Y_{\textup{true}}$ was being computed via diagonalization, i.e. as $Y_{\textup{true}}=\mathtt{V}*\exp(\mathtt{D})\,/\,\mathtt{V}$, where $\mathtt{V}$ and $\mathtt{D}$ are, respectively, the eigenvector and eigenvalue matrices returned by a high precision eigendecomposition. 
@@ -376,15 +406,41 @@ Table~\vref{tab:samples_within_bnd} \textcolor{red}{(che sicuramente va sistemat
 	\centering
 	\caption{\emph{Number (and percentage) of matrices for which the relative error is bounded by $n^2\cdot\kappa_{\exp}\cdot u_p$, for each \texttt{exp\_mp} configuration and for each working precision value.}}
 	\label{tab:samples_within_bnd}
-	\begin{tabular}{lcccccc}
-	\toprule
-	\multirow{2}*{$p$} & \multicolumn{2}{c}{\texttt{transfree}} & \multicolumn{2}{c}{\texttt{realschur}} & \multicolumn{2}{c}{\texttt{complexschur}}\\
-	\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
-	 & Padé & Taylor & Padé & Taylor & Padé & Taylor\\
-	\midrule
-	$53$  & $132$ ($\SIqty{94.29}{\percent}$) & $133$ ($\SIqty{95.00}{\percent}$) & $122$ ($\SIqty{94.57}{\percent}$) & $122$ ($\SIqty{94.57}{\percent}$) & $133$ ($\SIqty{95.00}{\percent}$) & $133$ ($\SIqty{95.00}{\percent}$) \\
-	$256$ & $132$ ($\SIqty{94.29}{\percent}$) & $133$ ($\SIqty{95.00}{\percent}$) & $122$ ($\SIqty{94.57}{\percent}$) & $122$ ($\SIqty{94.57}{\percent}$) & $133$ ($\SIqty{95.00}{\percent}$) & $133$ ($\SIqty{95.00}{\percent}$) \\
-	$851$ & $133$ ($\SIqty{95.00}{\percent}$) & $132$ ($\SIqty{94.29}{\percent}$) & $121$ ($\SIqty{93.80}{\percent}$) & $121$ ($\SIqty{93.80}{\percent}$) & $132$ ($\SIqty{94.29}{\percent}$) & $132$ ($\SIqty{94.29}{\percent}$) \\
-	\bottomrule
+	\begin{tabular}{ccccc}
+		\toprule
+		\multirow{2}*{Algorithm} & \multirow{2}*{Approx.} & \multicolumn{3}{c}{Precision $p$}\\
+		\cmidrule(lr){3-5}
+		 &  & $53$ & $256$ & $851$ \\
+		\midrule
+		\multirow{2}{*}{\texttt{transfree}}
+		& Padé
+		& $132$ (\SIqty{94.29}{\percent})
+		& $132$ (\SIqty{94.29}{\percent})
+		& $133$ (\SIqty{95.00}{\percent}) \\
+		& Taylor
+		& $133$ (\SIqty{95.00}{\percent})
+		& $133$ (\SIqty{95.00}{\percent})
+		& $132$ (\SIqty{94.29}{\percent}) \\
+		\midrule
+		\multirow{2}{*}{\texttt{realschur}}
+		& Padé
+		& $122$ (\SIqty{94.57}{\percent})
+		& $122$ (\SIqty{94.57}{\percent})
+		& $121$ (\SIqty{93.80}{\percent}) \\
+		& Taylor
+		& $122$ (\SIqty{94.57}{\percent})
+		& $122$ (\SIqty{94.57}{\percent})
+		& $121$ (\SIqty{93.80}{\percent}) \\
+		\midrule
+		\multirow{2}{*}{\texttt{complexschur}}
+		& Padé
+		& $133$ (\SIqty{95.00}{\percent})
+		& $133$ (\SIqty{95.00}{\percent})
+		& $132$ (\SIqty{94.29}{\percent}) \\
+		& Taylor
+		& $133$ (\SIqty{95.00}{\percent})
+		& $133$ (\SIqty{95.00}{\percent})
+		& $132$ (\SIqty{94.29}{\percent}) \\
+		\bottomrule
 	\end{tabular}
 \end{table}

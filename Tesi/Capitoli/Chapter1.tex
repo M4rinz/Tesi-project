@@ -249,7 +249,7 @@ The concept of error is central in all Numerical Analysis. As real problems are 
 
 We remind that there are three main sources of error:
 \begin{itemize}
-	\item The \emph{intrinsic error} is due to data uncertainty, namely by replacing a real quantity with a finite precision one. If present, this type of error would influence the output of an algorithm even if all the operations were performed exactly and there was no truncation.
+	\item The \emph{intrinsic error} is due to data uncertainty, namely by replacing, in the input to the algorithm, a real quantity with a finite precision one. If present, this type of error would influence the output of an algorithm even if all the operations were performed exactly and there was no truncation.
 	\item Many mathematical functions or problems contain a limiting process of some sort. Numerical methods are bound to work with finite quantities, thus the infinite process has to be replaced with a finite one. This approximation introduces an error that is called \emph{analytic} (or \emph{truncation}, or \emph{discretization}) \emph{error}. 
 	
 	For example, the (scalar) exponential function $e^x$ is defined by its Taylor series. The function can be computed by summing the first $N$ terms, i.e. by truncating the infinite series. The truncation error can be estimated by estimating the remainder. 

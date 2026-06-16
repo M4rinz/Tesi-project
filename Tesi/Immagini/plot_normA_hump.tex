@@ -1,4 +1,4 @@
-\documentclass{article}
+\documentclass[tikz,border=5pt]{standalone}
 
 \usepackage{AndreaStyle}
 \usepackage{pgfplots}
@@ -6,41 +6,41 @@
 
 \begin{document}
 	
-	\begin{figure}
-		\centering
+	\begin{tikzpicture}
+		\begin{axis}[
+			xlabel={$k$},
+			ylabel={$\norm{A^k}_2$},
+			xmin=0,
+			ymin=18,
+			ymax=35,
+			ytick distance=3,
+			grid=major,
+			grid style={
+				dotted,
+				opacity=0.4,
+			},
+			axis lines=left,
+			]
+			
+			\addplot[
+			thick,
+			mark=*,
+			]
+			table[
+				col sep=comma,
+				x=k,
+				y=norm2
+			]{../Varie/hump_data.csv};
+			
+	%				\pgfmathsetmacro{\yzero}{13.52} 
+	%				
+	%				\addplot[
+	%					dashed,
+	%					thick,
+	%					domain=0:20,
+	%				] {\yzero};
+		\end{axis}
+	\end{tikzpicture}
 		
-		\begin{tikzpicture}
-			\begin{axis}[
-				xlabel={$k$},
-				ylabel={$\norm{A^k}_2$},
-				xmin=0,
-				ymin=18,
-				ymax=35,
-				grid=major,
-				axis lines=left,
-				]
-				
-				\addplot[
-				thick,
-				mark=*,
-				]
-				table[
-					col sep=comma,
-					x=k,
-					y=norm2
-				]{../Varie/hump_data.csv};
-				
-%				\pgfmathsetmacro{\yzero}{13.52} 
-%				
-%				\addplot[
-%					dashed,
-%					thick,
-%					domain=0:20,
-%				] {\yzero};
-			\end{axis}
-		\end{tikzpicture}
-		
-		\caption{\emph{Growth of $\norm{A^k}_2$.}}
-	\end{figure}
 	
 \end{document}
