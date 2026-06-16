@@ -184,7 +184,7 @@ Let's assume that the only error in the process occurs while evaluating $f(D)$ (
 \[
 	\norm{\hat{Y}-f(A)}=\norm{V\big(\tilde{f}(D)-f(D)\big)V^{-1}}=\norm{VEV^{-1}}\le\kappa(V)\norm{E}.
 \]
-This tells us that we must expect errors proportional to $\kappa(V)$ in our computed function.
+This tells us that we must expect errors proportional to $\kappa(V)$ in our computed approximation.
 Since the conditioning of $f(A)$ is not necessarily related to $\kappa(V)$, the diagonalization method may be numerically unstable.
 
 In particular, if $A$ is nearly defective, $f(A)$ may be computed with a bigger error than necessary, due to the ill-conditioning of $V$. \textcolor{red}{Forse altro, togliendo da capitolo 6}
@@ -201,7 +201,7 @@ The diagonalization method works very well if $A$ is normal. Normal matrices are
 A deeper analysis of this approach, with numerical examples, can be found in~\cite[§~4.5]{higham:matfun_book}. 
 
 \subsection*{Taylor series}
-The Taylor series method relies on Corollary~\ref{cor:matfun_power_series}. It computes $\exp(A)$ by truncating~\eqref{eqn:expm_power_series_def} to the $d$th term, for some $d\in\mathbb{N}$. The degree $d$ can be chosen in many ways; for example, through upper bounds on the truncation error, or to be the first index for which $\norm{A^d}/d!<u$.
+The Taylor series method relies on Corollary~\ref{cor:matfun_power_series}. It computes $\exp(A)$ by truncating~\eqref{eqn:expm_power_series_def} to the $d$th term, for some $d\in\mathbb{N}$. The degree $d$ can be chosen in many ways; for example, through upper bounds on the truncation error, or to be the first index $d$ for which $\norm{A^d}/d!<u$.
 
 This method is not limited by the conditioning of the eigenvector basis, and can work well if the eigenvalues of $A$ are well clustered. However, it comes with many disadvantages. Most of them can ultimately be traced back to the \emph{hump phenomenon}.
 We recall that this phenomenon arises when the powers of a matrix grow before ultimately decaying to zero; the name is due to the fact that a hump is visible in the plot of the norms of the matrix powers.

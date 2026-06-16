@@ -371,8 +371,8 @@ To avoid cluttering them -- and since its real counterpart achieves similar resu
 To make the plots in Figure~\ref{fig:exp_mp_fwerrs} more readable and visually appealing, without affecting the interpretation of the displayed results, the datapoints that fall beyond the horizontal dashed lines are projected on it. 
 
 \begin{oss}\label{oss:failed_computations}
-	The computation of the conditioning of the exponential of four test matrices overflowed. 
-	When the precision was $851$, the computation of the real and complex Schur forms of one test matrix failed, as the maximum number of allowed iterations was reached before convergence; thus the Schur-Padé variant(s) of \texttt{exp\_mp} could not be executed on that matrix. The $76+4$ samples associated to the failure cases just described are excluded from the analysis; in particular they've been removed from Figure~\ref{fig:exp_mp_fwerrs}.
+	The computation of the conditioning of the exponential of four test matrices overflowed. The $76$ samples associated to this failure case have been excluded from the analysis. 
+	When the precision was $851$, the computation of the real and complex Schur forms of one test matrix failed, as the maximum number of allowed iterations was reached before convergence; thus the Schur-Padé variant(s) of \texttt{exp\_mp} could not be executed on that matrix. The $4$ related samples are considered in this analysis as failures for the Schur-Padé variant(s), but they've been removed from Figure~\ref{fig:exp_mp_fwerrs}.
 \end{oss}
 \smallskip 
 

@@ -303,6 +303,15 @@ Equation~\eqref{eqn:frechet_vec} not only very useful for deriving properties of
 
 \textcolor{red}{Prodotti di Kronecker?}
 
+\begin{esempio}
+	Let $f(z)=z^2$ and let $A\in\C{n}{n}$. Then $f(A)=A^2$, and -- by using the definition -- it holds that
+	\begin{align*}
+		f(A+E) - f(A) &= (A+E)^2 - A^2 = \qty(A^2 + AE + EA + E^2) - A^2\\
+		 &= \underbrace{AE+EA}_{=L_f(A)[E]} + \underbrace{E^2}_{\mathclap{\ \in o(\norm{E})}}.
+	\end{align*}
+	\textcolor{red}{The same result can be obtained by using the properties of Section~\ref{subs:frechet_properties}.}
+\end{esempio}
+
 
 If the vector spaces $\C{n}{n}$ and $\C{n^2}$ are equipped with, respectively, the inner products 
 $\langle\cdot,\cdot\rangle_F$ and $\langle\cdot,\cdot\rangle_2$, where the latter is the 
@@ -332,7 +341,21 @@ This can be easily proved from first principles. %\textcolor{red}{Forse spostare
 
 \textcolor{red}{Ora si deve parlare dell'aggiunta di $L_f(A)$. Si può sempre partire dalla~\eqref{eqn:vec_isometry}. Forse meglio nel paragrafo ``Properties''}
 
-\subsection{Properties of the Fréchet derivative}
+By introducing an inner product on $\C{n}{n}$ we can talk about the \emph{adjoint} of the 
+Fréchet derivative of $f$ at $A$, which we denote as $L_f(A)^{H}$. We recall that the
+adjoint of a linear map satisfies
+\begin{equation}\label{eqn:frechet_adjoint_def}
+	\left\langle X,L_f(A)^{H}[Y]\right\rangle_F = \left\langle L_f(A)[X],Y\right\rangle_F.
+\end{equation}
+Let $M(A)\in\C{\cramped{n^2}}{\cramped{n^2}}$ be the matrix that represents $L_f(A)^{H}$.
+Using $\operatorname{Vec}$, Equation~\eqref{eqn:frechet_adjoint_def} becomes
+\[
+	\left\langle\operatorname{Vec}(X),M(A)\operatorname{Vec}(Y)\right\rangle_2 = 
+	\left\langle K(A)\operatorname{Vec}(X),\operatorname{Vec}(Y)\right\rangle_2,
+\]
+from which it follows that $M(A)=K(A)^{H}$. 
+
+\subsection{Properties of the Fréchet derivative}\label{subs:frechet_properties}
 The Fréchet derivative enjoys most of the usual properties of derivatives. The sum, product, inverse and chain rules are all satisfied. The rules can be stated, in order, as follows:
 \begin{align}
 	L_{f+g}(A) & = E\mapsto L_f(A)[E] + L_g(A)[E]\nonumber \\
