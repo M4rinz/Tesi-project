@@ -1,0 +1,49 @@
+\documentclass[tikz,border=5pt]{standalone}
+
+\usepackage{AndreaStyle}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\begin{document}
+	
+	\begin{tikzpicture}
+%		\pgfplotstableread[col sep=comma]{../Varie/norms_exp_tC.csv}\loadedtable
+		\begin{axis}[
+			xlabel={$t$},
+			ylabel={$\norm{\exp(tA)}_2$},
+			xmin=0,
+			xmax=1.1,
+			%ymode = log,
+			ymin=0,
+			ymax=16,
+			%ytick distance=3,
+			grid=major,
+			grid style={
+				dotted,
+				opacity=0.4,
+			},
+			axis lines=left,
+			]
+			
+			\addplot[
+			thick,
+		%	mark=*,
+			]
+			table[
+			col sep=comma,
+			x=t,
+			y=nrm2_exp_tC
+			]{../Varie/norms_exp_tC.csv};
+			
+			%				\pgfmathsetmacro{\yzero}{13.52} 
+			%				
+			%				\addplot[
+			%					dashed,
+			%					thick,
+			%					domain=0:20,
+			%				] {\yzero};
+		\end{axis}
+	\end{tikzpicture}
+	
+	
+\end{document}

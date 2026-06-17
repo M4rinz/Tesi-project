@@ -16,11 +16,11 @@ The matrix exponential is often first encountered as the matrix power series exp
 	In this essay -- in order to emphasize the distinction between the matrix exponential and its scalar counterpart -- the notation $\exp(A)$ will be preferred to $e^A$, reserving the latter for situations where it is particularly convenient.
 \end{notazione*}
 
-The matrix exponential is by far the most widely studied matrix function, for its many practical applications. For example, the initial value problem
+The matrix exponential is by far the most widely studied matrix function, for its many applications both theoretical and practical. For example, the initial value problem
 \[
 	\dv{y}{t} = Ay,\qquad y(0)=y_0
 \]
-has solution $y(t)=\exp(tA)y_0$. \textcolor{red}{Forse non è un esempio brillantissimo il precedente, perché in realtà compare l'esponenziale per un vettore\dots Altri esempi? Non sono esperto, ma mi sembra che nelle CTMCs compaia l'esponenziale di una certa matrice, per definire l'analoga della matrice di transizione. Mi pare anche di aver sentito parlare di esponenziale di matrice in misure di centralità di grafi\dots Metto qualcosa?}
+has solution $y(t)=\exp(tA)y_0$. The matrix exponential is used to define the transition probability matrix of a time-homogeneous continuous-time Markov chain (see~\cite[§~2.3]{higham:matfun_book} \cite[§~2]{norris_1997:book}); and is used in many centrality measures for complex networks~\cite{estrada:book}.
 \smallskip 
 
 The matrix exponential inherits many identities from the complex exponential function, though not all. For example, $\exp(A)\exp(B)=\exp(A+B)$ is \emph{false} in general, but the property holds if $A$ and $B$ commute. 
@@ -51,7 +51,7 @@ Another corollary of Lemma~\ref{lemma:exp_ApB_commute} is the identity
 which is at the core of the widely popular scaling and squaring algorithm, described in Section~\ref{subs:scaling_and_squaring}.
 \smallskip
 
-Let us now fully characterize the exponential of a $2$-by-$2$ matrix $A=\smqty(a & b\\ c & d)$
+We now fully characterize the exponential of a $2$-by-$2$ matrix $A=\smqty(a & b\\ c & d)$
 (see also~\cite[Prob.~1.9]{higham:matfun_book}).
 A simple computation shows that $A$ has eigenvalues $\lambda_{1,2}=(a+d\pm\mu)/2$ where $\mu=\sqrt{(a-d)^{2}+4bc}$;
 therefore $A$ has repeated (also known as \emph{confluent}) eigenvalues if and only if $\mu=0$.
@@ -161,7 +161,7 @@ Nevertheless, the paper refrains from giving a definitive answer to the question
 
 It is not our aim to offer a general overview of the computational methods for the matrix exponential.
 However, reviewing two na\"ive algorithms will give us the possibility to observe some \textcolor{red}{critical phenomena} that 
-illustrate why the scaling and squaring algorithm is so successful, and motivate the introduction of its multiprecision variant presented in~\cite{higham:hf19_mpexpm}, which will be described in Chapter~\ref{capitolo:4}.
+illustrate why the scaling and squaring algorithm is so successful, and motivate the introduction of the multiprecision variant presented in~\cite{higham:hf19_mpexpm}, which will be described in Chapter~\ref{capitolo:4}.
 
 \subsection{Diagonalization}\label{subs:diagonalization}
 One na\"ive approach for computing $\exp(A)$ for a diagonalizable $A$ would be to compute the eigendecomposition $A=VDV^{-1}$, so that $\exp(A)=V\exp(D)V^{-1}$, where $\exp(D)=\operatorname{Diag}(\lambda_1,\dots,\lambda_n)$. This is described in pseudocode in Algorithm~\ref{alg:fA_diagonalization}.
@@ -184,37 +184,39 @@ Let's assume that the only error in the process occurs while evaluating $f(D)$ (
 \[
 	\norm{\hat{Y}-f(A)}=\norm{V\big(\tilde{f}(D)-f(D)\big)V^{-1}}=\norm{VEV^{-1}}\le\kappa(V)\norm{E}.
 \]
-This tells us that we must expect errors proportional to $\kappa(V)$ in our computed approximation.
+This tells us that errors proportional to $\kappa(V)$ are to be expected in the computed approximation.
 Since the conditioning of $f(A)$ is not necessarily related to $\kappa(V)$, the diagonalization method may be numerically unstable.
 
 In particular, if $A$ is nearly defective, $f(A)$ may be computed with a bigger error than necessary, due to the ill-conditioning of $V$. \textcolor{red}{Forse altro, togliendo da capitolo 6}
-
-One could object that this issue can be circumvented by increasing the precision at which Algorithm~\ref{alg:fA_diagonalization} is executed, as the upper bound $\kappa(V)O(u_p)$ on the relative error decreases as $p$ is increased. Unfortunately, this is not necessarily the case, as the matrix $V$ computed at line $1$ depends on $p$ as well. The condition number of the computed $V$ may grow as $p$ is increased. This behaviour can be observed when $A$ is defective. Note that the diagonalizability of $A$ is assumed in this approach.
 
 \begin{esempio}{\cite[Method~14]{moler_vanloan:19_dubious_ways}}
 	If $A=\smqty(1+\epsilon & 1\\ 0 & 1-\epsilon)$, then $V=\smqty(1 & -1\\ 0 & 2\epsilon)$ and $D=\operatorname{Diag}(1+\epsilon,1-\epsilon)$.
 	So $\kappa(V)=O(\epsilon^{-1})$, and if $\epsilon=O(u_p)$ we have that $\kappa(V)O(u_p)=O(1)$.
 \end{esempio}
 
+It could be objected that this issue can be circumvented by increasing the precision at which Algorithm~\ref{alg:fA_diagonalization} is executed, as the upper bound $\kappa(V)O(u_p)$ on the relative error decreases as $p$ is increased. Unfortunately, this is not necessarily the case, as the matrix $V$ computed at line $1$ depends on $p$ as well. The condition number of the computed $V$ may grow as $p$ is increased. This behaviour can be observed when the diagonalization method is applied indiscriminately to a defective matrix $A$. Note that the diagonalizability of $A$ is assumed in this approach.
+
 The diagonalization method works very well if $A$ is normal. Normal matrices are diagonalizable by a unitary matrix, and unitary matrices are perfectly conditioned in the 2-norm. There are backward stable algorithms to compute the eigendecomposition of normal matrices, and the symmetric eigenvalue problem is well conditioned. \textcolor{red}{Ho scritto cose sbagliate?} 
 
 A deeper analysis of this approach, with numerical examples, can be found in~\cite[§~4.5]{higham:matfun_book}. 
 
-\subsection*{Taylor series}
+\subsection{Taylor series}\label{subs:taylor_method}
 The Taylor series method relies on Corollary~\ref{cor:matfun_power_series}. It computes $\exp(A)$ by truncating~\eqref{eqn:expm_power_series_def} to the $d$th term, for some $d\in\mathbb{N}$. The degree $d$ can be chosen in many ways; for example, through upper bounds on the truncation error, or to be the first index $d$ for which $\norm{A^d}/d!<u$.
 
 This method is not limited by the conditioning of the eigenvector basis, and can work well if the eigenvalues of $A$ are well clustered. However, it comes with many disadvantages. Most of them can ultimately be traced back to the \emph{hump phenomenon}.
 We recall that this phenomenon arises when the powers of a matrix grow before ultimately decaying to zero; the name is due to the fact that a hump is visible in the plot of the norms of the matrix powers.
 This behaviour is typical of highly nonnormal matrices and of matrices with badly scaled entries.
 
-\begin{esempio}
+\begin{esempio}\label{es:hump_phenomenon}
 	Let 
 	\begin{equation}\label{eqn:A_hump_phenomenon}
 		A = \begin{pmatrix}
-			-0.97 & 25\\ 0 & 0.3
+			-0.97 & 25\\ 0 & -0.3
 		\end{pmatrix}.
 	\end{equation}
-	The norms of the first $20$ powers of $A$ are displayed in Figure~\ref{fig:plot_normA_hump}.
+	It holds that $\Lambda(A)=\qty{-0.97, -0.3}\subseteq\mathrm{LHP}$, i.e. $A$ is \emph{Hurwitz stable}. A classic result from multivariable calculus states that $\lim_{t\to\infty}\exp(tA)=0$ if and only if $A$ is Hurwitz stable. For $A$ as in~\eqref{eqn:A_hump_phenomenon}, this property can be easily checked using Equation~\eqref{eqn:matfun_2by2_tri}.
+	
+	The norms of the first $20$ powers of $A$ are displayed in Figure~\ref{fig:plot_normA_hump}. It holds that $\norm{\exp(A)}_2=13.52$.
 \end{esempio}
 
 \begin{figure}[htp]
@@ -224,21 +226,22 @@ This behaviour is typical of highly nonnormal matrices and of matrices with badl
 	\label{fig:plot_normA_hump}
 \end{figure}
 
-As a consequence of the hump phenomenon, $d$ may be very big, making the evaluation of the Taylor polynomial quite expensive. Another and more serious consequence is that the intermediate quantities produced by the algorithm have elements that are large in magnitude, thus the results of the intermediate computations are affected by an error which, albeit small relatively to the operands, is large with respect to the final result. In fact, when $A$ displays the hump phenomenon, $\exp(A)$ is small relatively to some powers of $A$.
+As a consequence of the hump phenomenon, $d$ may be very big, making the evaluation of the Taylor polynomial quite expensive. Another and more serious consequence is that the intermediate quantities produced by the algorithm have elements that are large in magnitude, thus the results of the intermediate computations are affected by an error which, albeit small relatively to the operands, is large with respect to the final result. The accumulation of such errors may lead to a substantial loss of accuracy in the final result.
 
-%The problem is that if the final result is smaller than the intermediate quantities, then the algorithm's internal computations -- having operated on big elements, reducing them -- are affected by 
+When $A$ exhibits the hump phenomenon, $\exp(A)$ is small relative to some powers of $A$. Consequently, methods that compute the matrix exponential through matrix powers can return poor approximations. The scaling and squaring algorithm is affected by this phenomenon as well, as we will see in Section~\ref{subs:scaling_and_squaring}. 
 
 More specifically to the case at hand, it can happen that $A^k/k!$ and $A^{k+1}/(k+1)!$ ($k<d$) have elements that are big and have opposite signs, thus catastrophic cancellation occurs when they are summed.
 
-\begin{oss}
-	\textcolor{red}{problem is not operating on matrix powers. The problem is that the final result is smaller than the intermediate computations.}
-\end{oss}
+\begin{oss*}
+	For the Taylor method, the numerical issues introduced by the hump phenomenon manifest themselves through catastrophic cancellation, but this doesn't mean that this is the case for all algorithms that can suffer from the hump phenomenon. 	
+	The problems are, more generally, due to the local truncation error of floating point arithmetic operations. 
+	
+	There \emph{can} be instability without cancellation, an thoroughly discussed in~\cite[§~1.12]{higham:accuracy_book}. Noticeably, Example~1.12.2 from~\cite[§~1.12]{higham:accuracy_book} computes a scalar function using an algorithm that loosely follows a scaling and squaring pattern, and in which no subtraction is performed.
+\end{oss*}
 
-\begin{oss}
-	\textcolor{red}{The problem is not the truncation of the series, but the limitation of floating point arithmetic}
-\end{oss}
-
-\textcolor{red}{Also Scaling and Squaring is affected by the hump phenomenon.}
+\begin{oss*}
+	As also emphasized in~\cite{moler_vanloan:19_dubious_ways, moler_vanloan:19_dubious_ways_25yrs} when discussing the Taylor method, the source of the difficulties that this method experiences is not the truncation of the series, but rather the finiteness of the arithmetic.
+\end{oss*}
 
 
 \subsection{Scaling and squaring}\label{subs:scaling_and_squaring}
@@ -280,7 +283,7 @@ If a $[k/m]$ Padé approximant of $f$ exists, then it is unique. The numerator a
 Among the many possible ones, two families of Padé approximants are most often chosen: the Taylor approximants and the diagonal Padé approximants. 
 
 Diagonal Padé approximants are the more popular of the two, although newer state-of-the-art scaling and squaring implementations employ Taylor approximants \textcolor{red}{citare spagnoli}. Yet, the default \matlab{} and Julia implementations use diagonal Padé approximants.
-Diagonal approximants have many advantages over their nondiagonal counterparts. Firstly, they achieve a higher order of approximation for a given number of matrix multiplications. Secondly, as we will see, symmetries in their coefficients considerably simplify their evaluation. Finally, diagonal Padé approximants enjoy favourable stability properties when $\Sigma(A)\subseteq\qty{z\in\C\mid\Re(z)<0}$, see~\cite[§~3, Method 2]{moler_vanloan:19_dubious_ways, moler_vanloan:19_dubious_ways_25yrs}.
+Diagonal approximants have many advantages over their nondiagonal counterparts. Firstly, they achieve a higher order of approximation for a given number of matrix multiplications. Secondly, as we will see, symmetries in their coefficients considerably simplify their evaluation. Finally, diagonal Padé approximants enjoy favourable stability properties when $\Sigma(A)\subseteq\mathrm{LHP}$, see~\cite[§~3, Method 2]{moler_vanloan:19_dubious_ways, moler_vanloan:19_dubious_ways_25yrs}.
 
 The fact that in Taylor approximants the denominator is a constant simplifies both the computations and the theoretical analysis. There are evaluation schemes that are tailored for Taylor polynomials \textcolor{red}{di nuovo citare spagnoli}, making their computations particularly efficient. Error bounds are easier to derive and to work with.
 \begin{notazione*}
@@ -396,7 +399,7 @@ Before moving to the discussion of the $m$ parameter, we make an important remar
 The choice of $m$ is dictated by three factors: the cost of evaluating $r_m$, the conditioning of $q_m$ (with respect to inversion) and, ultimately, the norm of $A$.
 
 Let $X$ denote a rescaling of $A$, where the scaling factor will be later related to the $s$ parameter.
-As a consequence of~\eqref{eqn:pade_p_q_formulas} the diagonal Padé approximant $r_m$ satisfies $p_m(z)=q_m(-z)$. 
+As a consequence of~\eqref{eqn:pade_p_q_formulas}, the diagonal Padé approximant $r_m$ satisfies $p_m(z)=q_m(-z)$. 
 Thus $p_m(X)$ and $q_m(X)$ can be efficiently evaluated by splitting the even and odd powers. By rewriting the numerator as 
 \[
 	p_m(X) = \sum_{i=0}^{m}\beta_iX^i = \underbrace{\smashoperator[lr]{\sum_{k=0}^{\left\lfloor m/2\right\rfloor}}\beta_{2k}X^{2k}}_{\coloneqq U} + X\underbrace{\smashoperator[lr]{\sum_{k=0}^{\left\lceil -1+m/2\right\rceil}}\beta_{2k+1}X^{2k}}_{\coloneqq V}
@@ -436,33 +439,50 @@ Otherwise it computes $X=2^{-s}A$ where $s$ is as in~\eqref{eqn:def_scaling_fact
 \textcolor{red}{L'idea sarebbe quella di riassumere, elencare i piccoli accorgimenti che negli anni sono stati fatti per migliorare l'algoritmo di base (o per lo meno quelli negli articoli che ho trovato): la tecnica di scaling diversa in~\cite{exptayotf18}, l'uso di $\norm{A^t}^{1/t}$ al posto di $\norm{A}$ nel dare una limitazione superiore all'errore analitico (proposto in~\cite{higham:alhi09_new}), il ricalcolo delle diagonali nella fase di squaring proposto in~\cite{higham:alhi09_new}.}
 \bigskip 
 
-The part of the scaling and squaring algorithm that is most sensitive to rounding errors is the final squaring phase. The main reason is the sensitivity of the matrix product to perturbations in the data. Let $Y=r_m(2^{-s}A)$ and let $\hat{M}$ be the approximation of a matrix $M\in\C{n}{n}$ computed by the algorithm, in floating point arithmetic. 
+The part of the scaling and squaring algorithm that is most sensitive to rounding errors is the final squaring phase. The main source of numerical issues is the fact that the powers of $A$ can display the \emph{hump phenomenon}, which was discussed in Section~\ref{subs:taylor_method}. Unlike the Taylor series method, there are no sums of powers of $A$ involved; the main reason behind the sensitivity of this algorithm is the sensitivity of the matrix product to perturbations in the data. The principle, however, is the same. 
 
-The usual forward error bound (see~\cite[§~3.5]{higham:accuracy_book})
+More specifically to the case at hand, the usual forward error bound (see~\cite[§~3.5]{higham:accuracy_book})
 \begin{equation}\label{eqn:matmul_fwderr_bound}
-	\norm{\widehat{M_1M_2}-M_1M_2}\le\norm{M_1}\norm{M_2}O(u)\qquad\forall\,M_1,M_2\in\C{n}{n}
+	\norm{M_1\mathrm{*}M_2-M_1M_2}\le\norm{M_1}\norm{M_2}O(u)\qquad\forall\,M_1,M_2\in\C{n}{n}
 \end{equation}
-implies that the computed approximation of the square of a matrix $M$ is small relative to $\norm{M}^2$, which can be much larger than $\norm{M^2}$ because of numerical cancellation in the matrix multiplication.
+implies that the computed approximation of the square of a matrix $M$ is small relative to $\norm{M}^2$, which can be much larger than $\norm{M^2}$ because of numerical cancellation in the matrix multiplication. This observation forms the basis of Higham's analysis of the squaring phase in~\cite[§~10.3]{higham:matfun_book}. Before outlining his argument, we present a complementary perspective on the same phenomenon.
+\smallskip 
 
-The powers of $A$ can display the \emph{hump phenomenon}. Quantities of the form $Y^{\cramped{2^k}}$ ($k<s$) with a bigger norm than the final result are produced by the algorithm. 
+Let us denote $R\coloneqq\exp(2^{-s}A)$, so that $R^{\cramped{2^s}}=\exp(A)$.  
+Before the squaring phase, the algorithm computes an approximation $\tilde{R}=r_{13}(2^{-s}A)\approx R$ such that $\tilde{R}^{\cramped{2^s}}\approx\exp(A)$; more precisely $\tilde{R}^{\cramped{2^s}}=\exp(A+\Delta{A})$ where $\Delta{A}$ is small relative to $A$. 
+By letting $Y_0=\tilde{R}$, the $k$th step of the squaring phase reads $Y_k=Y_{k-1}\mathtt{\char`^ 2}$, where $\mathtt{\char`^ 2}$ denotes the matrix squaring in floating point arithmetic.
+Notice how in forming
+\[
+	Y_k\approx \tilde{R}^{2^k} = r_{13}\qty(2^{-s}A)^{2^k}\approx\exp(2^{-s+k}A)=R^{2^k}
+\]
+there is a double approximation. Since the multiplications are performed in finite precision, each $Y_k$ is not exactly equal to $\tilde{R}^{\cramped{2^k}}$; which in turn is just an approximation of $R^{\cramped{2^k}}$. This suggests that the accumulation of roundoff error may hinder the accuracy of the final result.
 
-- there are arithmetic operations between "big elements"
-- these operations, when performed in finite precision, introduce a small relative error
-- but rel err smol with respect to a quantity big...
-- therefore, error big...
+\begin{esempio}
+	Let
+	\begin{equation}\label{eqn:A_exp_tA_hump}
+		A = \begin{pmatrix}
+			-9.7 & 250\\ 0 & -3
+		\end{pmatrix}.
+	\end{equation}
+	We encountered $A/10$ in Example~\ref{es:hump_phenomenon}. Figure~\ref{fig:plot_norm_exp_tC_hump} displays the 2-norms of $\exp(tA)$, for $t\in[0,1]$. These norms tend to zero as expected, but there is intermediate growth. In other terms, this curve is hump-shaped, similarly to the one in Figure~\ref{fig:plot_normA_hump}.
+	
+	The connection between matrix powers and exponentials is that the values $\norm{R^k}$ are points on the curve that correspond to $t=k/2^s$.
+\end{esempio}
 
+\begin{figure}[hbp]
+	\centering
+	\includegraphics[width=0.5\textwidth]{Immagini/plot_norm_exp_tC_hump.pdf}	
+	\caption{\emph{2-norms of $\exp(tA)$ for $A$ in~\eqref{eqn:A_exp_tA_hump}.}}
+	\label{fig:plot_norm_exp_tC_hump}
+\end{figure}
 
+In~\cite[§~10.3]{higham:matfun_book}, the loss of accuracy that can occur in the squaring phase is analyzed by deriving an upper bound on the relative forward error $\norm*{R^{\cramped{2^s}}-Y_k}/\norm{R^{\cramped{2^s}}}$ which can grow arbitrarily large when the powers of $A$ exhibit the hump phenomenon; see also~\cite[Thm.~10.21]{higham:matfun_book}. 
 
+Interestingly, the two terms $\kappa_{\exp}(A)$ and $E_{\text{back}}$ do not appear in the upper bound. Thus, the bound itself is not helpful for distinguishing between the effects of conditioning and those of the algorithm itself. 
+Since little is known about the size of $\kappa_{\exp}$ for nonnormal matrices, whether the large relative forward error indicates instability of the algorithm or not remains an open question.  
 
+\bigskip
 
+\textcolor{red}{Parlare dell'overscaling. Avere un bound migliore all'errore all'indietro fa sì che si faccia meno scaling. Meno scaling è meglio.}
 
-
-%It can be proven that (see~\cite[Eqn.~(10.37)]{higham:matfun_book} and the surrounding discussion)
-%\[
-%	\frac{\norm*{Y-\widehat{Y^{\cramped{2^s}}}}}{\norm{Y}}\le\mu(2^s-1)nu+O(u^2)
-%\]
-%where
-%\[
-%	\mu=\frac{\norm{Y}\cdot\prod_{k=0}^{s-1}\norm{Y^{2^k}}}{\norm{Y^{2^s}}}=\frac{\norm{Y}^2\norm{Y^2}\norm{Y^4}\cdot\ldots\cdot\norm{Y^{2^s-1}}}{\norm{Y^{2^s}}}\ge 1.
-%\]
-%Numerical cancellation in the matrix products can cause the intermediate powers of $Y$ appearing in the numerator to be much larger than the final quantity $Y^{2^s}$
+\textcolor{red}{Il fatto della doppia approssimazione ci dà un'idea: fare sì, che nella squaring phase, $Y_k$ approssimi meglio $R^{2^k}$.}
