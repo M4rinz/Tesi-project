@@ -1,6 +1,9 @@
 \chapter{Floating Point Arithmetic}\label{capitolo:1}
 In this first chapter the classic topic of floating point arithmetic is presented. It will start with a refresher of the well known basic principles, with the aim of presenting how arbitrary precision computation works in Julia.  
 
+All the definitions in this chapter are formulated in terms of real quantities. Extending them to the complex case is generally straightforward, and the corresponding notions will be used throughout this essay without further comment whenever required.
+The floating point number system presented in Section~\ref{sect:floatingpoint} is likewise introduced as a subset of $\R$, as it is customary. The reader is referred to~\cite[§~3.6]{higham:accuracy_book} for a discussion of complex floating point arithmetic.
+
 \section{Floating point number system}\label{sect:floatingpoint}
 The contents of this section are based on~\cite[§~2]{higham:accuracy_book}, which may be consulted for further details. Another classic source is~\cite{goldberg:floating_pt_arithm}.
 
@@ -305,12 +308,6 @@ In backward error analysis, the error is being interpreted as perturbations in t
 \end{oss*}
 
 \section{Conditioning}\label{sect:conditioning_general}
-\textcolor{red}{Sono stato sloppy. Ho messo tutto in $\R$ perché più semplice, ma dovrei cambiare con $\C$\dots Ma un po' tutto il capitolo è così\dots Dovrei rettificare\dots}
-
-%\textcolor{red}{Anche qui, vorrei farla breve ma tanto lo so che la cosa sfuggirà di mano\dots}
-
-%\textcolor{red}{Cose da dire: definizione di numero di condizionamento (sì, anche con la derivata di Fréchet). Il condizionamento è una proprietà del problema. Introdurre notazione. La ``rule of thumb'' fwerr < cond*backerr. Ricostruire come algoritmi stabili all'indietro ci diano la miglior approssimazione a cui possiamo ambire. Stabilità.}
-
 The (better yet, \emph{a}) \emph{condition number} of a problem measures the sensitivity of the solution to small perturbations in the input data. Strictly speaking, the condition number depends on the problem (which can be thought of as a function $f$), on the input point $x$ and on the norm used to measure it. Furthermore, there is the distinction between absolute and relative condition number.
 
 \begin{definizione}\label{def:cond_number}
