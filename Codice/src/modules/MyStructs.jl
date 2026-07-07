@@ -90,6 +90,7 @@ struct ExpMpParams
     ψ
     κ_A
     ϵ
+    Y
 end
 
 Base.getproperty(p::ExpMpParams, name::Symbol) = begin
@@ -101,6 +102,8 @@ Base.getproperty(p::ExpMpParams, name::Symbol) = begin
         return getfield(p, :ϵ)
     elseif name === :psi
         return getfield(p, :ψ)
+    elseif name === :YbeforeSquaring
+        return getfield(p, :Y)
     else
         return getfield(p, name)
     end

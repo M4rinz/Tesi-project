@@ -12,7 +12,7 @@ export AandPowsStruct, FactorialsStruct
 
 
 ####### costanti, parametri #######
-const p_factor = 1.1    # fattore di aumento della precisione dei BigFloats
+const p_factor = 1.2    # fattore di aumento della precisione dei BigFloats
 const VALID_APPRX = (:taylor, :pade, :diagonal, :diagonalcheap)
 const VALID_ALGS  = (:transfree, :realschur, :complexschur)
 const ASSRT_STRNG = """Taylor is being used but epsilon^(-1/8) ≤ 1. 
@@ -36,13 +36,7 @@ function polyvalm_ps!(
 
     # determine outputclass internally
     T = promote_type(eltype.(Apows)...)
-    # think: if T <: Float32 then one could think about promoting to 
-    #        Float64 (widen(T) would do it) as a default. 
-    #        But setting precision is only truly doable with BigFloats
-    # WIP: `to_output_type` introdotta per poter usare i `Num`
-    to_output_type(::Type{T}) where T = big(T)
-    #to_output_type(::Type{Symbolics.Num}) = Symbolics.Num
-    outputclass = something(outputclass, to_output_type(T))
+    outputclass = something(outputclass, big(T))
 
     n = LinearAlgebra.checksquare(Apows[2])
 
@@ -85,7 +79,7 @@ function polyvalm_ps!(
 
     # Evaluate the last B-term, the one of degree m - ν*r = m mod ν
     # think: how many @. can we shove in here?
-    B = setprecision(floor(Int64, 1.2 * precision(BigFloat))) do 
+    B = setprecision(floor(Int64, p_factor * precision(BigFloat))) do 
         # oss: by using `outputclass`, we can use only the number of significant
         #      digits specified by the precision in this block. 
         #      (aka the accuracy of β_vec is limited by that allowed in the scope of 
@@ -114,7 +108,7 @@ function polyvalm_ps!(
                                                 # (B is computed at higher precision, hopefully)
     for kk = r-1:-1:0
         # compute B coeff. in slightly higher precision
-        B = setprecision(floor(Int64, 1.2 * precision(BigFloat))) do 
+        B = setprecision(floor(Int64, p_factor * precision(BigFloat))) do 
             # unless β_vec is computed with high accuracy there may be garbage here
             B = outputclass(β_vec[ν*kk + 1]) * I(n)  
             for j = 1:ν-1
@@ -130,7 +124,6 @@ function polyvalm_ps!(
     end
 
     # WIP: questo `outputclass` è ben gestito?
-    # WIP: questi `setprecision` che senso hanno?
 
     return Y, compute_powers_time
 end
@@ -1042,7 +1035,6 @@ function exp_mp(
 ) where {T<:Number}
     n = LinearAlgebra.checksquare(A)
 
-    #TODO: better verification of the validity of the arguments
     approximant ∈ VALID_APPRX || 
         throw(ArgumentError("Invalid approximant: $approximant. Valid options are $(VALID_APPRX)"))
     algorithm ∈ VALID_ALGS || 
@@ -1084,7 +1076,9 @@ function exp_mp(
                 d, V = eigen(A)     # GenericSchur provides eigendecomposition in arbitrary precision
             end
             times[1] += schur_time
-            return V * diagm(exp.(d)) / V, times, ExpMpParams(NaN, NaN, NaN, NaN, NaN, epsilon)
+            Y = V * diagm(exp.(d)) / V
+            YbeforeSquaring = copy(Y)
+            return Y, times, ExpMpParams(0, 0, NaN, NaN, NaN, epsilon, YbeforeSquaring)
         end
         X = copy(A)
         if isschur(A) 
@@ -1137,6 +1131,7 @@ function exp_mp(
 
     if isdiag(X)
         Y = diagm(exp.(diag(X)))
+        YbeforeSquaring = copy(Y)
         s, m = 0, 0
         δ, ψ = NaN, NaN
         κ_A  = 1
@@ -1348,6 +1343,7 @@ function exp_mp(
         end #elapsed 
         times[4] += pade_time
         VERBOSE ? print("... Computing approximant stop\n") : nothing
+        YbeforeSquaring = copy(Y)
 
         ## Squaring 
         VERBOSE ? print("Squaring start...\n") : nothing
@@ -1370,15 +1366,18 @@ function exp_mp(
         #tmp = similar(Y);
         #mul!(tmp, F.Z, Y)   # Y ← Q * Y
         #mul!(Y, tmp, F.Z')  # Y ← Y * Q'
+        YbeforeSquaring = F.Z * YbeforeSquaring * F.Z'
     end
     if isreal(A)
         Y = real(Y)
+        YbeforeSquaring = real(YbeforeSquaring)
     end
     if useshift && positive_shift 
         Y .*= exp(μ)
+        YbeforeSquaring .*= exp(2.0^(-s)*μ)
     end
 
-    return Y, times, ExpMpParams(m,s,δ,ψ,κ_A,epsilon)  
+    return Y, times, ExpMpParams(m,s,δ,ψ,κ_A,epsilon,YbeforeSquaring)  
     finally #
         setprecision(BigFloat, old_prec)
     end
