@@ -1,5 +1,5 @@
 \chapter{Matrix Functions}\label{capitolo:2}
-This chapter introduces the matrix functions, their definitions, their basic properties and their conditioning. It aims at laying the ground for the presentation that will be given in Chapter~\ref{capitolo:3} of the Matrix Exponential, the matrix function this essay focuses on, therefore the treatment will be concise, giving multiple specific references for further details.
+This chapter introduces the matrix functions, their definitions, their basic properties and their conditioning. It aims at laying the ground for the presentation that will be given in Chapter~\ref{capitolo:3} of the matrix exponential, the matrix function this essay focuses on, therefore the treatment will be concise, giving multiple specific references for further details.
 
 \section{Introduction}
 The general idea behind the functions of a matrix is that a function $f\colon\Sigma\subseteq\C\to\C$ is extended to its counterpart on square matrices, $f\colon\Omega\subseteq\C{n}{n}\to\C{n}{n}$, in such a way that the core properties are preserved.
@@ -10,19 +10,19 @@ This is \emph{very} different from applying (the scalar) $f$ to the elements of 
 	Instead, the element-wise application of the complex exponential, denoted -- using Julia notation -- by $\exp\!.$, returns $\exp\!.(0_{n\times n})=\mathrm{e}\,\mathrm{e}^{\!\top}$, where $\mathrm{e}\in\C{n}$ is the vector of all ones.
 \end{esempio*}
 
-\textcolor{red}{Funzioni di matrici che conoscono tutti: i polinomi di matrici, e la funzione $f(A)=A^{-1}$.}
+The simplest possible matrix function is the polynomial of a matrix. This example hardly deserves a more abstract treatment, as many properties can be directly proven. Another simple example is the solution $x_0$ to a nonsingular linear system $Ax=b$ ($A\in\C{n}{n}$, $b\in\C{n}$), which can be expressed as $x_0=f(A)b$ where $f(z)=z^{-1}$.
+
+More sophisticated examples of matrix functions include the matrix sign, the matrix square root, the matrix logarithm and the matrix exponential. Matrix functions have broad applications in fields such as control theory and network analysis; see~\cite[§~2]{higham:matfun_book} for furhter examples and a broader discussion of their possible applications. 
 
 We anticipate that, in order to be \emph{defined} on square matrices, $f$ must satisfy some additional properties that may not be necessary for the definition of the original scalar function $f$. Specifically, the existence of derivatives at certain points must be guaranteed, up to a certain order.
 
-\textcolor{red}{Le funzioni di matrice sono utilissime blabla}
 \section{Definitions of matrix function}\label{sect:matfun_defs}
-Matrix functions can be defined in three equivalent ways. 
+Matrix functions can be defined in three equivalent ways. This section will introduce only the two that will be used throughout all this essay. Even though it can lead to short proofs of many theoretical results, the Cauchy integral definition will not be treated here. It can be found in~\cite[§~1.2.3]{higham:matfun_book} 
 
 \subsection*{Jordan form definition}
 The first definition we introduce makes use of the Jordan form of $A$.
 
 \begin{notazione*}
-	Let $\mu_g(\lambda)$ and $\mu_a(\lambda)$ denote, respectively, the geometric and arithmetic multiplicity of an eigenvalue $\lambda$.
 	Let $\mathbb{C}\supset\hat{\Lambda}(A)=\qty{\lambda_1,\dots,\lambda_s}$ be the \emph{spectrum} of $A$ with the convention that the eigenvalues are repeated with \emph{geometric multiplicity}. 
 \end{notazione*}
 Then $A$ can be written in \emph{Jordan canonical form} as
@@ -105,15 +105,15 @@ As a result, Definition~\ref{def:matfun_poly} is well posed, as it doesn't depen
 	In Definition~\ref{def:matfun_poly} no change of basis appears, but $f(A)$ is defined as a polynomial in $A$. This \emph{doesn't} mean that the matrix function itself is a polynomial, i.e. that there exists a $q\in\C\qty[t]$ such that $f(A)=q(A)$ for all $A\in\C{n}{n}$ for which $f(A)$ is defined. In fact, in Definition~\ref{def:matfun_poly}, $p$ depends on $A$.
 \end{oss*}
 
-\subsection*{Cauchy integral formula definition}
-The function of a matrix can also be defined via a generalization of Cauchy's integral formula $f(z_0)=\frac{1}{2\pi i}\oint_{\Gamma}\frac{f(z)}{z-z_0}\dd{z}$.
-\begin{definizione}\label{def:matfun_integral}
-	Let $A\in\C{n}{n}$, let $f$ be analytic on and inside a closed contour $\Gamma$ that encloses $\Lambda(A)\subseteq\C$. Then $f$ can be defined on $A$ as
-	\[
-		f(A)\coloneqq\frac{1}{2\pi i}\oint_{\Gamma}f(z)(zI-A)^{-1}\dd{z}.
-	\]
-\end{definizione}
-\noindent The integral in Definition~\ref{def:matfun_integral}is defined on a element-by-element basis.  
+%\subsection*{Cauchy integral formula definition}
+%The function of a matrix can also be defined via a generalization of Cauchy's integral formula $f(z_0)=\frac{1}{2\pi i}\oint_{\Gamma}\frac{f(z)}{z-z_0}\dd{z}$.
+%\begin{definizione}\label{def:matfun_integral}
+%	Let $A\in\C{n}{n}$, let $f$ be analytic on and inside a closed contour $\Gamma$ that encloses $\Lambda(A)\subseteq\C$. Then $f$ can be defined on $A$ as
+%	\[
+%		f(A)\coloneqq\frac{1}{2\pi i}\oint_{\Gamma}f(z)(zI-A)^{-1}\dd{z}.
+%	\]
+%\end{definizione}
+%\noindent The integral in Definition~\ref{def:matfun_integral}is defined on a element-by-element basis.  
 
 \section{Basic properties of matrix functions}
 Many properties follow from the definition of matrix function. Some of the most useful ones will be listed here, for further readings one can refer to~\cite[§~1.3]{higham:matfun_book}. Some specific properties of the matrix exponential are listed in Section~\vref{sect:expm_def_properties}.
@@ -209,26 +209,25 @@ $f(A)$ can be easily written as
 		a & b\\ & d
 	\end{pmatrix}=
 	\begin{pmatrix}
-		f(a) & b f[a,c]\\ 
+		f(a) & b f[a,d]\\ 
 			 & f(d)
 	\end{pmatrix}.
 \end{equation}
-Equation~\eqref{eqn:matfun_2by2_tri} serves as a building block of many algorithms for computing functions of upper triangular matrices. \textcolor{red}{We will see it somewhere, when talking about about improvements to Scaling and Squaring.}
+Equation~\eqref{eqn:matfun_2by2_tri} serves as a building block of many algorithms for computing functions of upper triangular matrices.
+For example, it is used in~\cite{higham:alhi09_new, higham:hf19_mpexpm} to improve the final phases of the algorithms, albeit in a slightly different form (see Equation~\eqref{eqn:expm_2by2_tri}). This will be discussed more in detail in Section~\ref{subs:sas_limitations_impr}.
 
 \begin{oss*}
 	Computing $f\smqty(a & b\\ & d)$ using~\ref{eqn:matfun_2by2_tri} is not particularly problematic if $a=d$, provided that a stable method for computing the derivative of $f$ is available.
 	
 	The problem arises when $a-d$ is small but not negligible. In this case, a na\"ive evaluation of the divided difference~\eqref{eqn:def_divided_difference} may lead to a larger relative error than necessary. 	
 	For instance, the computation of the divided difference of the exponential function will be reformulated to avoid subtractive cancellation in Remark~\vref{oss:expm_2by2_tri}.
-	
-	\textcolor{red}{Però può essere che questa difficoltà sia ``sintomo'' di malcondizionamento del problema?}
 \end{oss*}
 
 
 \section{Conditioning of matrix functions}\label{sect:cond_matfun}
 The general definitions of absolute and relative condition numbers have been given in Definition~\ref{def:cond_number}, in Section~\ref{sect:conditioning_general}. Apart from choosing appropriate norms, nothing prevents us from applying those same definitions to matrix functions. 
 
-In that same section we discussed explicit formulas for the condition number of vector valued functions that involve the norm of the Jacobian matrix. More practical formulas would be welcome even in the case at hand.
+In that same section we discussed explicit formulas for the condition number of vector-valued functions that involve the norm of the Jacobian matrix. More practical formulas would be welcome even in the case at hand.
 To obtain it, a reasonable notion of derivative is needed. To this end, we introduce the \emph{Fréchet derivative} of a matrix function.
 
 \begin{definizione}\label{def:frechet_derivative}
@@ -263,7 +262,7 @@ The Fréchet derivative of $f$ at $A$ may not exist, but if it exists then it is
 
 \noindent Through Definition~\ref{def:frechet_derivative}, the absolute and relative condition numbers of a matrix function can be defined as
 \begin{equation}\label{eqn:cond_frechet}
-	\operatorname{Cond}_{\text{abs}}(f,A)=\norm{L_f(A)}\qquad\operatorname{Cond}_{\text{rel}}(f,A)=\frac{\norm{L_f(A)}\norm{A}}{\norm{f(A)}}
+	\operatorname{Cond}_{\text{abs}}(f,A)=\norm{L_f(A)},\qquad\operatorname{Cond}_{\text{rel}}(f,A)=\frac{\norm{L_f(A)}\norm{A}}{\norm{f(A)}}
 \end{equation}
 with the same notational convention~\ref{notaz:kappa_f}.
 
@@ -299,9 +298,19 @@ which commutes since $\operatorname{Vec}$ is an isomorphism. The linear function
 \begin{equation}\label{eqn:frechet_vec}
 	\operatorname{Vec}\qty(L_f(A)[E])=K(A)\cdot\operatorname{Vec}(E).
 \end{equation}
-Equation~\eqref{eqn:frechet_vec} not only very useful for deriving properties of the Fréchet derivative, but can also be exploited by algorithms\textcolor{red}{, as we will see briefly}.
+Equation~\eqref{eqn:frechet_vec} not only is very useful for deriving properties of the Fréchet derivative, but can also be exploited by algorithms, as we will see in the following sections.
 
-\textcolor{red}{Prodotti di Kronecker?}
+%\textcolor{red}{Prodotti di Kronecker?}
+The matrix $K(A)$ is often referred to as the \emph{Kronecker representation} of $L_f(A)$ because, in many cases, it can be explicitly written by using the \emph{Kronecker product}, whose definition we now recall.
+\begin{definizione}\label{def:kronecker_product}
+	The \emph{Kronecker product} of $A\in\C{m}{n}$ and $B\in\C{p}{q}$ is the block matrix $A\otimes B\coloneqq(a_{i,j}B)\in\C{mp}{nq}$.
+\end{definizione}
+The Kronecker product satisfies many useful identities, such as
+\begin{align}
+	\qty(A\otimes B)^{H} &= A^H\otimes B^H\label{eqn:hermitian_kron}\\
+	\operatorname{Vec}(AXB) &= \big(B^{\!\top}\otimes A\big)\cdot\operatorname{Vec}(X)\label{eqn:vec_kron_identity}
+\end{align}
+
 
 \begin{esempio}
 	Let $f(z)=z^2$ and let $A\in\C{n}{n}$. Then $f(A)=A^2$, and -- by using the definition -- it holds that
@@ -309,37 +318,20 @@ Equation~\eqref{eqn:frechet_vec} not only very useful for deriving properties of
 		f(A+E) - f(A) &= (A+E)^2 - A^2 = \qty(A^2 + AE + EA + E^2) - A^2\\
 		 &= \underbrace{AE+EA}_{=L_f(A)[E]} + \underbrace{E^2}_{\mathclap{\ \in o(\norm{E})}}.
 	\end{align*}
-	\textcolor{red}{The same result can be obtained by using the properties of Section~\ref{subs:frechet_properties}.}
+	By using the linearity of $\operatorname{Vec}$ and the identity~\eqref{eqn:vec_kron_identity} it can be easily proven that the matrix $I\otimes A + A^{\top}\otimes I$ satisfies Equation~\eqref{eqn:frechet_vec}, and must therefore equal the Kronecker representation $K(A)$ of $L_f(A)$.
+	
+	The same results can be obtained by using the properties of Section~\ref{subs:frechet_properties}.
 \end{esempio}
-
 
 If the vector spaces $\C{n}{n}$ and $\C{n^2}$ are equipped with, respectively, the inner products 
 $\langle\cdot,\cdot\rangle_F$ and $\langle\cdot,\cdot\rangle_2$, where the latter is the 
-standard Hermitian inner product $\langle u,v\rangle=u^{H}v$
+standard Hermitian inner product $\langle u,v\rangle_2=u^{H}v$
 and the former is defined as $\langle U,V\rangle_F\coloneqq\tr(U^{H}V)$, 
 then $\operatorname{Vec}$ is an \emph{isometric isomorphism}, i.e. it satisfies
 \begin{equation}\label{eqn:vec_isometry}
 	\langle U,V\rangle_F = \langle\operatorname{Vec}(U),\operatorname{Vec}(V)\rangle_2\qquad\forall\,U,V\in\C{n}{n}.
 \end{equation}
-This can be easily proved from first principles. %\textcolor{red}{Forse spostare in ``estimating the condition number'':}
-%An important consequence of Equation~\eqref{eqn:vec_isometry} is Lemma~\ref{lemma:fro_norm_frechet}.
-%
-%\begin{lemma}\label{lemma:fro_norm_frechet}
-%	Let $K(A)\in\C{n^2}{n^2}$ be as in~\eqref{eqn:frechet_vec}. 
-%	Then $\norm{L_f(A)}_F=\norm{K(A)}_2$
-%\end{lemma}
-%\begin{proof}
-%	As a consequence of~\eqref{eqn:vec_isometry}, $\norm{X}_F=\norm{\operatorname{Vec}(X)}_2$
-%	for all $X\in\C{n}{n}$. 
-%	\begin{align*}
-%		\norm{L_f(A)}_F &= \max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{L_f(A)[E]}_F}{\norm{E}_F}=
-%					\max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{\operatorname{Vec}\big(L_f(A)[E]\big)}_2}{\norm{\operatorname{Vec}(E)}_2}=\\
-%					& \max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{K(A)\operatorname{Vec}(E)}_2}{\norm{\operatorname{Vec}(E)}_2}=
-%				    \max_{\substack{x\in\C{\cramped{n^2}}\\ x\ne 0}}\frac{\norm{K(A)x}_2}{\norm{x}_2}=\norm{K(A)}_2.\qedhere
-%	\end{align*}
-%\end{proof}
-
-\textcolor{red}{Ora si deve parlare dell'aggiunta di $L_f(A)$. Si può sempre partire dalla~\eqref{eqn:vec_isometry}. Forse meglio nel paragrafo ``Properties''}
+This can be easily proved from first principles.
 
 By introducing an inner product on $\C{n}{n}$ we can talk about the \emph{adjoint} of the 
 Fréchet derivative of $f$ at $A$, which we denote as $L_f(A)^{H}$. We recall that the
@@ -347,13 +339,16 @@ adjoint of a linear map satisfies
 \begin{equation}\label{eqn:frechet_adjoint_def}
 	\left\langle X,L_f(A)^{H}[Y]\right\rangle_F = \left\langle L_f(A)[X],Y\right\rangle_F.
 \end{equation}
-Let $M(A)\in\C{\cramped{n^2}}{\cramped{n^2}}$ be the matrix that represents $L_f(A)^{H}$.
+Let $M(A)\in\C{\cramped{n^2}}{\cramped{n^2}}$ be the Kronecker representation of $L_f(A)^{H}$.
 Using $\operatorname{Vec}$, Equation~\eqref{eqn:frechet_adjoint_def} becomes
 \[
 	\left\langle\operatorname{Vec}(X),M(A)\operatorname{Vec}(Y)\right\rangle_2 = 
 	\left\langle K(A)\operatorname{Vec}(X),\operatorname{Vec}(Y)\right\rangle_2,
 \]
-from which it follows that $M(A)=K(A)^{H}$. 
+from which it follows that $M(A)=K(A)^{H}$. Using this fact, the properties of the Kronecker product and Corollary~\ref{cor:K(A)_power_series}, it can be proven that when $A\in\R{n}{n}$ and $f\colon\R{n}{n}\to\R{n}{n}$ has a power series, the adjoint is given by $L_f(A)^{H}=L_f(A^{\top})$. In the complex case, $L_f(A)^{H}=L_{\bar{f}}(A^{H})$ where $\bar{f}(z)\coloneqq\overline{f(\bar{z})}$. In particular,
+$L_f(A)[E]=\qty(L_{\bar{f}}(A^{H})[E^{H}])^{\cramped{H}}$ for all $E\in\C{n}{n}$.
+
+The adjoint of the Fréchet derivative can be used to estimate the condition number, as we will briefly discuss in Section~\ref{subs:compute_estimate_cond}. 
 
 \subsection{Properties of the Fréchet derivative}\label{subs:frechet_properties}
 The Fréchet derivative enjoys most of the usual properties of derivatives. The sum, product, inverse and chain rules are all satisfied. The rules can be stated, in order, as follows:
@@ -396,9 +391,9 @@ Using~\eqref{eqn:mathias_trick} one can prove the following Lemma.
 Lemma~\ref{lemma:frechet_power_series} (see~\cite[Problem~3.6]{higham:matfun_book}) gives an explicit formula for the Fréchet differential of matrix functions that have a power series representation.
 \begin{lemma}\label{lemma:frechet_power_series}
 	Let $f$ be defined by the power series $f(z)=\sum_{k=0}^{\infty}c_k(z-\alpha)^k$ with radius of convergence $r>0$. If $A\in\C{n}{n}$ is such that $\norm{A-\alpha I}<r$ then the Fréchet derivative of $f$ at $A$ is given by
-	\begin{equation*}
+	\begin{equation}\label{eqn:frechet_power_series}
 		L_f(A) = E\mapsto\sum_{i=1}^{\infty}c_k\sum_{t=1}^k(A-\alpha I)^{t-1}E(A-\alpha I)^{k-t}
-	\end{equation*}
+	\end{equation}
 \end{lemma}
 \begin{proof}
 	The proof will only be sketched.
@@ -420,8 +415,17 @@ Lemma~\ref{lemma:frechet_power_series} (see~\cite[Problem~3.6]{higham:matfun_boo
 	\]
 	for all $A\in\C{n}{n}$ s.t. $\norm{A-\alpha I}<r$, which completes the proof.
 \end{proof}
+\begin{corollario_lemma}\label{cor:K(A)_power_series}
+	Let $f$ and $A$ be as in Lemma~\ref{lemma:frechet_power_series}. The matrix $K(A)\in\C{\cramped{n^2}}{\cramped{n^2}}$ that represents $L_f(A)$ is given by
+	\begin{equation}\label{eqn:K(A)_power_series}
+		\C{\cramped{n^2}}{\cramped{n^2}}\ni K(A)=\sum_{i=1}^{\infty}c_k\sum_{t=1}^k\big(A^{\top}-\alpha I\big)^{{t-1}}\otimes\big(A-\alpha I\big)^{k-t}
+	\end{equation}
+\end{corollario_lemma}
+\begin{proof}
+	The matrix $K(A)$ must satisfy Equation~\eqref{eqn:frechet_vec}. By applying the $\operatorname{Vec}$ operator to $L_f(A)[E]$ where $L_f(A)$ is as in~\eqref{eqn:frechet_power_series}, exploiting the linearity of $\operatorname{Vec}$ and by making use of the identity~\eqref{eqn:vec_kron_identity}, the result in Equation~\eqref{eqn:K(A)_power_series} is readily obtained.
+\end{proof}
 
-\subsection{Computing or estimating the condition number}
+\subsection{Computing or estimating the condition number}\label{subs:compute_estimate_cond}
 The problem of computing or estimating $\kappa_f(A)$ essentially reduces that of computing or estimating the norm of the Fréchet differential at $A$. There are two aspects to this last problem, namely the computation of $L_f(A)$ and the computation, or estimation, of its norm. 
 
 Recall that the condition number is defined with respect to a norm. A norm on $\C{n}{n}$ has to be chosen, then the norm of $L_f(A)$ will be its subordinate operator norm, as introduced by Equation~\eqref{eqn:def_norm_frechet}. However, as Equation~\eqref{eqn:def_norm_frechet} -- which introduced its definition -- also suggests, $\norm{L_f(A)}$ doesn't have a simple expression, in general. 
@@ -448,44 +452,96 @@ Lemma~\ref{lemma:fro_norm_frechet} suggests that $\norm{L_f(A)}_F$ can be exactl
 	\begin{algorithmic}[1]
 		\For{$j=1,\dots,n$}
 			\For{$i=1,\dots,n$}
-				\State $Y \gets L_f(A)\qty[e_{i}e_{j}^{\top}]$
-				\State $K\qty[:\mid(j-1)n+i] = \operatorname{Vec}(A)$
+				\State $Y \gets L_f(A)\big[e_{i}e_{j}^{\cramped{\top}}\big]$
+				\State $\SubMat{K}{}{(j-1)n+i} = \operatorname{Vec}(A)$
 			\EndFor
 		\EndFor
 		\State $\kappa_f(A) = \norm{K(A)}_2\norm{A}_F / \norm{f(A)}_F$
 	\end{algorithmic}
 \end{algorithm}
 Algorithm~\ref{alg:exact_cond_n} explicitly forms $K(A)$; this assumes that it's possible to compute the Fréchet derivative along every coordinate direction. An ``oracle'' implementing the action $E\to L_f(A)[E]$ provides a way to do so.
-Section \textcolor{red}{somewhere} describes how this ``oracle'' is obtained for the Matrix Exponential.
+Section~\ref{subs:expm_sas_miscellanea} describes how this ``oracle'' is obtained for the matrix exponential.
 
-Algorithms for computing $f(A)$ usually cost $O(n^3)$ flops; assuming that evaluating $L_f(A)$ costs $O(n^3)$ flops, Algorithm~\ref{alg:exact_cond_n} has the prohibitive cost of $O(n^5)$ flops, besides the memory cost of storing $K(A)$.
-\bigskip 
+Algorithms for computing $f(A)$ usually cost $O(n^3)$ flops; assuming that evaluating $L_f(A)$ costs $O(n^3)$ flops, Algorithm~\ref{alg:exact_cond_n} has the prohibitive cost of $O(n^5)$ flops. In addition, the memory cost of storing $K(A)$ should be consiered, as well as the cost of computing $\norm{K(A)}_2$. This last cost depends on the method that is used to compute the 2-norm of the $n^2$-by-$n^2$ matrix $K(A)$. For example, the SVD would yield a $O(n^6)$ cost; and the power method would yield a cost between $O(n^4)$ and $O(n^6)$, depending on its convergence rate.
 
-\textcolor{red}{Da fare: Metodo delle potenze su $K(A)$; $\norm{K(A)}_1$ non è proprio $\norm{L_f(A)}_1$ ma ci sono dei bound; \texttt{normest1} (è importante)}
+In Algorithm~\ref{alg:exact_cond_n}, $K(A)$ is explicitly formed and its 2-norm is computed. %Notice that the algorithm constructs the matrix by repeatedly applying the action of the Fréchet derivative, which is closely related to that of $K(A)$ via Equation~\eqref{eqn:frechet_vec}. 
+An approximation of $\kappa_f(A)$ in the Frobenius norm could be obtaining by applying the power method on $K(A)^{\cramped{H}}K(A)$. In fact, $\norm{K(A)}_2=\rho\big(K(A)^{\cramped{H}}K(A)\big)^{1/2}$, so once the dominant eigenvalue of $K(A)^{\cramped{H}}K(A)$ is computed, the desired norm is readily obtained.
+
+The power method does not explicitly need the matrix, it just needs a way to apply it to a vector. In our case, similarly to Algorithm~\ref{alg:exact_cond_n}, this can be achieved by an ``oracle'' for $E\mapsto L_f(A)[E]$ and one for $E\mapsto L_f(A)^{\cramped{H}}[E]$. The resulting algorithm is available at~\cite[Alg.~3.20]{higham:matfun_book}. The power method is less computationally demanding than Algorithm~\ref{alg:exact_cond_n}, and doesn't need to explicitly form and store the matrix. However, it returns just an approximation of the desired quantity, and requires two different ``oracles'' instead of one.
+\smallskip 
+
+Let us now consider the computation of the condition number in the $1$-norm. Again, the real issue is the computation of $\norm{L_f(A)}_1$. Unfortunately, there isn't a result like Lemma~\ref{lemma:fro_norm_frechet} stating that the $1$-norm of $L_f(A)$ is exactly equal to some norm of its associated matrix $K(A)$. However, the $1$-norms of $K(A)$ and of $L_f(A)$ are related via the following result.
+\begin{lemma}
+	Let $A\in\C{n}{n}$ and $f$ be any function defined on the spectrum of $A$. It holds that
+	\[
+		\frac{\norm{L_f(A)}_1}{n}\le\norm{K(A)}_1\le n\norm{L_f(A)}_1.
+	\]
+\end{lemma}
+\begin{proof}
+	See the proof of~\cite[Lemma~3.18]{higham:matfun_book}.
+\end{proof}
+So, by using $\norm{K(A)}_1$ in Algorithm~\ref{alg:exact_cond_n} and by replacing the norms at line 7, we obtain an algorithm that produces an estimate that agrees with $\kappa_f(A)$ to within a factor $n$. Since error bounds invariably contain pessimistic constants that are polynomial in $n$, this discrepancy is usually not problematic. 
+
+The computation of $\norm{K(A)}_1$ is generally inexpensive compared to that of $\norm{K(A)}_2$; nevertheless, it requires the full matrix $K(A)$, which -- as already discussed -- we would prefer not to form explicitly.
+
+Similarly to the Frobenius norm case that was presented earlier, the ``oracles'' for $E\mapsto L_f(A)[E]$ and for $E\mapsto L_f(A)^{\cramped{H}}[E]$ can be directly used to estimate the quantity of interest, avoding the formation of $K(A)$ entirely. Indeed, there exist $1$-norm analogues of the power method that estimate the norm of a matrix using only the action of the matrix and of its adjoint. One such method -- which forms the basis of all the condition number estimation in \textsc{lapack} and is used by \matlab{}'s \texttt{rcond} function  -- is presented in~\cite[Alg.~3.21]{higham:matfun_book}. For a thorough discussion, see also~\cite[§~15.3]{higham:accuracy_book} and the referenes therein.
+
+Higham and Tisseur~\cite{higham:hiti_normest1} introduced a block generalization of~\cite[Alg.~3.21]{higham:matfun_book} that iterates on tall and skinny matrices. Their method is at the basis of \matlab{}'s \texttt{normest1} function. This function can accept in input also an ``oracle'' that implements the action of the linear operator whose $1$-norm we want to estimate. 
+
+\begin{oss}
+	The algorithm presented in Chapter~\ref{capitolo:4} uses this $1$-norm estimator to approximately compute the $1$-norms of the power of a matrix, without explicitely forming it. \textcolor{red}{Ne riparleremo\dots Rimandare a posto opportuno\dots}
+	\smallskip 
+	
+	{\color{red} \textbf{Nota per il futuro me}: la funzione \texttt{opnorm1est} di MatrixEquations.jl (\href{https://github.com/andreasvarga/MatrixEquations.jl/blob/17e4affc8079719fff2c609cde1b8828c16767db/src/condest.jl#L50-L72}{qui} il codice sorgente) chiama (ripetutamente, così come dev'essere) \texttt{lacn2!} (\href{https://github.com/andreasvarga/MatrixEquations.jl/blob/17e4affc8079719fff2c609cde1b8828c16767db/src/lapackutil.jl}{qui} il codice sorgente). Quest'ultima è un'interfaccia per \texttt{xLACN2} (vedi \href{https://netlib.org/lapack/explore-html/d6/d2d/group__lacn2_gabc1e7463e250c9e43596bfcbfa83c1de.html}{qui}) di \textsc{LAPACK}, che pracitamente è la versione ``vecchia'' che \cite{higham:hiti_normest1} migliora. Notare che (1) \texttt{normest1} di MATLAB è implementata direttamente in MATLAB, (2) in Julia non esiste e (3) l'algoritmo di Higham e Fasi la usa solo quando costretto\dots}
+\end{oss}
+
+Key properties of algorithm in are that it typically requires 4 or 5 iterations, frequently producing an exact estimate of the 1-norm. Although it can produce an arbitrarily poor estimate on specifically constructed ``counterexamples'', it almost invariably produces an estimate correct to within a factor $3$, making it a reliable means of estimating the 1-norm of a matrix.
 
 \section{Computational techniques for matrix functions}
-\textcolor{red}{Le menziono, perché è giusto così. Schur-Parlett per funzioni generiche (in~\cite[§~9]{higham:matfun_book}). Per funzioni specifiche ci sono tecniche specifiche, che però possono essere raggruppate sotto un ``ombrello più grande''. Ad esempio metodo di Newton. }
-
-\textcolor{red}{Gli unici metodi che vale la pena descrivere più approfonditamente sono il \emph{binary powering} per $A^n$ e, soprattutto, Paterson-Stockmeyer per polinomi di matrici.}
-
-
-\textcolor{red}{Aggiusta: }
 The exposition of computational methods for generic matrix functions will be instrumental 
-to the main focus of this essay, i.e. the computation of the Matrix Exponential using Scaling and Squaring.
-Therefore the two \textcolor{red}{most popular ``broad schemes'' will be simply mentioned},
-and more emphasis will be given on methods that compute matrix powers and matrix polynomials.
+to the main focus of this essay, i.e. the computation of the matrix exponential using scaling and squaring.
+Therefore the two principal families of general-purpose methods will be presented only at a high level,
+while methods to compute matrix polynomials will be described in greater detail.
 
 \subsection{The Schur-Parlett method}
+In theory, $f(A)$ could be computed by directly applying Definition~\ref{def:matfun_Jordan}; i.e. by computing the Jordan canonical form $A=VJV^{-1}$, so that $f(A)=Vf(J)V^{-1}$ where $f(J)$ is given in~\eqref{eqn:f_Jordan_block}. This strategy is not viable in practice, because the Jordan canonical form cannot be reliably computed in floating point arithmetic.
+\begin{oss*}
+	Even if it could, the computed result may be a poor approximation of $f(A)$ anyway. This is because the accuracy of the Jordan form method is limited by the conditioning of the matrix $V$. This phenomenon is discussed in Section~\ref{subs:diagonalization} for the diagonalizable case, but the analysis holds in this more general case as well.
+\end{oss*}
+One of the most basic tenets of numerical linear algebra is that ``\emph{anything that the Jordan decomposition can do, the Schur decomposition can do better!}'' \textcolor{red}{Si trova in Van Loan 1975 ``A Study of the Matrix Exponential'', che già pensavo di citare per qualche risultato.}
+\smallskip 
 
+The Schur-Parlett method exploits the fact that the elements of a function of a upper triangular matrix can be computed through a clever recurrence.
 
+In its simplest form, the method follows these key steps: a Schur form of $A=UTU^{H}$ is computed, so that $F(A)=Uf(T)U^{H}$. The diagonal elements of $F\coloneqq f(T)$ can be computed trivially. The off-diagonal elements can be recovered by reading the identity $TF=FT$ -- which holds by Lemma~\ref{lemma:matfun_trivial_properties} -- in the $(i,j)$th entry ($i<j$) and solving for the desired quantity. Indeed, 
+\begin{equation}\label{eqn:parlett_recurrence}
+	T_{i,i}F_{i,j}-F_{i,j}T_{j,j} = \sum_{k=i}^{j-1}F_{i,k}T_{k,j} - \sum_{k=i+1}^jT_{i,k}F_{k,j},
+\end{equation}
+thus $F_{i,j}$ depends only on $\SubMat{F}{i+1,j}{j}$ and on $\SubMat{F}{i}{i,j-1}$.  
+
+\begin{oss*}
+	Note that the recurrence in Equation~\eqref{eqn:parlett_recurrence} breaks down if $T_{i,i}=T_{j,j}$. A way around this difficulty is to employ a block form of the recurrence, which involves solving Sylvester equations instead of performing scalar divisions. This topic is beyond the aims of this essay, the reader is referred to~\cite[§~4.6]{higham:matfun_book} for further details. 
+\end{oss*}
+
+\begin{oss*}
+	When $A$ is a $2$-by-$2$ upper triangular matrix with distinct eigenvalues, the computation of $f(A)$ using Schur-Parlett can be formulated precisely as in Equation~\eqref{eqn:matfun_2by2_tri}.	
+\end{oss*}
+
+Schur-Parlett can be employed if no specific algorithm for $f$ is applicable. This is discussed in~\cite[§~9]{higham:matfun_book}. Fortunately, this is not the case for the matrix exponential.
 
 \subsection{Matrix Iterations}
+Matrix iteration methods produce a sequence of matrices $X_1,\dots,X_k$ so that $X_k\xlongrightarrow{k\to\infty}f(A)$. The iterates take the form $X_{k+1}=g(X_k)$, where $g$ may depend on $A$; and $X_0$ is almost never arbitrary, rather it's a fixed function of $A$ such as $X_0=I$ or $X_0=A$.
+
+A standard means of deriving matrix iterations is to apply Newton’s method to an algebraic equation satisfied by $f(A)$ and then to choose $X_0$ so that the iteration formula is simplified. 
+One such example is the Denman-Beavers iteration for the matrix square root, which is described in~\cite[§~6.3]{higham:matfun_book}. 
+
+Matrix iterations are not in the scope of this thesis, more details on the topic can be found in~\cite[§~4.9]{higham:matfun_book}.
 
 
 \subsection{Matrix polynomials}\label{subs:paterson-stockmeyer}
-Unlike the scalar case, evaluating a polynomial $p(x)=\sum_{k=0}^m a_kx^k$ of degree $m\ge 1$ at a matrix argument by explicitely forming the matrix powers has the same asymptotical cost as evaluating it via the Horner's method (see~\cite[Algs.~4.2,4.3]{higham:matfun_book}). This is because both methods perform $m-1$ matrix multiplications. Since each one generally requires $O(n^3)$ flops, compared to the $O(n^2)$ typical cost of a linear combination, matrix multiplications dominate the computational cost.
+Unlike the scalar case, evaluating a polynomial $p(x)=\sum_{k=0}^m a_kx^k$ of degree $m\ge 1$ at a matrix argument by explicitly forming the matrix powers has the same asymptotical cost as evaluating it via the Horner's method (see~\cite[Algs.~4.2,4.3]{higham:matfun_book}). This is because both methods perform $m-1$ matrix multiplications. Since each one generally requires $O(n^3)$ flops, compared to the $O(n^2)$ typical cost of a linear combination, matrix multiplications dominate the computational cost.
 
-A matrix polynomial can be computed with $O(\sqrt{m})$ matrix-matrix multiplications, using the Paterson-Stockmeyer method~\cite{paterson_stockmeyer:article}.
+A matrix polynomial can be evaluated with $O(\sqrt{m})$ matrix-matrix multiplications, using the Paterson-Stockmeyer method~\cite{paterson_stockmeyer:article}.
 In the Paterson-Stockmeyer scheme an integer index $\nu\in[m]$ (which we will call the \emph{``batch size''}) is chosen, $p(A)$ is rewritten as a polynomial in $A^{\nu}$ of degree $\le m$, whose coefficients are linear combinations of $I,A,\dots,A^{\nu-1}$. We now describe the method more rigorously.
 
 The polynomial $p(A)$ is written as 
@@ -515,7 +571,7 @@ where $[m]_{\nu}$ is the remainder of the integer division of $m$ by $\nu$, i.e.
 		+\qty(a_5A^2+a_4A+a_3)A^3+\qty(a_2A^2+a_1A+a_0).\end{multlined}
 	\end{align*}
 \end{esempio}
-The algorithm proceeds as follows: the powers $I,A,A^2,\dots, A^{\nu}$ are computed beforehand. This requires $\nu-1$ matrix multiplications. Then~\eqref{eqn:ps_poly} is evaluated through the Horner scheme, forming the coefficients $B_k(A)$ as needed. Note that the cost of forming the $B_k(A)$ coefficients is negligible, because the powers of $A$ have already been computed.
+The algorithm proceeds as follows. The powers $I,A,A^2,\dots, A^{\nu}$ are computed beforehand. This requires $\nu-1$ matrix multiplications. Then~\eqref{eqn:ps_poly} is evaluated through the Horner scheme, forming the coefficients $B_k(A)$ as needed. Note that the cost of forming the $B_k(A)$ coefficients is negligible, because the powers of $A$ have already been computed.
 
 The total number of matrix multiplications is therefore
 \begin{equation}\label{eqn:ps_cost}
@@ -539,14 +595,14 @@ It can be easily seen that the two extreme cases $\nu=1$ and $\nu=m$ correspond 
 	As many intermediate quantities such as the matrix powers $I,A,\dots,A^{\nu}$ have to be repeatedly used, the Paterson-Stockmeyer has a higher memory footprint than the other two methods: it requires more units of storage and more memory operations. This memory cost can be reduced by computing $p(A)$ one column at a time, at the price of additional matrix-matrix multiplications. For details, see~\cite[§~4.2]{higham:matfun_book} and the references therein.
 \end{oss*}
 
-The Paterson-Stockmeyer is an essential building block of the multiprecision algorithm for the matrix exponential that this essay presents. \textcolor{red}{Ne riparleremo\dots}
+As we will see in Section~\ref{sect:exp_mp_description}, the Paterson-Stockmeyer is an essential building block of the multiprecision algorithm for the matrix exponential that this essay presents. 
 
 The same error bound holds for the three methods considered in this section, see~\cite[Thm.~4.5]{higham:matfun_book} for the precise statement. The essential point is that if there is significant cancellation in forming the polynomial $p$, then the error in the computed result can be large. 
-\bigskip
+
 \textcolor{red}{Forse: ultimamente, è uscita tutta una serie di articoli che cercano di ``battere'' Paterson-Stockmeyer.}
 \bigskip
 
-\noindent We conclude this section by mentioning the \emph{binary powering algorithm}, because the Scaling and Squaring algorithm uses a special case of it. The binary powering algorithm efficiently computes $A^m$ (i.e. it evaluates the monomial $x^m$ at $A$) by using the binary representation of $m$ instead of explicitely forming all of the previous powers of the matrix. More details can be found in~\cite[§~4.1]{higham:matfun_book}.
+\noindent We conclude this section by mentioning the \emph{binary powering algorithm}, because the scaling and squaring algorithm uses a special case of it. The binary powering algorithm efficiently computes $A^m$ (i.e. it evaluates the monomial $x^m$ at $A$) by using the binary representation of $m$ instead of explicitly forming all of the previous powers of the matrix. More details can be found in~\cite[§~4.1]{higham:matfun_book}.
 
 
 

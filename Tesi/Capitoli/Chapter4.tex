@@ -1,2 +1,460 @@
 \chapter{An Arbitrary Precision Algorithm for the Matrix Exponential}\label{capitolo:4}
-Hi.
+This chapter will describe the multiprecision scaling and squaring algorithm to compute the matrix exponential presented in~\cite{higham:hf19_mpexpm}. The structure is as follows. The first section will introduce the algorithm by outlining its general characteristic. The upper bound on the truncation error that is used by the algorithm is rigorously derived in Section~\ref{sect:exp_mp_err_bound}. Finally, Section~\ref{sect:exp_mp_description} provides a detailed description of the overall algorithm, paying particular attention to the interaction between its various components.
+
+
+\section{\textcolor{red}{Introduction and general description}}\label{sect:exp_mp_intro}
+As already noted in Chapter~\ref{capitolo:4} (see Remark~\ref{oss:sas_specifico_double}), the scaling and squaring algorithm described in Section~\ref{subs:higham's_sas} is highly optimized for the \textsc{IEEE} standard 754 double precision. Its remarkable efficiency however comes at the cost of a computationally expensive algorithm design stage. The followed procedure is, in principle, repeatable for any given precision, but it's impractical to carry out when the desired level of accuracy is an input parameter to the algorithm, thus known only at runtime. 
+\smallskip 
+
+A key ingrediend of the algorithm described in this chapter -- which will also be referred to as \texttt{exp\_mp} -- is an upper bound on the \emph{forward} error of the Padé approximants to the matrix exponential. This bound is used to determine when the parameter selection phase terminates.
+
+For comparison, the multiprecision algorithm presented in~\cite{exptayotf18} instead computes an upper bound on the \emph{backward} error at runtime. The technique used, however, is specific to Taylor approximants and does not readily generalize to other Padé approximants. Furthermore, it relies on a conjecture on the decay rate of some coefficients that appear in the series expansion of $\exp(-X)(\exp(X)-r_m(X))$, where $r_m$ is the Taylor polynomial of degree $m$ the exponential function.
+\smallskip 
+
+As we've seen in Section~\ref{subs:higham's_sas}, the approximant degree $m$ and the scaling factor $s$ in Higham's traditional scaling and squaring algorithm are chosen quite rigidly. Instead, the algorithm in~\cite{higham:hf19_mpexpm} tries to determine $s$ and $m$ at the same time. At each iteration, the values of $s$ and $m$ are updated using some heuristics; the new parameter values are then used to re-evaluate the bound. 
+
+Another noticeable difference is that while the traditional algorithm prescribes $m=13$ to be the maximum degree of the diagonal Padé approximant, no such restriction is imposed for \texttt{exp\_mp}. 
+However, \texttt{exp\_mp} only considers approximants of \emph{optimal degree}, i.e. approximants that -- among all those that require a fixed number of matrix multiplications to be evaluated -- have maximum order. More precisely, let $\zeta$ be a positive integer; the optimal degree associated to the cost $\zeta$ is $\max\qty{m\mid\pi_m=\zeta}$, where $\pi_m$ is the cost to evaluate the approximant (see Equation~\eqref{eqn:optcost_pi_m} and the accompanying discussion). For truncated Taylor series and diagonal Padé approximants to the exponential, the sequences of optimal orders are, respectively,~\cite[Eqs.~(2.7) and (4.6)]{fasi:ps_optimality}
+\begin{subequations}\label{eqn:opt_degs_formulas}
+	\begin{align}
+		a_i &= \left\lfloor\frac{(i+2)^2}{4}\right\rfloor\qquad\,i\in\mathbb{N}\setminus\{0\}\label{eqn:opt_degs_formulas:taylor}\\
+	\intertext{and}
+		\begin{split}\label{eqn:opt_degs_formulas:pade}
+			b_0 &= 1,\quad b_1 = 2\\
+			b_i &= 2\left\lceil\frac{i-1}{4}\right\rceil\qty(i-1-2\left\lfloor\frac{i-2}{4}\right\rfloor)+1\qquad\,i\in\mathbb{N}\setminus\{0,1\}.
+		\end{split}
+	\end{align}
+\end{subequations}
+The description of \texttt{exp\_mp} begins in  the following Section~\ref{sect:exp_mp_err_bound}, with a theoretical derivation of the upper bound on the (absolute) forward error that the algorithm employs. 
+
+\section{Forward error}\label{sect:exp_mp_err_bound}
+In this section we present a new upper bound on the norm of the forward error of $r_{km}(A)$ as an approximation to $\exp(A)$, leaving aside the scaling of $A$ for now. The first step is to obtain all the terms in the series expansion of $q_{km}(z)e^z-p_{km}(z)$.
+
+\begin{lemma}\label{lemma:coeffs_one_signed}
+	Let $r_{km}(z)$ be as in Definition~\ref{def:pade_apprx_exp}. Then, for all $z\in\C$
+	\[
+		q_{km}(z)e^{z}-p_{km}(z)=\sum_{i=1}^{\infty}c_{k,m}^i z^{k+m+i},
+	\]
+	where
+	\begin{equation}\label{eqn:c_km^i_formula}
+		c_{k,m}^i = (-1)^m\frac{k!}{(k+m)!}\frac{(m+i-1)!}{(i-1)!(k+m+i)!}.
+	\end{equation}
+\end{lemma}
+\begin{proof}
+	Since $\deg p_{km} = k < k+m+i$ when $i\ge 1$, $c_{k,m}^i$ is the coefficient of degree $k+m+i$ of the expansion of $q_{km}(z)e^z$. So $c_{k,m}^i$ is obtained by convolving the coefficients of the two series. Noticing that the upper limit $k+m+i$ of the sum can be replaced with the degree of $q_{km}$ we have that
+	\[
+		c_{k,m}^i = \sum_{j=0}^m (-1)^j\binom{m}{j}\frac{(k+m-j)!}{(k+m)!}\cdot\frac{1}{(k+m+i-j)!}.
+	\]
+	From this,~\eqref{eqn:c_km^i_formula} can be proven by induction on $m$. The full details can be found in~\cite{higham:hf19_mpexpm}.
+\end{proof}
+Equation~\eqref{eqn:c_km^i_formula} states that the sign of $c_{k,m}^i$ depends only on $m$. In other terms, for any given choice of $m$, the coefficients of the series expansion of $q_{km}(z)e^z-p_{km}(z)$ are one-signed.
+This is very convenient for deriving upper bounds with techniques analogous to those employed in Section~\ref{subs:sas_limitations_impr}. 
+
+Let $f(z)=q_{km}(z)e^z-p_{km}(z)$. Then, recalling Theorem~\ref{thm:backerr_bound_alpha} and the definition of $\alpha_d(A)$ (Equation~\eqref{eqn:alpha_d_def}), $\norm{f(A)}\le\tilde{f}(\alpha_d(A))$ where $\tilde{f}=\sum_{i=1}^{\infty}\abs*{c_{k,m}^i}z^{k+m+i}$. Notice however that 
+\[
+	\tilde{f}(\alpha_d(A))=\abs{\sum_{i=1}^{\infty}c_{k,m}^i\alpha_d(A)^{k+m+i}}=\abs{f(\alpha_d(A))},
+\]
+since, by Lemma~\ref{lemma:coeffs_one_signed}, all coefficients are one-signed. We have obtained the bound
+\begin{equation}\label{eqn:q_abserr_bound}
+	\norm{q_{km}(A)\exp(A)-p_{km}(A)}\le\abs{q_{km}(\alpha_d(A))e^{\alpha_d(A)}-p_{km}(\alpha_d(A))}.
+\end{equation}
+\begin{oss*}
+	Alternative definitions of $\alpha_d(A)$ can be introduced. They yield sharper bounds, but are more expensive to evaluate.
+	They haven't been used in \texttt{exp\_mp}, so they will not be further considered in this essay. The reader is referred to~\cite{higham:hf19_mpexpm} and the references therein for additional details.
+	
+	In general, alternative definitions and computation strategies for $\alpha_d(A)$ represent an interesting development to the work presented in this thesis.
+\end{oss*}
+
+Complying to the notational conventions~\ref{notaz:taylor_pade_naming} and~\ref{notaz:taylor_pade_rm_convention}, the absolute forward error is $\norm{\exp(A)-r_{m}(A)}$, where we only consider diagonal Padé or Taylor approximants. We would like to obtain a bound 
+\begin{equation}\label{eqn:abserr_bound_desired}
+	\norm{\exp(A)-r_{m}(A)}\le\abs{e^{\alpha_d(A)}-r_{m}(\alpha_d(A))}
+\end{equation}
+analogous to~\eqref{eqn:q_abserr_bound}. Notice that 
+\[
+	e^z-r_{m}(z)=q_{m}(z)^{-1}\qty(q_{m}(z)e^z-p_{m}(z)),
+\]
+thus the series expansion of $e^z-r_{m}(z)$ at $z=0$ is obtained as the Cauchy product of the power series of $q_{m}(z)^{-1}$ and $q_{m}(z)e^z-p_{m}(z)$. Since the latter series is one-signed, the same argument used to derive the bound in Equation~\eqref{eqn:q_abserr_bound} would yield the bound~\eqref{eqn:abserr_bound_desired}, provided that the former series was one-signed as well.
+
+Unfortunately, the coefficients of the series expansion of $q_{m}(z)^{-1}$ at $z=0$ sometimes have mixed signs. However, the available evidence led the authors of~\cite{higham:hf19_mpexpm} to conjecture that sign changes occur only when $\deg q_{m}$ is even. In particular they conjecture that all coefficients are positive if $m$ is odd. Since this conjecture remains unproven, the forward error is bounded using the following lemma.
+\begin{lemma}\label{lemma:abserr_bound_delta}
+	Let $r_{m}(z)$ be as in Definition~\ref{def:pade_apprx_exp}, with the notational convention~\ref{notaz:taylor_pade_rm_convention}. Then, for $A\in\C{n}{n}$ and any positive integer $d$ such that $k+m+1\ge d(d-1)$,
+	\begin{equation}\label{eqn:abserr_bound_delta}
+		\norm{\exp(A)-r_{m}(A)}\le
+		\begin{multlined}%[t]
+			\norm{q_{m}(A)^{-1}}\cdot\\
+			\cdot\abs{q_{m}(\alpha_d(A))e^{\alpha_d(A)}-p_{m}(\alpha_d(A))}
+		\end{multlined}\eqqcolon\delta.
+	\end{equation}
+\end{lemma}
+\begin{proof}
+	By~\eqref{eqn:q_abserr_bound},
+	\begin{align*}
+		\norm{\exp(A)-r_{km}(A)} &= \norm{q_{km}(A)^{-1}\qty(q_{km}(A)\exp(A)-p_{km}(A))}\\
+		 & \le\norm{q_{km}(A)^{-1}}\norm{q_{km}(A)\exp(A)-p_{km}(A)}\\
+		 & \le\norm{q_{km}(A)^{-1}}\abs{q_{km}(\alpha_d(A))e^{\alpha_d(A)}-p_{km}(\alpha_d(A))}.\qedhere
+	\end{align*}
+\end{proof}
+We remark that the norm in Lemma~\ref{lemma:abserr_bound_delta} can be any consistent matrix norm. The algorithm \texttt{exp\_mp} uses the 1-norm.
+\begin{oss*}
+	If $r_m(z)$ is the Taylor approximant of degree $m$, then $q_m(z)=1$ and the bound in Equation~\eqref{eqn:abserr_bound_desired} is equivalent to~\eqref{eqn:abserr_bound_delta}.
+\end{oss*}
+
+In Lemma~\ref{lemma:abserr_bound_delta} leaves some freedom in the choice of the index $d$. For the bound~\eqref{eqn:abserr_bound_delta} to be used in practice, however, a specific value must be selected. Since the norm of $q_m(A)^{-1}$ does not depend on $\alpha_d(A)$, the bound is nondecreasing in $\alpha_d(A)$ and therefore is minimized by choosing for $d$ the value
+\[
+	d^{\star}=\argmin\qty{\alpha_d(A)\mid 1\le d\le d^{[k/m]}}
+\]
+where $d^{[k/m]}$ is the maximum allowed index in $\alpha_d(A)$, namely
+\begin{equation}
+\begin{aligned}\label{eqn:max_d_in_alpha}
+	d^{[k/m]}&\coloneqq\max\qty{d\in\mathbb{N}\mid d(d-1)\le k+m+1}\\
+	&\phantom{:}=\left\lfloor\frac{1+\sqrt{1+4(k+m+1)}}{2}\right\rfloor.
+\end{aligned}
+\end{equation}
+\textcolor{red}{Osservazioni: we go for the throat e prendiamo $d^{[k/m]}$ direttamente, invece di cercare. In realtà l'algoritmo applica un'astuzia in più: tenere il minimo incontrato finora. Forse lo lascerei come teaser per dopo.}
+
+Choosing $d^{\star}$ requires the estimation of $\alpha_d(A)$ for many values of $d$, something that we would prefer to avoid. On the other hand, it has been observed in~\cite{higham:alhi09_new} that the sequence $\{\norm*{A^k}^{1/k}\}_{k\in\mathbb{N}}$ is typically -- though not always -- nonincreasing, so typically the sequence $\qty{\alpha_d(A)}_{d\in\mathbb{N}}$ follows the same behaviour. Consequently, it is reasonable to use $\alpha_{d^{[k/m]}}(A)$. \textcolor{red}{This is the choice that is made in \texttt{exp\_mp}, with extra cleverness to take into account the fact that is not \emph{always} the case. The computation of $\alpha_d(A)$ in \texttt{exp\_mp} will be described in detail in the following sections.}
+
+\section{\textcolor{red}{Description of the algorithm}}\label{sect:exp_mp_description}
+We now describe the multiprecision algorithm \texttt{exp\_mp}, following the exposition in~\cite{higham:hf19_mpexpm}. 
+
+The behaviour of the algorithm depends on several parameters and involves a number variables and auxiliary data structures. Tables~\ref{tab:exp_mp_parameters} and~\ref{tab:exp_mp_variables} provide a brief summary of these quantities. Their role will be explained with further detail in the remainder of this section and in the following ones.
+
+\begin{table}[htp]
+	\centering
+	\caption{\emph{Parameters controlling the behaviour of \texttt{exp\_mp}. Input parameters are listed first, followed by parameters fixed by the implementation.}}
+	\label{tab:exp_mp_parameters}
+	\begin{tabularx}{\textwidth}{cX}
+	\toprule 
+		\textbf{Parameter} & \textbf{Description}\\
+	\midrule 
+		$p_{\textup{wrk}}$		& Working precision of the algorithm\\
+		$\epsilon$ & Tolerance on the relative error bound used by the stopping criterion. Defaults to $u_{p_{\textup{wrk}}}$\\
+		\texttt{approximant} & The used approximant, either Taylor of Padé \\
+		\texttt{algorithm} & Whether the algorithm employs the full matrix or the upper (quasi-)triangular factor of a Schur decomposition\\
+		$m_{\max}$, $s_{\max}$ & Maximum allowed approximant degree and scaling factor\\
+	\cmidrule(lr){1-2} 	
+		$\xi=\xi(u)$ & Threshold used to determine whether the denominator is too ill-conditioned\\
+		$p_{\textup{bnd}}$ & Precision used to estimate the 1-norms of $q_{m_i}(2^{-s_i}X)$ and of the matrix powers required to compute $\alpha_{\min}$. Defaults to $53$.\\
+	\bottomrule
+	\end{tabularx}
+\end{table}
+
+\begin{table}[hbp]
+	\centering 
+	\caption{\emph{Variables and auxiliary data structures employed by \texttt{exp\_mp}.}}
+	\label{tab:exp_mp_variables}
+	\begin{tabularx}{\textwidth}{cX}
+	\toprule
+		\textbf{Variable} & \textbf{Description}\\
+	\midrule
+		$m_i$ & Approximant degree $m$ at iteration $i$ of the scaling phase \\
+		$s_i$ & Scaling factor $s$ at iteration $i$ of the scaling phase \\
+		$\delta$ & Upper bound on the absolute (forward) truncation error $\norm{\exp(2^{-s_i}X)-r_{m_i}(2^{-s_i}X)}_1$, given by the LHS of~\eqref{eqn:exp_mp_stopping_crit}\\
+		$\psi$ & Approximation of $\norm{\exp(2^{-s_i}X)}_1$ as $\norm{r_{m_i}(2^{-s_i}X)}_1$\\
+		$\mathcal{A}$ & Array containing consecutive powers of $X$, or $X^2$\\
+		$\gamma=\qty(\gamma_d)_{d\ge 1}$ & Data structure containing the norms $\gamma_d=\norm{A^d}^{1/d}_1$\\
+		$\alpha_{\min}$ & Best $\alpha_d(X)$ encountered so far\\
+	\bottomrule
+	\end{tabularx}
+\end{table}
+\textcolor{red}{Su variabili: le assumiamo globali almeno nello pseudocodice non si impazzisce.}
+
+Algorithm~\ref{alg:exp_mp_pseudocode} describes \texttt{exp\_mp} in pseudocode. A \matlab{} implementation of the algorithm is available at \url{https://github.com/mfasi/mpexpm}. As part of this thesis, a Julia implementation has also been developed and is available at \url{https://github.com/M4rinz/Tesi-project}.
+Note that the commercial Multiprecision Computing Toolbox~\cite{matlab_mpct} by Advanpix is required by the \matlab{} version, while the Julia implementation relies solely on the language's features and on open source libraries.
+
+\begin{algorithm}[hbp]
+	\caption{\emph{Multiprecision scaling and squaring algorithm for the matrix exponential.}}
+	\label{alg:exp_mp_pseudocode}
+	\begin{algorithmic}[1]
+		\Function{\texttt{exp\_mp}}{$A,\texttt{algorithm},\texttt{approximant},p_{\textup{wrk}}$}
+		\If{$\mathtt{algorithm}\ne\mathtt{\colon\!transfree}$}
+			\State $X,Q\gets\textsc{Schur}(A,\mathtt{algorithm})$
+		\Else 
+			\State $X\gets A$
+		\EndIf
+		\If{$\mathtt{approximant}==\mathtt{\colon\!taylor}$}
+			\State $\mathcal{A}\gets\qty[I, X]$
+		\Else
+			\State $\mathcal{A}\gets\qty[I, X^2]$
+		\EndIf
+		\State $s_0\gets 0,\quad m_0\gets 1$
+		\State $\gamma\gets\qty[-\infty,-\infty,\dots]$
+		\State $\alpha_{\min}\gets\infty,\quad\delta_{\textup{old}}\gets\infty$
+		\State $i\gets 1$
+		\While{$\delta\ge\epsilon\psi$ \textbf{and} $s_{i-1}<s_{\max}$ \textbf{and} $m_{i-1}<m_{\max}$}\label{line:stop_crit}
+			\If{$\kappa_A\ge\xi(u_{p_{\textup{wrk}}})$ \textbf{or} $\delta_{\textup{old}}<\delta^2$}\label{line:increase_s_condition}
+				\State $s_{i}\gets s_{i-1}+1$
+			\Else 
+				\State $m_i\gets\textsc{OptDegree}\qty(i,\mathtt{approximant})$\label{line:increase_m}
+			\EndIf
+			\State $i\gets i+1$
+			\State $\delta_{\textup{old}}\gets\delta$
+			\State $\delta, \psi, \kappa_A \gets \textsc{EvalBound}(X, m_i, s_i, \mathtt{approximant})$\label{line:reevaluate_bound}
+		\EndWhile\label{line:endWhile}
+		\State $Y\gets\textsc{EvalApproximant}(X,m_i,s_i,\mathtt{approximant})$\label{line:eval_approximant}
+		%\State
+		\If{$\textsc{isQuasiUpperTriangular}(X)$}\Comment{Squaring phase}
+			\State $Y\gets\textsc{RecomputeDiags}(2^{-s_i}X,Y)$
+		\EndIf
+		\For{$t=1,\dots,s_i$}
+			\State $Y\gets Y\mathtt{*}Y$
+			\If{$\textsc{isQuasiUpperTriangular}(X)$}
+				\State $Y\gets \textsc{RecomputeDiags}(2^{-s_i+t}X,Y)$
+			\EndIf
+		\EndFor
+		\If{$\mathtt{algorithm}\ne\mathtt{\colon\!transfree}$}
+			\State $Y\gets QYQ^{H}$	
+		\EndIf
+		\State\Return $Y$
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+If $A$ is normal and a multiprecision implementation of the QR algorithm is available, diagonalization in higher precision is a valid approach for computing $\exp(A)$, as discussed in Section~\ref{subs:diagonalization}. More generally, a Schur decomposition can be used. The \texttt{exp\_mp} algorithm accepts three values for the \texttt{algorithm} parameter, namely
+\begin{itemize}
+	\item $\mathtt{\colon\!complexschur}$. A complex Schur form $A=QXQ^{H}$ of $A\in\C{n}{n}$ is computed, where $X,Q\in\C{n}{n}$ are upper triangular and unitary, respectively
+	\item $\mathtt{\colon\!realschur}$. A real Schur form $A=QXQ^{H}$ of $A\in\R{n}{n}$ is computed, where $X,Q\in\R{n}{n}$ are upper quasi-triangular and orthogonal, respectively
+	\item $\mathtt{\colon\!transfree}$. No Schur form is computed, $X$ is set equal to $A$
+\end{itemize}
+The algorithm approximates $\exp(X)$ and returns $Q\exp(X)Q^{H}$ if a Schur decomposition is employed. 
+\begin{notazione*}
+	Given this optional preprocessing technique, the algorithm will be described as if it was computing $\exp(X)$. This is different from the notational conventions in the original work~\cite{higham:hf19_mpexpm}. 
+\end{notazione*}
+As discussed in Section~\ref{subs:multiprecision_in_Julia}, arbitrary precision Schur decompositions can be computed in Julia using the \texttt{GenericSchur.jl}~\cite{sw:GenericSchur} library. The implementation developed as part of this thesis relies on this library. In \matlab{}, arbitrary precision Schur decompositions are available through the Multiprecision Computing Toolbox~\cite{matlab_mpct}, on which the author's implementation relies.
+
+\begin{oss}
+	As already discussed in Section~\ref{subs:preprocessing}, shifting is a popular preprocessing technique that can sometimes prove effective. For conciseness of exposition, it is not displayed in Algorithm~\ref{alg:exp_mp_pseudocode}, even though it is employed by both the original \matlab{} implementation and the Julia implementation proposed with this thesis. 
+\end{oss}
+\smallskip 
+
+The algorithm begins with a more refined scaling phase (lines~\algref{alg:exp_mp_pseudocode}{line:stop_crit}--\algref{alg:exp_mp_pseudocode}{line:endWhile}), in which the parameters $m$ and $s$ are determined simultaneously to yield an accurate approximation $r_m(2^{-s}X)$ of $\exp(2^{-s}X)$. 
+As already mentioned in Section~\ref{sect:exp_mp_intro}, this phase aims at finding values of $s$ and $m$  such that the truncation error is bounded similarly to Lemma~\eqref{lemma:abserr_bound_delta}, and the bound is used to decide when to terminate. More precisely, the condition that needs to be tested at line~\algref{alg:exp_mp_pseudocode}{line:stop_crit} is 
+\begin{equation}\label{eqn:exp_mp_stopping_crit}
+	\delta\coloneqq\begin{multlined}
+		\overbrace{\norm{q_{m_i}(2^{-s_i}X)^{-1}}_1}^{\coloneqq\eta}\cdot\\ 
+		\cdot\abs{q_{m_i}(\alpha_d(2^{-s_i}X))e^{\alpha_d(2^{-s_i}X)}-p_{m_i}(\alpha_d(2^{-s_i}X))} 
+	\end{multlined}
+	< \epsilon\psi(2^{-s_i}X)
+\end{equation}
+where $\epsilon$ is the tolerance value, and $\psi(M)$ is an approximation of $\norm{\exp(M)}_1$ ($M\in\C{n}{n}$) computed using the Taylor or Padé approximant of order $m_i$ and scaling factor $2^{-s_i}$ available at the iteration $i$.
+
+\begin{oss}\label{oss:psi_not_lower_bound}
+	Through the introduction of $\psi$, the stopping criterion~\eqref{eqn:exp_mp_stopping_crit} tries to implement a bound on the \emph{relative} error, as it is customary in numerical algorithms. %\newline
+	If $\psi\equiv\psi(2^{-s}X)$ was a lower bound on $\norm{\exp(2^{-s}X)}_1$, then $\delta/\psi$ would be an upper bound on the relative error, so -- leaving the considerations in Remark~\ref{oss:delta_not_upper_bound} aside -- the stopping criterion would ensure a small relative error in the approximation. 
+	However, this is not the case in general. The use of $\psi$ is an heuristic: the denominator is approximated in the best possible way using the information available at the current iteration of the algorithm. 
+\end{oss}
+\smallskip 
+
+At each iteration, only one of the two parameters is increased. As long as the stopping condition is not satisfied, two heuristics are used  to decide which parameter is more convenient to change.
+
+The scaling factor $s$ is increased if $q_{m_i}(2^{-s_i}X)^{-1}$ is too ill-conditioned, or if the error is not decreasing at least quadratically (line~\algref{alg:exp_mp_pseudocode}{line:increase_s_condition}). The first condition is checked as $\kappa_A\ge\xi(u_p)$, the second one as $\delta_{\textup{old}}<\delta$. 
+
+In practice, $\xi(u)$ is set in~\cite{higham:hf19_mpexpm} as $\xi(u)\coloneqq u^{-1/8}$. For \textsc{IEEE} standard 754 double precision, this choice gives $\xi(u)=2^{53/8}\approx 98.70$, which agrees (within a factor of 1.4) with the largest condition number allowed by Al-Mohy and Higham~\cite[Table~3.1]{higham:alhi09_new} for that precision. The choice of $\xi(u)$ appears to be largely heuristic, no further justification is given in~\cite{higham:hf19_mpexpm} beyond the previous observation. Although the provided theoretical justification is limited, the numerical experiments in Chapter~\ref{capitolo:6} indicate that the resulting algorithm performs well in practice. It would be interesting to investigate whether alternative choices for $\xi(u)$ could further improve its performance.
+
+By increasing $m$, $r_m(2^{-s}X)$ better approximates $\exp(2^{-s}X)$, but the conditioning of $q_m(2^{-s}X)$ worsens. Recall that the ill-conditioning of the denominator prevents us from accurately evaluating the approximant $r_m(2^{-s}X)=q_m(2^{-s}X)\backslash\,p_m(2^{-s}X)$. 
+\begin{oss*}
+	If the chosen approximant is a Taylor polynomial, then $q_m(z)=1$. The check $\kappa_A\ge\xi(u_p)$ serves no purpose, as there no linear system has to be solved to recover the approximant. 
+\end{oss*}
+
+Let us now discuss the second condition $\delta_{\textup{old}}<\delta^2$ at line~\algref{alg:exp_mp_pseudocode}{line:increase_s_condition}.
+The authors of~\cite{higham:hf19_mpexpm} noticed that when $\alpha_d(2^{-s_i}X)\gg 1$, the bound~\eqref{eqn:abserr_bound_delta} can sometimes decrease exceedingly slowly as $m$ increases (as we will see later, $d=d(m_i)$), leading to the use of an approximant of degree much larger than needed, which in turn causes loss of accuracy and a high computational cost. Intuitively, the evaluation is taking place too far from zero. In this case, it may be worth scaling the matrix further. 
+
+The authors of~\cite{higham:hf19_mpexpm} note that increasing $s$ when the bound on the (absolute) truncation error doesn't decrease at least quadratically, i.e. when $\delta^2>\delta_{\textup{old}}$, is an effective way of preventing the phenomenon just described from happening. This criterion is purely heuristic. It was presumably obtained through repeated numerical experiments, no theoretical justification is provided in~\cite{higham:hf19_mpexpm}.
+\smallskip 
+
+If neither of the two conditions at line~\algref{alg:exp_mp_pseudocode}{line:increase_s_condition} hold, the approximant degree is increased (line~\algref{alg:exp_mp_pseudocode}{line:increase_m}). The value returned by the \textsc{OptDegree} function is given by~\eqref{eqn:opt_degs_formulas:taylor} if $\mathtt{approximant}=\,\colon\!\mathtt{taylor}$, and is given by~\eqref{eqn:opt_degs_formulas:pade} otherwise.
+
+\begin{oss*}
+	Both increasing $s$ and increasing $m$ reduce the truncation error $\norm{\exp(2^{-s}X)-r_m(2^{-s}X)}$, but either choice may adversely effect the numerical behaviour of the algorithm.
+	
+	If $s$ is increased, the squaring phase involves more steps. Besides increasing the overall cost of \texttt{exp\_mp}, this potentially exposes the algorithm to the risk of \emph{overscaling}, as discussed in Section~\ref{subs:sas_limitations_impr}.
+	
+	Increasing $m$ not only increases the overall cost of the algorithm, but also degrades the conditioning of the coefficient of the multiple right-hand-side linear system used to evaluate $r_m(2^{-s}X)$. The risk is that the reduction in truncation error may be offset by a less accurate evaluation of the approximant itself.
+\end{oss*}
+
+At each iteration, after the parameters $s$ and $m$ are adjusted, the bound is re-evaluated using the updated information at line~\algref{alg:exp_mp_pseudocode}{line:reevaluate_bound}. 
+
+As soon as a combination of scaling parameter and approximant order is found, the algorithm computes $Y$ by evaluating the approximant (diagonal Padé or Taylor) of order $m_i$ at $2^{-s_i}X$. After the computation of the approximant, the squaring phase can finally begin, where $\exp(X)\approx Y^{2^{s_i}}$ is computed by applying $s_i$ steps of binary powering to $Y$. If $X$ is upper (quasi-)triangular, the squaring phase is performed as described in Section~\ref{subs:impr_sq_phase}.
+
+The function \textsc{EvalBound}, which is at the core of the algorithm, will be thoroughly described in the following sections, distinguishing between the Taylor and Padé cases.
+%Before doing so, we make an important remark.
+
+\begin{oss}\label{oss:delta_not_upper_bound}
+	The values of $\delta$, $\psi$ and $\kappa_A$ are computed using the parameter values $s_i$ and $m_i$ of the current iteration $i$. As a consequence, the value of $\delta$ returned at the end of the algorithm is not an upper bound to the final absolute truncation error $\norm{\exp(X)-r_m(2^{-s}X)^{\cramped{2^s}}}_1$, but to $\norm{\exp(2^{-s}X)-r_m(2^{-s}X)}_1$, where $s$ and $m$ here denote the values at the end of the last iteration of the scaling phase.
+	
+	Note that between the computation of $\delta$ and its return to the user, the squaring phase is performed. As discussed in Section~\ref{subs:sas_limitations_impr}, this phase introduced additional rounding errors that can't possibly be accounted for by $\delta$. Consequently, the returned value should not be interpreted as a certificate for the accuracy of the final computed result. In particular, $\delta$ may not be greater than $\norm{\exp(X)-\mathtt{exp\_mp}(X)}$ because it bounds another truncation error.
+	\textcolor{red}{This topic will be further discussed in Chapter~\ref{capitolo:6}, Section~\ref{sect:is_delta_bound?}.}
+\end{oss}
+
+\subsection{Diagonal Padé approximants}
+Let us start by discussing the implementation of the \textsc{EvalBound} function in the diagonal Padé approximant case. 
+The Padé approximant variant of the \textsc{EvalBound} function is displayed, in pseudocode, in Algorithm~\ref{alg:eval_bound_pade}. There are two main aspects in the evaluation of the stopping criterion~\eqref{eqn:exp_mp_stopping_crit}, namely the computation of $\alpha_{\min}$ and the evaluation of the denominator of the Padé approximant.
+
+\begin{algorithm}[hbp]
+	\caption{\emph{Function that evaluates the bound~\eqref{eqn:abserr_bound_delta} with the parameters $s_i,m_i$ of the current iteration of the modified scaling phase; and updates many variables and auxiliary data structures of the algorithm.}}
+	\label{alg:eval_bound_pade}
+	\begin{algorithmic}[1]
+		\Function{\textsc{EvalBound}}{$X,m,s,\mathtt{\colon\!diagonalcheap}$} 
+%		\Statex \textbf{Input}: $X\in\C{n}{n}$ (transformed) input matrix. $s\in\mathbb{N}$: scaling factor. $m\in\mathbb{N}$: order of the Padé approximant.
+%		\Statex \textbf{Output}: $\delta\in\R$: upper bound to the truncation error.\newline $\psi\in\R$: estimate of $\norm{\exp(2^{-s}X)}_1$.\newline $\kappa_A\in\R$: estimate of the condition number of the denominator
+			\State $\alpha_{\min}\gets\textsc{OptAlpha}(\textcolor{red}{X},m,\mathtt{\colon\!diagonalcheap})$\label{line:alpha_min_computation}
+			\State $U_{\textup{e}}, U_{\textup{o}} \gets \textsc{EvalEvenOddParts}(X, m, s, p_{\textup{bnd}})	$\label{line:eval_pade_ps}
+			\With{$\mathtt{setprecision}(p_{\textup{bnd}})$}	
+				\State $L, U\gets \textsc{LU}(U_{\textup{e}}-U_{\textup{o}})$\label{line:LU_fact_q}
+				\State $\eta\gets\textsc{normest1}\qty(x\mapsto U^{-1}L^{-1}x)$\label{line:eta_normest1}
+			\EndWith
+			\State $\delta\gets\eta\cdot\abs{q_m(2^{-s}\alpha_{\min})e^{2^{-s}\alpha_{\min}}-p_m(2^{-s}\alpha_{\min})}$
+			\State $\psi\gets\textsc{normest1}\qty(x\mapsto (2U^{-1}L^{-1}U_{\textup{o}}+I)x)$
+			\State $\kappa_A\gets\eta\cdot\textsc{normest1}\qty(x\mapsto(U_{\textup{e}}-U_{\textup{o}})x)$
+			\State\Return $\delta,\psi,\kappa_A$
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+The presence of $\norm{q_{m_i}(2^{-{s_i}}X)^{-1}}_1$ in the stopping criterion~\eqref{eqn:exp_mp_stopping_crit} makes the evaluation of the denominator of the Padé approximant necessary. This evaluation is performed in line~\algref{alg:eval_bound_pade}{line:eval_pade_ps}; the pseudocode for \textsc{EvalEvenOddParts} can be seen in the first code snippet of Algorithm~\ref{alg:eval_approximant}. 
+
+$q_{m_i}(2^{-s_i}X)$ is computed by evaluating its even and odd parts with the Paterson-Stockmeyer method, as described in Section~\ref{subs:choosing_approx_deg}. 
+The algorithm, whose pseudocode is shown in Algorithm~\ref{alg:exp_mp_paterson_stockmeyer}, introduces two important modifications to the procedure. The powers of $X^2$ are computed and cached in the global array $\mathcal{A}$, and the evaluation of the matrix polynomial is performed at a given precision $\hat{p}$. In particular, \textsc{EvalBound} evaluates the denominator at the lower precision $p_{\textup{bnd}}$.
+Let us now fully motivate these variations.
+
+\begin{algorithm}[htp]
+	\caption{\emph{Modified Paterson-Stockmeyer scheme to compute a matrix polynomial at a given precision $\hat{p}$, while producing and storing the matrix powers for subsequent use.}}
+	\label{alg:exp_mp_paterson_stockmeyer}
+	\begin{algorithmic}[1]
+		\Function{\textsc{Poly\_PS}}{$s,\beta,\nu,\hat{p}$}
+		\Statex\textbf{Input}: $s\in\mathbb{N}$: scaling factor. $\beta\in\C{t+1}$: coefficients vector.\newline $\nu\in\mathbb{N}$: \emph{batch size}. $\hat{p}\in\R$: working precision.
+		\Statex\textbf{Output}: Evaluation of $\sum_{k=0}^t\beta_k\cdot(2^{-s}X)^k$, using elements of $\mathcal{A}$.
+			\State $r\gets\lfloor t/\nu\rfloor$
+			\For{$i=\text{length}(\mathcal{A})+1,\dots,\nu$}\label{line:add_powers_for_loop}
+				\State $\mathcal{A}_i\gets\mathcal{A}_{i-1}\mathtt{*}\mathcal{A}_{1}$
+			\EndFor\label{line:add_powers_for_loop_end}
+			\With{$\mathtt{setprecision}(\hat{p})$}
+				\State $Y\gets\sum_{j=0}^{[t]_{\nu}}\beta_{\nu r+j}\mathcal{A}_j$
+				\For{$k=r-1,\dots,0$}
+					\State $Y\gets Y2^{-s\nu}\mathcal{A}_{\nu}+\sum_{j=0}^{\nu-1}\beta_{\nu k+j}2^{-sj}\mathcal{A}_j$
+				\EndFor
+			\EndWith
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+Computing the powers $I, X^2,\dots, (X^2)^{\nu}$ ($\nu=\lceil\sqrt{m_i}\rceil$) in high precision and storing them in $\mathcal{A}$ is advantageous, since their computation is the most expensive operation performed by \texttt{exp\_mp}, and the resulting matrices are reused throughout the algorithm.
+
+Besides being used at each iteration of the modified scaling phase, these powers can also be employed by the function \textsc{EvalApproximant} at line~\algref{alg:exp_mp_pseudocode}{line:eval_approximant} to evaluate the final approximant of the matrix exponential. Computing them in advance does not waste computational effort, since the values of $m_i$ cannot decrease across the iterations. Consequently, every matrix powers that is formed is eventually used. Thus the matrix powers are computed in high precision, even though -- as we will discuss shortly -- the evaluation of the bound doesn't strictly require it.
+
+\begin{oss}
+	Notice that the point at which the denominator is evaluated may change from one iteration of the modified scaling phase to the next. 
+	This causes no harm, in fact $(2^{-s}X)^k=2^{-ks}X^k$, and scaling a matrix is a $O(n^2)$ operation. 
+	This provides additional motivation for storing the powers of $X^2$ and scaling them only when needed.
+\end{oss}
+
+The \emph{batch size} $\nu=\lceil\sqrt{m_i}\rceil$ increases with $m_i$, although not linearly. Hence an iteration may select an approximant degree that yields a value of $\nu$ strictly larger than that of the previous iteration. When this happens, additional powers of $X^2$ must be computed and appended to $\mathcal{A}$. This updated is performed in lines~\algref{alg:exp_mp_paterson_stockmeyer}{line:add_powers_for_loop}--\algref{alg:exp_mp_paterson_stockmeyer}{line:add_powers_for_loop_end} of Algorithm~\ref{alg:exp_mp_paterson_stockmeyer}.
+\begin{oss*}
+	The function $\text{length}(\mathcal{A})$ at line~\algref{alg:exp_mp_paterson_stockmeyer}{line:add_powers_for_loop} returns the number of positive powers stored in $\mathcal{A}$. In other words, if $\text{length}(\mathcal{A})=l$ then $\mathcal{A}$ contains $l+1$ matrices from $\mathcal{A}_0=I$ to $\mathcal{A}_l=X^{2l}$. 
+\end{oss*}
+\smallskip 
+
+In the stopping criterion~\eqref{eqn:exp_mp_stopping_crit} we can settle for $\eta$ being an approximation of $\norm{q_{m_i}(2^{-s_i}X)^{-1}}_1$ of the correct order of magnitude. 
+Without this design choice, \texttt{exp\_mp} would be prohibitely expensive, as each iteration of the modified scaling phase would add $O(2n^3/3)$ arbitrary precision flops per iteration, due to the LU factorization. As also observed in Section~\ref{subs:multiprecision_in_Julia}, the computation of the LU factorization is way more optimized in double precision than it is in arbitrary precision.
+
+In practice, the $L$ and $U$ matrices produced at line~\algref{alg:eval_bound_pade}{line:LU_fact_q} contain double precision data, so $\eta$ can be computed using the \texttt{normest1} function introduced in Section~\ref{subs:compute_estimate_cond} \textcolor{red}{(in realtà devo riprendere un po' le fila del discorso)}, which only accepts data in single or double precision.
+
+%{\color{red}
+%Il polinomio viene valutato in precisione più bassa. In pratica, L e U alla riga~\algref{alg:eval_bound_pade}{line:LU_fact_q} sono matrici di Float64. $\eta$ è solo una stima della norma 1. Due aspetti: (1) la funzione normest1 accetta argomenti in precisione doppia, non funziona in precisione arbitaria; (2) se a ogni passo dobbiamo veramente fare una LU in precisione arbitraria, stiamo freschi! Tentiamo di minimizzare le flops in multiprecisione va che è meglio.}
+
+\begin{algorithm}[hbp]
+	\caption{\emph{Functions to evaluate the approximant of the matrix exponential; and auxiliary function to evaluate the even and odd parts of its numerator at a given precision $\hat{p}$. The function \emph{\textsc{Poly\_PS}} is in Algorithm~\ref{alg:exp_mp_paterson_stockmeyer}.}}
+	\label{alg:eval_approximant}
+	\begin{algorithmic}[1]
+		\Function{\textsc{EvalEvenOddParts}}{$X,m,s,\hat{p}$}
+		\State $\beta_{\textup{e}}\gets\qty{\frac{m!(2m-2i)!}{(2m)!(m-2i)!(2i)!}}_{i=0,\dots,\lfloor m/2\rfloor}$
+		\State $\beta_{\textup{o}}\gets\qty{\frac{m!(2m-2i-1)!}{(2m)!(m-2i-1)!(2i+1)!}}_{i=0,\dots,\lceil m/2-1\rceil}$
+		\State\Return $\textsc{Poly\_PS}\qty(2s,\beta_{\textup{e}},\lceil\sqrt{m}\rceil,\hat{p})$, $X\textsc{Poly\_PS}\qty(2s,\beta_{\textup{o}},\lceil\sqrt{m}\rceil,\hat{p})$
+		\EndFunction
+	\end{algorithmic}
+	\hrule
+	\begin{algorithmic}[1]
+		\Function{\textsc{EvalApproximant}}{$X,m,s,\mathtt{\colon\!diagonalcheap}$}
+			\State $U_{\textup{e}}, U_{\textup{o}}\gets\textsc{EvalEvenOddParts}(X,m,s,p_{\textup{wrk}})$
+			\State $L,U\gets\textsc{LU}(U_{\textup{e}}-U_{\textup{o}})$
+			\State \Return $U^{-1}(L^{-1}(2U_{\textup{o}}+I))$
+		\EndFunction
+	\end{algorithmic}
+	\hrule
+	\begin{algorithmic}[1]
+		\Function{\textsc{EvalApproximant}}{$X,m,s,\mathtt{\colon\!taylor}$}
+			\State $\beta\gets\qty{1/k!}_{k=0,\dots,m}$
+			\State \Return $\textsc{Poly\_PS}\qty(s,\beta,\lceil\sqrt{m}\rceil,p_{\textup{wrk}})$
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+The second main aspect in the evaluation of the stopping criterion is the computation of $\alpha_{\min}$. %At any given iteration $i$ of the modified scaling phase, $\alpha_{\min}$ is the minimum value of $\alpha_d(X)$ encountered so far. 
+Recall that $\alpha_d(X)$ is defined as in Equation~\eqref{eqn:alpha_d_def}, and that the bound~\eqref{eqn:abserr_bound_delta} -- on which the stopping criterion~\eqref{eqn:exp_mp_stopping_crit} is based -- is satisfied by any $d$ such that $1\le d\le d^{[m/m]}$ where $d^{[m/m]}$ is defined as in~\eqref{eqn:max_d_in_alpha}. \textcolor{red}{\textbf{Rivedi da qui in poi}}
+
+In practice, at each iteration we choose $d=d^{[m_i/m_i]}$ and store in $\alpha_{\min}$ the minimum $\alpha_d(X)$ encountered so far. 
+\begin{oss*}
+	{\color{red} This choice doesn't ensure that the best possible $d$ is used, but at least prevents the $\alpha$ value from growing from one iteration to the next.}
+\end{oss*}
+Algorithm~\ref{alg:exp_mp_alpha_min} shows the pseudocode of the algorithm that computes $\alpha_{\min}$. Note that, given the definition of $d$ at line~\algref{alg:exp_mp_alpha_min}{line:d_formula_pade}, we may have to compute $\norm{X^d}_1$ for a value $d$ not available in the matrix powers in $\mathcal{A}$. We do not want to form matrix powers simply to compute $\alpha_d(X)$. So, we do with what we have: we use \texttt{normest1}. The cool thing is that \texttt{normest1} doesn't require the matrix, it can use an oracle that implements the action of the matrix whose norm we want to estimate. The function \textsc{EvalPowVec} does this job.
+
+
+
+\textcolor{red}{\textbf{Continuare}.}
+
+
+\begin{algorithm}[hbp]
+	\caption{\emph{\textcolor{red}{FARE}}}
+	\label{alg:exp_mp_alpha_min}
+	\begin{algorithmic}[1]
+		\Function{\textsc{OptAlpha}}{$\textcolor{red}{X},m,\texttt{approximant}$}
+			\If{$\mathtt{approximant}=\,\mathtt{\colon\!diagonalcheap}$}
+				\State $d\gets\left\lfloor\frac{1+\sqrt{5+8m}}{2}\right\rfloor$\label{line:d_formula_pade}
+			\Else 
+				\State $d\gets\left\lfloor\frac{1+\sqrt{5+4m}}{2}\right\rfloor$
+			\EndIf
+			\If{$\gamma_d=-\infty$}
+				\State $\gamma_d\gets\textsc{normest1}\qty(x\mapsto\textsc{EvalPowVec}(d,x,\texttt{approximant}))^{1/d}$\label{line:gamma_d_normest1}
+			\EndIf
+			\If{$\gamma_{d+1}=-\infty$}
+				\State $\gamma_{d+1}\gets\begin{multlined}[t]
+					\textsc{normest1}(x\mapsto\\
+					\mapsto\textsc{EvalPowVec}\qty(d+1,x,\texttt{approximant}))^{1/(d+1)}
+					\end{multlined}$
+			\EndIf
+			\State\Return $\min\qty{\max\qty{\gamma_d,\gamma_{d+1}},\alpha_{\min}}$
+		\EndFunction
+	\end{algorithmic}
+	\hrule
+	\begin{algorithmic}[1]
+		\Function{\textsc{EvalPowVec}}{$d,V,\mathtt{\colon\!diagonalcheap}$}
+			\State $l\gets\text{length}(\mathcal{A})$
+			\While{$d>1$ \textbf{and} $l>1$}
+				\For{$i=1,\dots,\lfloor d/(2l)\rfloor$}
+					\State $V\gets\mathcal{A}_lV$
+				\EndFor
+				\State $d\gets d\mod{2l}$
+				\State $l\gets\min\qty{l-1,\lfloor d/2\rfloor+1}$
+			\EndWhile
+			\If{$d=1$}
+				\State $V\gets \textcolor{red}{X}V$
+			\EndIf
+			\State\Return $V$
+		\EndFunction
+	\end{algorithmic}
+	\hrule
+	\begin{algorithmic}[1]
+		\Function{\textsc{EvalPowVec}}{$d,V,\mathtt{\colon\!taylor}$}
+			\State $l\gets\text{length}(\mathcal{A})$
+			\While{$d>0$}
+				\For{$i=1,\dots,\lfloor \textcolor{red}{p}/l\rfloor}$
+					\State $V\gets\mathcal{A}_l V$				
+				\EndFor
+				\State $d\gets d\mod{l}$
+				\State $l\gets\min{l-1,d}$	
+			\EndWhile
+			\State\Return $V$
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+

@@ -64,6 +64,19 @@
 	keywords = {matrix function, matrix exponential, calcolare expm, Padé approximant, scaling and squaring},
 }
 
+@article{higham:hiti_normest1,
+	author = {Higham, Nicholas J. and Tisseur, Fran\c{c}oise},
+	title = {A Block Algorithm for Matrix 1-Norm Estimation, with an Application to 1-Norm Pseudospectra},
+	journal = {SIAM Journal on Matrix Analysis and Applications},
+	volume = {21},
+	number = {4},
+	pages = {1185-1201},
+	year = {2000},
+	doi = {10.1137/S0895479899356080},
+	URL = {https://doi.org/10.1137/S0895479899356080},
+	eprint = {https://doi.org/10.1137/S0895479899356080}
+}
+
 @book{higham:matfun_book,
     author = {Higham, Nicholas J.},
     title = {Functions of Matrices},
@@ -444,3 +457,79 @@
 	eprint = {https://doi.org/10.1137/0704033}
 }
 
+@article{dieci_papini:cond_2001,
+	title = {Conditioning of the Exponential of a Block Triangular Matrix},
+	volume = {28},
+	issn = {1572-9265},
+	url = {https://doi.org/10.1023/A:1014071202885},
+	doi = {10.1023/A:1014071202885},
+	abstract = {We propose a new measure of conditioning for the exponential of a block triangular matrix. We also show that different “condition numbers” must be used to assess the accuracy of different algorithms which implement diagonal Padé with scaling and squaring.},
+	pages = {137--150},
+	number = {1},
+	journaltitle = {Numerical Algorithms},
+	author = {Dieci, Luca and Papini, Alessandra},
+	urldate = {2026-06-19},
+	date = {2001-12-01},
+	langid = {english},
+	keywords = {block triangular matrices, matrix exponential, structured condition number},
+}
+
+@article{dieci_papini:exp_blockTri,
+	title = {Padé approximation for the exponential of a block triangular matrix},
+	journal = {Linear Algebra and its Applications},
+	volume = {308},
+	number = {1},
+	pages = {183-202},
+	year = {2000},
+	issn = {0024-3795},
+	doi = {https://doi.org/10.1016/S0024-3795(00)00042-2},
+	url = {https://www.sciencedirect.com/science/article/pii/S0024379500000422},
+	author = {Luca Dieci and Alessandra Papini},
+	keywords = {Exponential, Scaling and squaring, Padé approximation},
+	abstract = {In this work, we obtain improved error bounds for Padé approximations to eA when A is block triangular. As a result, improved scaling strategies ensue which avoid some common overscaling difficulties.}
+}
+
+@InProceedings{article:pmlr-v119-xiao20a,  
+	title = {Generative Flows with Matrix Exponential},  
+	author = {Xiao, Changyi and Liu, Ligang},  
+	booktitle = {Proceedings of the 37th International Conference on Machine Learning},  
+	pages = {10452--10461},  
+	year = {2020},  
+	editor = {III, Hal Daumé and Singh, Aarti},  
+	volume = {119},  
+	series = {Proceedings of Machine Learning Research},  
+	day = {13--18},
+	month = {Jul},  
+	publisher = {PMLR},  
+	pdf = {http://proceedings.mlr.press/v119/xiao20a/xiao20a.pdf}, 
+	url = {https://proceedings.mlr.press/v119/xiao20a.html},  
+	abstract = {Generative flows models enjoy the properties of tractable exact likelihood and efficient sampling, which are composed of a sequence of invertible functions. In this paper, we incorporate matrix exponential into generative flows. Matrix exponential is a map from matrices to invertible matrices, this property is suitable for generative flows. Based on matrix exponential, we propose matrix exponential coupling layers that are a general case of affine coupling layers and matrix exponential invertible 1 x 1 convolutions that do not collapse during training. And we modify the networks architecture to make training stable and significantly speed up the training process. Our experiments show that our model achieves great performance on density estimation amongst generative flows models.}
+}
+
+@article{noferini:struct_cond_n,
+	author = {Arslan, Bahar and Noferini, Vanni and Tisseur, Fran\c{c}oise},
+	title = {The Structured Condition Number of a Differentiable Map between Matrix Manifolds, with Applications},
+	journal = {SIAM Journal on Matrix Analysis and Applications},
+	volume = {40},
+	number = {2},
+	pages = {774-799},
+	year = {2019},
+	doi = {10.1137/17M1148943},
+	URL = {https://doi.org/10.1137/17M1148943},
+	eprint = {https://doi.org/10.1137/17M1148943},
+	abstract = { We study the structured condition number of differentiable maps between smooth matrix manifolds, extending previous results to maps that are only \$\mathbb{R}\$-differentiable for complex manifolds. We present algorithms to compute the structured condition number. As special cases of smooth manifolds, we analyze automorphism groups, and Lie and Jordan algebras associated with a scalar product. For such manifolds, we derive a lower bound on the structured condition number that is cheaper to compute than the structured condition number. We provide numerical comparisons between the structured and unstructured condition numbers for the principal matrix logarithm and principal matrix square root of matrices in automorphism groups as well as for the map between matrices in automorphism groups and their polar decomposition. We show that our lower bound can be used as a good estimate for the structured condition number when the matrix argument is well conditioned. We show that the structured and unstructured condition numbers can differ by many orders of magnitude, thus motivating the development of algorithms preserving structure. }
+}
+
+@article{fasi:ps_optimality,
+	title = {Optimality of the Paterson–Stockmeyer method for evaluating matrix polynomials and rational matrix functions},
+	journal = {Linear Algebra and its Applications},
+	volume = {574},
+	pages = {182-200},
+	year = {2019},
+	issn = {0024-3795},
+	doi = {https://doi.org/10.1016/j.laa.2019.04.001},
+	url = {https://www.sciencedirect.com/science/article/pii/S0024379519301454},
+	author = {Massimiliano Fasi},
+	keywords = {Paterson–Stockmeyer method, Polynomial evaluation, Matrix polynomial, Matrix rational function, Matrix function},
+	abstract = {Many state-of-the-art algorithms reduce the computation of transcendental matrix functions to the evaluation of polynomial or rational approximants at a matrix argument. This task can be accomplished efficiently by resorting to the Paterson–Stockmeyer method, an evaluation scheme originally developed for polynomials of matrices that extends quite naturally to rational functions. An important feature of this technique is that the number of matrix multiplications required to evaluate an approximant of order n grows slower than n itself, with the result that different approximants yield the same asymptotic computational cost. We analyze the number of matrix multiplications required by the Paterson–Stockmeyer method and by two widely used generalizations, one for evaluating diagonal Padé approximants of general functions and one specifically tailored to those of the exponential. In all the three cases, we identify the approximants of maximum order for any given computational cost.}
+}

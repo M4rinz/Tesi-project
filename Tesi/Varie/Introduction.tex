@@ -2,15 +2,63 @@
 Hello! Introduction here!
 
 
-\textcolor{red}{Notazione da introdurre: 
-\begin{itemize}
-	\item la mia notazione $[n]$ per $\qty{1,\dots,n}$
-	\item La mia notazione $M\qty[i:i_2\mid j:j_2]$ (\textbf{aggiusta}), magari non in tutto il suo splendore
-	\item $\Lambda(A)$ per lo spettro di $A$ con gli autovalori presi senza molteplicità.
-	\item $\rho$ per il raggio spettrale.
-	\item Notazione per le norme, norme di vettori, norme di matrici e il loro uso ``libertino'' che ne faccio (come tutti del resto)
-	\item Notazione $o(\norm{E})$, $O(\norm{E})$
-	\item Versori canonici $e_i$
-	\item $\mathrm{LHP}\coloneqq\qty{z\in\C\mid\Re(z)<0}$
-\end{itemize}
-}
+
+\section*{Notation}
+The following notational conventions will be used throughout this thesis. Additional notation will be introduced as needed.
+\begin{notazione*}
+	For any positive integer $n$, $[n]$ will denote the set $\qty{1,\dots,n}\subseteq\mathbb{N}$.
+\end{notazione*}
+\smallskip
+
+\begin{notazione*}
+	Let $A\in\C{n}{n}$. $A_{i,j}$ -- or equivalently $\SubMat{A}{i}{j}$ -- denotes the element of $A$ in the $i$th row and $j$th column. 
+	
+	Inspired by \matlab{} and Julia, $\SubMat{A}{i_1,i_2}{j_1,j_2}$ denotes the submatrix of $A$ with elements $A_{i,j}$ such that $i_1\le i\le i_2$ and $j_1\le j\le j_2$.
+	$\SubMat{A}{}{j_1,j_2}$ means that all rows of $A$ are considered (and analogously for $\SubMat{A}{i_1,i_2}{}$).
+	Likewise, $\SubMat{A}{i}{}$ and $\SubMat{A}{}{j}$ will denote, respectively, the $i$th row and the $j$th column of $A$. 
+\end{notazione*}
+\smallskip 
+
+\begin{notazione*}
+	Let $k\in\mathbb{N}$, $k>0$. $e_k$ denotes the $k$th vector of the canonical basis of $\C{n}$, where the value of $n$ (i.e. the size of $e_k$) depends on the particular context in which the symbol $e_k$ is used.
+	
+	%To avoid confusion with Napier's number $e$, $\mathrm{e}$ will denote the vector of all ones.
+\end{notazione*}
+\smallskip 
+
+\begin{notazione*}
+	$\Lambda(A)$ will denote the \emph{spectrum} of $A$ as a multiset, with the convention that the eigenvalues are considered \emph{without} multiplicity. The eigenvalues of a matrix will be typically denoted with the letter $\lambda$.
+	
+	The geometric and arithmetic multiplicities of an eigenvalue $\lambda$ will be denoted by 	$\mu_g(\lambda)$ and $\mu_a(\lambda)$, respectively.
+	
+	The \emph{spectral radius} of $A\in\C{n}{n}$ will be denoted by $\rho(A)$. Recall that $\rho(A)=\max\qty{\abs{\lambda}\mid\lambda\in\Lambda(A)}$. 
+\end{notazione*}
+\smallskip 
+
+\begin{notazione*}
+	\textcolor{red}{Notazione per le norme, norme di vettori, norme di matrici e il loro uso ``libertino'' che ne faccio (come tutti del resto)}
+	
+	Throughout the thesis, norms will be denoted by $\norm{\phantom{A}}$. Its argument will determine whether the norm is a matrix norm or a vector norm. 
+	
+	For the sake of generalization, the specific norm that is being used will often be unspecified. However, all matrix norms will be assumed to be \emph{consistent} (i.e. they satisfy the submultiplicative property $\norm{AB}\le\norm{A}\norm{B}$) 
+	
+\end{notazione*}
+\smallskip 
+
+\begin{notazione*}
+	The notation $X\in O(\norm{E})$ denotes that $\norm{X}\le c\norm{E}$ for some constant $c$ for all sufficiently small $\norm{E}$, while $X\in o(\norm{E})$ means that $\norm{X}/\norm{E}\rightarrow 0$ as $E\to 0$.
+	
+	Strictly speaking, $O(\norm{E})$ and $o(\norm{E})$ denote \emph{sets}. However, following a common convention, the same symbols will occasionally be used to denote a generic element of the corresponding set.
+\end{notazione*}
+\smallskip 
+
+\begin{notazione*}
+	Let either the dot symbol or no symbol at all, as in $A\cdot B$ and $AB$ respectively, denote the product between $A\in\C{n}{n}$ and $B\in\C{n}{n}$ in exact arithmetic. The same operation in floating point arithmetic will be denoted by $\mathtt{*}$, as in $A\mathtt{*}B$.
+\end{notazione*}
+\smallskip
+
+\begin{notazione*}
+	The open left half (complex) plane, i.e. the set $\qty{z\in\C\mid\Re(z)<0}$ will be denoted by $\mathrm{LHP}$.
+\end{notazione*}
+\smallskip 
+

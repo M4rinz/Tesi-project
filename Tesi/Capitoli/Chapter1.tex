@@ -119,7 +119,7 @@ In \matlab{}, arbitrary precision arithmetic is commonly performed via the \text
 
 The \matlab{} implementation of the multiprecision algorithm developed by Fasi and Higham~\cite{higham:hf19_mpexpm}, which the authors themselves propose, relies on this toolbox.
 
-\subsection{Multiple precision arithmetic in Julia}
+\subsection{Multiple precision arithmetic in Julia}\label{subs:multiprecision_in_Julia}
 The Julia programming language~\cite{article:Julia} natively supports multiprecision floating-point numbers by means of the built-in data type \texttt{BigFloat}.
 
 \texttt{BigFloat}s support standard arithmetic operations as well as many mathematical functions, each of which is implemented via a corresponding call to the \textsc{mpfr}~\cite{article:MPFR} library. In addition, \texttt{BigFloat}s provide a set of dedicated methods, some of which are described in the following sections.
@@ -304,7 +304,7 @@ In backward error analysis, the error is being interpreted as perturbations in t
 \begin{oss*}
 	We remark that, in principle, the backward error analysis is a technique that can be applied to any source of error, albeit not always successfully. 
 	
-	It is often the roundoff error that is analyzed by means of the backward error, an example being the QR factorization of a square matrix. As we will see \textcolor{red}{in some paragraph}, the Scaling and Squaring method to compute the matrix exponential, a central topic of this essay, gives a prominent example of backward error analysis on the truncation error. 
+	It is often the roundoff error that is analyzed by means of the backward error, an example being the QR factorization of a square matrix. As we will see in Section~\vref{subs:scaling_and_squaring}, the scaling and squaring method to compute the matrix exponential, a central topic of this essay, gives a prominent example of backward error analysis on the truncation error. 
 \end{oss*}
 
 \section{Conditioning}\label{sect:conditioning_general}
