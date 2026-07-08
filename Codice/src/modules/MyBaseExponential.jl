@@ -203,7 +203,7 @@ function my_Base_exp!(A::StridedMatrix{T}) where T<:LinearAlgebra.BlasFloat
     # Undo the balancing
     
     _unbalance!(X, ilo, ihi, scale, n)
-    return X
+    return X, si
 end
 
 
@@ -238,7 +238,7 @@ function my_Base_exp(A::StridedMatrix{T}) where T<:LinearAlgebra.BlasFloat
         for i in diagind(A, IndexStyle(A))
             A[i] = exp(A[i])
         end
-        return A
+        return A, NaN, 0
     # elseif ishermitian(A)
     #     return copytri!(parent(exp(Hermitian(A))), 'U', true)
     end
@@ -250,14 +250,18 @@ function my_Base_exp(A::StridedMatrix{T}) where T<:LinearAlgebra.BlasFloat
             C = T[17643225600.,8821612800.,2075673600.,302702400.,
                      30270240.,   2162160.,    110880.,     3960.,
                            90.,         1.]
+            m = 9
         elseif nA > 0.25
             C = T[17297280.,8648640.,1995840.,277200.,
                      25200.,   1512.,     56.,     1.]
+            m = 7
         elseif nA > 0.015
             C = T[30240.,15120.,3360.,
                     420.,   30.,   1.]
+            m = 5
         else
             C = T[120.,60.,12.,1.]
+            m = 3
         end
         A2 = A * A
         # Compute U and V: Even/odd terms in Padé numerator & denom
@@ -290,6 +294,8 @@ function my_Base_exp(A::StridedMatrix{T}) where T<:LinearAlgebra.BlasFloat
         end
         #X = LAPACK.gesv!(VminU, VplusU)[1]
         X = VminU \ VplusU
+
+        s = 0
     else
         s  = log2(nA/5.4)               # power of 2 later reversed by squaring
         if s > 0
@@ -344,11 +350,12 @@ function my_Base_exp(A::StridedMatrix{T}) where T<:LinearAlgebra.BlasFloat
                 X, tmp2 = tmp2, X
             end
         end
+        m = 13
     end
 
     # Undo the balancing    
-    _unbalance!(X, ilo, ihi, scale, n)
-    return X
+    _unbalance!(X, ilo, ihi, scale, n) 
+    return X, m, s == 0 ? s : ceil(Int, s)
 end
 
 
