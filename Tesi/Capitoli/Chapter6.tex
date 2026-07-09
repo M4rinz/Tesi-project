@@ -446,7 +446,7 @@ Table~\vref{tab:samples_within_bnd} reports, for each configuration and for each
 
 Each configuration is able to compute the matrix exponential at a satisfying level of accuracy in more than \SIqty{90}{\percent} of the cases, confirming the intuitions suggested by Figure~\ref{fig:exp_mp_fwerrs}.
 
-\section{Is $\delta$ an upper bound to the truncation error?}\label{sect:is_delta_bound?}
+\section{Is \texorpdfstring{$\delta$}{δ} an upper bound to the truncation error?}\label{sect:is_delta_bound?}
 Recall that in \texttt{exp\_mp} the final value of $\delta$, according to its definition, bounds the absolute truncation error $\norm{\exp(2^{-s}X)-r_m(2^{-s}X)}_1$, where $m$ and $s$ here are the approximant degree and scaling factors obtained at the end of the modified scaling phase, and $X$ is the transformed version of $A$ (see the discussion in Section~\ref{sect:exp_mp_description}).
 We already noted that $\delta$ should not be compared with the truncation error of the computed approximation of $\exp(A)$, see Remark~\ref{oss:delta_not_upper_bound}.
 

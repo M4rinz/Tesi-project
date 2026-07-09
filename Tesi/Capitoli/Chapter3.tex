@@ -67,7 +67,7 @@ Lemma~\ref{lemma:expm_general_properties} states other famous general properties
 	The identity can be proven in the general case by taking a Schur form and by using Binet's determinant formula.
 \end{proof}
 
-\subsection{The exponential of a $2\times 2$ matrix}
+\subsection{The exponential of a \texorpdfstring{$2\times 2$}{2x2} matrix}
 We now fully characterize the exponential of a $2$-by-$2$ matrix $A=\smqty(a & b\\ c & d)$
 (see also~\cite[Prob.~1.9]{higham:matfun_book}).
 A simple computation shows that $A$ has eigenvalues $\lambda_{1,2}=(a+d\pm\mu)/2$ where $\mu=\sqrt{(a-d)^{2}+4bc}$;
@@ -455,7 +455,7 @@ We want to bound the right hand side of Equation~\eqref{eqn:backerr_h_m}.
 It holds that 
 \begin{align*}
 	\norm{h_{2m+1}\qty(2^{-s}A)} &= \norm{\smashoperator[r]{\sum_{k=2m+1}^{\infty}}c_k\qty(2^{-s}A)^k}\le\,\smashoperator[lr]{\sum_{k=2m+1}^{\infty}}\,\norm{c_k\qty(2^{-s}A)^k}\\
-	&=\smashoperator[lr]{\sum_{k=2m+1}^{\infty}}\abs{c_k}\norm{\qty(2^{-s}A)^k}\le\smashoperator[lr]{\sum_{k=2m+1}^{\infty}}\abs{c_k}\norm{2^{-s}A}^k\!\eqqcolon\tilde{h}_{2m+1}\qty(\norm{2^{-s}A}),
+	&=\smashoperator[lr]{\sum_{k=2m+1}^{\infty}}\abs{c_k}\norm{\qty(2^{-s}A)^k}\le\smashoperator[lr]{\sum_{k=2m+1}^{\infty}}\abs{c_k}\norm{2^{-s}A}^k\!\eqqcolon\tilde{h}_{2m+1}\qty(\norm{2^{-s}A})
 \end{align*}
 where we defined $\tilde{h}_{2m+1}(z)\coloneqq\sum_{k=2m+1}^{\infty}\abs{c_k}z^k$. We obtained the upper bound 
 \begin{equation}\label{eqn:backerr_bound_htilde}
@@ -465,7 +465,7 @@ where we defined $\tilde{h}_{2m+1}(z)\coloneqq\sum_{k=2m+1}^{\infty}\abs{c_k}z^k
 	If all the coefficients $c_k$ were one-signed, then $\tilde{h}_{2m+1}(\norm{2^{-s}A})$ would be equal to $\abs{h_{2m+1}(\norm{2^{-s}A})}$. Unfortunately, this is not the case in general. 
 	In Equation~\eqref{eqn:backerr_bound_htilde}, the relative error is being bounded by something larger than $\abs{h_{2m+1}(\norm{2^{-s}A})}$.
 \end{oss*}
-For $m\in[21]$ the values
+For $m=1,\dots,21$ the values
 \begin{equation}\label{eqn:theta_m_def}
 	\theta_m=\max\qty{\theta\mid\tilde{h}_{2m+1}(\theta)/\theta\le u_{53}}
 \end{equation}
