@@ -123,8 +123,8 @@ Many properties follow from the definition of matrix function. Some of the most 
 	\begin{enumerate}
 		\item $Af(A)=f(A)A$
 		\item $f(MAM^{-1})=	Mf(A)M^{-1}$
-		\item If $A=\operatorname{Blkdiag}\qty(A_{1,1},\dots,A_{m,m})$ is block diagonal, \\
-			  then $f(A)=\operatorname{Blkdiag}\qty(f(A_{1,1}),\dots,f(A_{m,m}))$.
+		\item If $A=\operatorname{Blkdiag}\qty(A_{11},\dots,A_{mm})$ is block diagonal, \\
+			  then $f(A)=\operatorname{Blkdiag}\qty(f(A_{11}),\dots,f(A_{mm}))$.
 		\item $\Lambda(f(A))=\qty{f(\lambda)\mid\lambda\in\Lambda(A)}$, $f(A)$ and $A$ have the same generalized eigenvectors.
 	\end{enumerate}
 \end{lemma}
@@ -484,18 +484,27 @@ So, by using $\norm{K(A)}_1$ in Algorithm~\ref{alg:exact_cond_n} and by replacin
 
 The computation of $\norm{K(A)}_1$ is generally inexpensive compared to that of $\norm{K(A)}_2$; nevertheless, it requires the full matrix $K(A)$, which -- as already discussed -- we would prefer not to form explicitly.
 
-Similarly to the Frobenius norm case that was presented earlier, the ``oracles'' for $E\mapsto L_f(A)[E]$ and for $E\mapsto L_f(A)^{\cramped{H}}[E]$ can be directly used to estimate the quantity of interest, avoding the formation of $K(A)$ entirely. Indeed, there exist $1$-norm analogues of the power method that estimate the norm of a matrix using only the action of the matrix and of its adjoint. One such method -- which forms the basis of all the condition number estimation in \textsc{lapack} and is used by \matlab{}'s \texttt{rcond} function  -- is presented in~\cite[Alg.~3.21]{higham:matfun_book}. For a thorough discussion, see also~\cite[§~15.3]{higham:accuracy_book} and the referenes therein.
+Indeed, there exist $1$-norm analogues of the power method that estimate the norm of a matrix using only the action of the matrix and of its adjoint. 
+One such method is presented in~\cite[Alg.~3.21]{higham:matfun_book}; for a thorough discussion, see also~\cite[§~15.3]{higham:accuracy_book} and the referenes therein. This algorithm forms the basis of the condition number estimation routines in \textsc{lapack}, such as \texttt{xLACN2}~\cite{lapack:book}, and is employed by higher-level programming environments as well. In \matlab{}, it is used by the \texttt{rcond} function, which estimates the reciprocal condition number. Julia does not natively provide a function for estimating the matrix 1-norm. However, the \texttt{MatrixEquations.jl} library~\cite{sw:MatrixEquations} provides an interface to \textsc{lapack}'s \texttt{xLACN2} through the function \texttt{opnorm1est}.
 
-Higham and Tisseur~\cite{higham:hiti_normest1} introduced a block generalization of~\cite[Alg.~3.21]{higham:matfun_book} that iterates on tall and skinny matrices. Their method is at the basis of \matlab{}'s \texttt{normest1} function. This function can accept in input also an ``oracle'' that implements the action of the linear operator whose $1$-norm we want to estimate. 
+\begin{oss*}
+	Since \texttt{opnorm1est} is a direct call to \textsc{lapack}, it can only accept data in double or single precision.
+\end{oss*}
 
-\begin{oss}
-	The algorithm presented in Chapter~\ref{capitolo:4} uses this $1$-norm estimator to approximately compute the $1$-norms of the power of a matrix, without explicitely forming it. \textcolor{red}{Ne riparleremo\dots Rimandare a posto opportuno\dots}
-	\smallskip 
-	
-	{\color{red} \textbf{Nota per il futuro me}: la funzione \texttt{opnorm1est} di MatrixEquations.jl (\href{https://github.com/andreasvarga/MatrixEquations.jl/blob/17e4affc8079719fff2c609cde1b8828c16767db/src/condest.jl#L50-L72}{qui} il codice sorgente) chiama (ripetutamente, così come dev'essere) \texttt{lacn2!} (\href{https://github.com/andreasvarga/MatrixEquations.jl/blob/17e4affc8079719fff2c609cde1b8828c16767db/src/lapackutil.jl}{qui} il codice sorgente). Quest'ultima è un'interfaccia per \texttt{xLACN2} (vedi \href{https://netlib.org/lapack/explore-html/d6/d2d/group__lacn2_gabc1e7463e250c9e43596bfcbfa83c1de.html}{qui}) di \textsc{LAPACK}, che pracitamente è la versione ``vecchia'' che \cite{higham:hiti_normest1} migliora. Notare che (1) \texttt{normest1} di MATLAB è implementata direttamente in MATLAB, (2) in Julia non esiste e (3) l'algoritmo di Higham e Fasi la usa solo quando costretto\dots}
-\end{oss}
+The algoritm in~\cite[Alg.~3.21]{higham:matfun_book} is a very reliable estimator of the matrix 1-norm. In fact, it typically requires 4 or 5 iterations co compute its estimate, which is frequently an exact one. Although it can produce an arbitrarily poor approximation on specifically constructed counterexamples, it almost invariably produces an estimate correct to within a factor $3$, independently from the size $n$ of the matrix.
 
-Key properties of algorithm in are that it typically requires 4 or 5 iterations, frequently producing an exact estimate of the 1-norm. Although it can produce an arbitrarily poor estimate on specifically constructed counterexamples, it almost invariably produces an estimate correct to within a factor $3$, making it a reliable means of estimating the 1-norm of a matrix.
+In \matlab{}, 1-norm estimates can be computed using the \texttt{normest1} function, which implements the block generalization of~\cite[Alg.~3.21]{higham:matfun_book} introduced in~\cite{higham:hiti_normest1}. The algorithm repeatedly computes products of the form $MV$, where $M\in\C{n}{n}$ is the matrix whose 1-norm is to be estimated and $V\in\C{n}{q}$, with $q$ being a small positive integer. In the \matlab{} implementation, the default value is $q=2$. Setting $q=1$ recovers Algorithm~\cite[Alg.~3.21]{higham:matfun_book}. 
+
+The function \texttt{normest1} is written entirely in MATLAB and can also accept an ``oracle'' implementing the action of the linear operator whose 1-norm is to be estimated. In \matlab{}, such an oracle is represented by a function handle. In Julia, the corresponding abstraction is a \texttt{LinearMap}, accepted by \texttt{MatrixEquations.jl}'s \texttt{opnorm1est}.
+  
+%\begin{oss}
+%	The algorithm presented in Chapter~\ref{capitolo:4} uses this $1$-norm estimator to approximately compute the $1$-norms of the power of a matrix, without explicitely forming it. \textcolor{red}{Ne riparleremo\dots Rimandare a posto opportuno\dots}
+%	\smallskip 
+%	
+%	{\color{red} \textbf{Nota per il futuro me}: la funzione \texttt{opnorm1est} di MatrixEquations.jl (\href{https://github.com/andreasvarga/MatrixEquations.jl/blob/17e4affc8079719fff2c609cde1b8828c16767db/src/condest.jl#L50-L72}{qui} il codice sorgente) chiama (ripetutamente, così come dev'essere) \texttt{lacn2!} (\href{https://github.com/andreasvarga/MatrixEquations.jl/blob/17e4affc8079719fff2c609cde1b8828c16767db/src/lapackutil.jl}{qui} il codice sorgente). Quest'ultima è un'interfaccia per \texttt{xLACN2} (vedi \href{https://netlib.org/lapack/explore-html/d6/d2d/group__lacn2_gabc1e7463e250c9e43596bfcbfa83c1de.html}{qui}) di \textsc{LAPACK}, che pracitamente è la versione ``vecchia'' che \cite{higham:hiti_normest1} migliora. Notare che (1) \texttt{normest1} di MATLAB è implementata direttamente in MATLAB, (2) in Julia non esiste e (3) l'algoritmo di Higham e Fasi la usa solo quando costretto\dots}
+%\end{oss}
+
+
 
 \section{Computational techniques for matrix functions}
 The exposition of computational methods for generic matrix functions will be instrumental 
@@ -529,7 +538,7 @@ thus $F_{i,j}$ depends only on $\SubMat{F}{i+1,j}{j}$ and on $\SubMat{F}{i}{i,j-
 
 Schur-Parlett can be employed if no specific algorithm for $f$ is applicable. This is discussed in~\cite[§~9]{higham:matfun_book}. Fortunately, this is not the case for the matrix exponential.
 
-\subsection{Matrix Iterations}
+\subsection{Matrix iterations}
 Matrix iteration methods produce a sequence of matrices $X_1,\dots,X_k$ so that $X_k\xlongrightarrow{k\to\infty}f(A)$. The iterates take the form $X_{k+1}=g(X_k)$, where $g$ may depend on $A$; and $X_0$ is almost never arbitrary, rather it's a fixed function of $A$ such as $X_0=I$ or $X_0=A$.
 
 A standard means of deriving matrix iterations is to apply Newton’s method to an algebraic equation satisfied by $f(A)$ and then to choose $X_0$ so that the iteration formula is simplified. 

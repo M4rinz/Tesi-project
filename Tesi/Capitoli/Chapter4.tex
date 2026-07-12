@@ -149,6 +149,7 @@ The behaviour of the algorithm depends on several parameters and involves a numb
 		$s_i$ & Scaling factor $s$ at iteration $i$ of the scaling phase \\
 		$\delta$ & Upper bound on the absolute (forward) truncation error $\norm{\exp(2^{-s_i}X)-r_{m_i}(2^{-s_i}X)}_1$, given by the LHS of~\eqref{eqn:exp_mp_stopping_crit}\\
 		$\psi$ & Approximation of $\norm{\exp(2^{-s_i}X)}_1$ as $\norm{r_{m_i}(2^{-s_i}X)}_1$\\
+		$\kappa_A$ & Conditioning of the denominator of the Padé approximant\\
 		$\mathcal{A}$ & Array containing consecutive powers of $X$, or $X^2$\\
 		$\gamma=\qty[\gamma_d]_{d\ge 1}$ & Data structure containing the values $\gamma_d=\norm{A^d}^{1/d}_1$\\
 		$\alpha_{\min}$ & Best $\alpha_d(X)$ encountered so far\\
@@ -178,21 +179,21 @@ Note that the commercial Multiprecision Computing Toolbox~\cite{matlab_mpct} by 
 		\Else
 			\State $\mathcal{A}\gets\qty[I, X^2]$
 		\EndIf
-		\State $s_0\gets 0,\quad m_0\gets 1$
+		\State $s_0\gets 0,\qquad m_0\gets 1$
 		\State $\gamma\gets\qty[-\infty,-\infty,\dots]$
-		\State $\alpha_{\min}\gets\infty,\quad\delta_{\textup{old}}\gets\infty$
-		\State $i\gets 1,\quad \mathtt{idx}\gets 0$
+		\State $\alpha_{\min}\gets\infty,\qquad\delta_{\textup{old}}\gets\infty$
+		\State $i\gets 1,\qquad \mathtt{idx}\gets 0$
 		\While{$\delta\ge\epsilon\psi$ \textbf{and} $s_{i-1}<s_{\max}$ \textbf{and} $m_{i-1}<m_{\max}$}\label{line:stop_crit}
 			\If{$\kappa_A\ge\xi(u_{p_{\textup{wrk}}})$ \textbf{or} $\delta_{\textup{old}}<\delta^2$}\label{line:increase_s_condition}
-				\State $s_{i}\gets s_{i-1}+1$
-				\State $m_i\gets m_{i-1}$
+				\State $s_{i}\gets s_{i-1}+1,\qquad m_i\gets m_{i-1}$
+				%\State $m_i\gets m_{i-1}$
 			\Else 
 				\State $s_i\gets s_{i-1}$
 				\State $\mathtt{idx}\gets \mathtt{idx}+1$
 				\State $m_i\gets\textsc{OptDegree}\qty(\mathtt{idx},\mathtt{approximant})$\label{line:increase_m}
 			\EndIf
-			\State $i\gets i+1$
-			\State $\delta_{\textup{old}}\gets\delta$
+			\State $i\gets i+1, \qquad \delta_{\textup{old}}\gets\delta$
+			%\State $\delta_{\textup{old}}\gets\delta$
 			\State $\delta, \psi, \kappa_A \gets \textsc{EvalBound}(X, m_i, s_i, \mathtt{approximant})$\label{line:reevaluate_bound}
 		\EndWhile\label{line:endWhile}
 		\State $Y\gets\textsc{EvalApproximant}(X,m_i,s_i,\mathtt{approximant})$\label{line:eval_approximant}
@@ -224,10 +225,10 @@ The algorithm approximates $\exp(X)$ and returns $Q\exp(X)Q^{H}$ if a Schur deco
 \begin{notazione*}
 	Given this optional preprocessing technique, the algorithm will be described as if it was computing $\exp(X)$. This is different from the notational conventions in the original work~\cite{higham:hf19_mpexpm}. 
 \end{notazione*}
-As discussed in Section~\ref{subs:multiprecision_in_Julia}, arbitrary precision Schur decompositions can be computed in Julia using the \texttt{GenericSchur.jl}~\cite{sw:GenericSchur} library. The implementation developed as part of this thesis relies on this library. In \matlab{}, arbitrary precision Schur decompositions are available through the Multiprecision Computing Toolbox~\cite{matlab_mpct}, on which the author's implementation relies.
+As discussed in Section~\ref{subs:multiprecision_in_Julia}, arbitrary precision Schur decompositions can be computed in Julia using the \texttt{GenericSchur.jl}~\cite{sw:GenericSchur} library. The implementation developed as part of this thesis relies on this library. In \matlab{}, arbitrary precision Schur decompositions are available through the Multiprecision Computing Toolbox~\cite{matlab_mpct}.
 
 \begin{oss}
-	As already discussed in Section~\ref{subs:preprocessing}, shifting is a popular preprocessing technique that can sometimes prove effective. For conciseness of exposition, it is not displayed in Algorithm~\ref{alg:exp_mp_pseudocode}, even though it is employed by both the original \matlab{} implementation and the Julia implementation proposed with this thesis. 
+	As already discussed in Section~\ref{subs:preprocessing}, shifting is a popular preprocessing technique that can sometimes prove effective. For conciseness of exposition, it is not displayed in Algorithm~\ref{alg:exp_mp_pseudocode}, even though it is employed by both the original \matlab{} implementation and the Julia implementation proposed with this thesis. In particular, it is employed as described in Section~\ref{subs:expm_sas_miscellanea}, and the matrix is shifted only if $\abs{\mu}>10$.
 \end{oss}
 \smallskip 
 
@@ -292,7 +293,10 @@ The function \textsc{EvalBound}, which is at the core of the algorithm, will be 
 
 \subsection{Diagonal Padé approximants}\label{subs:evalBound_pade}
 Let us start by discussing the implementation of the \textsc{EvalBound} function in the diagonal Padé approximant case. 
-The Padé approximant variant of the \textsc{EvalBound} function is displayed, in pseudocode, in Algorithm~\ref{alg:eval_bound_pade}. There are two main aspects in the evaluation of the stopping criterion~\eqref{eqn:exp_mp_stopping_crit}, namely the computation of $\alpha_{\min}$ and the evaluation of the denominator of the Padé approximant.
+The pseudocode for the corresponding variant of the \textsc{EvalBound} function is displayed in Algorithm~\ref{alg:eval_bound_pade}. 
+This function updates the variables $\delta$ and $\psi$ involved in the stopping criterion, and updates the variable $\kappa_A$ to the value of the current iteration. In the process, it populates the array $\mathcal{A}$.
+
+There are two main aspects in the evaluation of the stopping criterion~\eqref{eqn:exp_mp_stopping_crit}, namely the computation of $\alpha_{\min}$ and the evaluation of the denominator of the Padé approximant.
 
 \begin{algorithm}[hbp]
 	\caption{\emph{Function that evaluates the bound~\eqref{eqn:abserr_bound_delta} with the parameters $s_i,m_i$ of the current iteration of the modified scaling phase; and updates many variables and auxiliary data structures of the algorithm.}}
@@ -305,11 +309,11 @@ The Padé approximant variant of the \textsc{EvalBound} function is displayed, i
 			\State $U_{\textup{e}}, U_{\textup{o}} \gets \textsc{EvalEvenOddParts}(X, m, s, p_{\textup{bnd}})	$\label{line:eval_pade_ps}
 			\With{$\mathtt{setprecision}(p_{\textup{bnd}})$}	
 				\State $L, U\gets \textsc{LU}(U_{\textup{e}}-U_{\textup{o}})$\label{line:LU_fact_q}
-				\State $\eta\gets\textsc{normest1}\qty(x\mapsto U^{-1}L^{-1}x)$\label{line:eta_normest1}
+				\State $\eta\gets\texttt{normest1}\qty(x\mapsto U^{-1}L^{-1}x)$\label{line:eta_normest1}
 			\EndWith
 			\State $\delta\gets\eta\cdot\abs{q_m(2^{-s}\alpha_{\min})e^{2^{-s}\alpha_{\min}}-p_m(2^{-s}\alpha_{\min})}$\label{line:delta_computation}
-			\State $\psi\gets\textsc{normest1}\qty(x\mapsto (2U^{-1}L^{-1}U_{\textup{o}}+I)x)$
-			\State $\kappa_A\gets\eta\cdot\textsc{normest1}\qty(x\mapsto(U_{\textup{e}}-U_{\textup{o}})x)$
+			\State $\psi\gets\texttt{normest1}\qty(x\mapsto (2U^{-1}L^{-1}U_{\textup{o}}+I)x)$\label{line:psi_computation}
+			\State $\kappa_A\gets\eta\cdot\texttt{normest1}\qty(x\mapsto(U_{\textup{e}}-U_{\textup{o}})x)$\label{line:kappa_computation}
 			\State\Return $\delta,\psi,\kappa_A$
 		\EndFunction
 	\end{algorithmic}
@@ -361,7 +365,7 @@ The \emph{batch size} $\nu=\lceil\sqrt{m_i}\rceil$ increases with $m_i$, althoug
 In the stopping criterion~\eqref{eqn:exp_mp_stopping_crit} we can settle for $\eta$ being an approximation of $\norm{q_{m_i}(2^{-s_i}X)^{-1}}_1$ of the correct order of magnitude. 
 Without this design choice, \texttt{exp\_mp} would be prohibitely expensive, as each evaluation of the bound would add $O(2n^3/3)$ arbitrary precision flops, due to the LU factorization. As also observed in Section~\ref{subs:multiprecision_in_Julia}, the computation of the LU factorization is way more optimized in double precision (i.e. the precision that corresponds to the default value of $p_{\textup{bnd}}$) than it is in arbitrary precision.
 
-In practice, the $L$ and $U$ matrices produced at line~\algref{alg:eval_bound_pade}{line:LU_fact_q} contain double precision data, so $\eta$ can be computed using the \texttt{normest1} function introduced in Section~\ref{subs:compute_estimate_cond} \textcolor{red}{(in realtà devo riprendere un po' le fila del discorso)}, which only accepts data in single or double precision.
+In practice, the $L$ and $U$ matrices produced at line~\algref{alg:eval_bound_pade}{line:LU_fact_q} contain double precision data, so $\eta$ can be computed using the \texttt{normest1} function introduced in Section~\ref{subs:compute_estimate_cond}, which only accepts data in single or double precision.
 
 %{\color{red}
 %Il polinomio viene valutato in precisione più bassa. In pratica, L e U alla riga~\algref{alg:eval_bound_pade}{line:LU_fact_q} sono matrici di Float64. $\eta$ è solo una stima della norma 1. Due aspetti: (1) la funzione normest1 accetta argomenti in precisione doppia, non funziona in precisione arbitaria; (2) se a ogni passo dobbiamo veramente fare una LU in precisione arbitraria, stiamo freschi! Tentiamo di minimizzare le flops in multiprecisione va che è meglio.}
@@ -396,7 +400,7 @@ In practice, the $L$ and $U$ matrices produced at line~\algref{alg:eval_bound_pa
 The second main aspect in the evaluation of the stopping criterion is the computation of $\alpha_{\min}$. %At any given iteration $i$ of the modified scaling phase, $\alpha_{\min}$ is the minimum value of $\alpha_d(X)$ encountered so far. 
 Recall that $\alpha_d(X)$ is defined as in Equation~\eqref{eqn:alpha_d_def}, and that the bound~\eqref{eqn:abserr_bound_delta} -- on which the stopping criterion~\eqref{eqn:exp_mp_stopping_crit} is based -- is satisfied by any $d$ such that $1\le d\le d^{[m/m]}$ where $d^{[m/m]}$ is defined as in~\eqref{eqn:max_d_in_alpha}.
 
-At the end of Section~\ref{sect:exp_mp_err_bound} we estabilished that the choice of $\alpha_d(2^{-s}X)$ that would garantee the best bound is $\alpha_{d^{\star}}(2^{-s}X)$ where $d^{\star}$ is as in~\eqref{eqn:d_star_in_alpha}, but this value can become impractical to compute, even for Padé approximants of relatively low degree. On the other hand, it has been observed in~\cite{higham:alhi09_new} that, for $M\in\C{n}{n}$, the sequence $\{\lvert\lvert M^k\rvert\rvert^{1/k}\}_{k\in\mathbb{N}}$ is typically -- though not always -- nonincreasing, so the sequence $\qty{\alpha_d(M)}_{d\in\mathbb{N}}$ follows the same behaviour, typically. Consequently, it is reasonable to evaluate the bound at $\alpha_{d^{[m_i/m_i]}}(2^{-s}X)$.
+At the end of Section~\ref{sect:exp_mp_err_bound} we estabilished that the choice of $\alpha_d(2^{-s}X)$ that would garantee the best bound is $\alpha_{d^{\star}}(2^{-s}X)$ where $d^{\star}$ is as in~\eqref{eqn:d_star_in_alpha}, but this value can become impractical to compute, even for Padé approximants of relatively low degree. On the other hand, it has been observed in~\cite{higham:alhi09_new} that, for $M\in\C{n}{n}$, the sequence $\{\lvert\lvert M^k\rvert\rvert^{1/k}\}_{k\in\mathbb{N}}$ is typically -- though not always -- nonincreasing, so the sequence $\qty{\alpha_d(M)}_{d\in\mathbb{N}}$ follows the same behaviour, typically. Thus, it is reasonable to evaluate the bound at $\alpha_{d^{[m_i/m_i]}}(2^{-s}X)$.
 \begin{oss*}
 	This estimate requires the evaluation of $\lvert\lvert(2^{-s}X)^d\rvert\rvert^{\cramped{1/d}}_1$ for at most two values of $d$, independently of the value of $m_i$. By contrast, the search for $d^{\star}$ becomes more expensive as the approximant degree grows.
 \end{oss*}
@@ -404,47 +408,56 @@ It is often possible to obtain a better bound at almost no extra cost, by reusin
 \begin{oss*}
 	This choice still does not ensure that the best possible $d$ is used, but at least prevents the $\alpha$ value from growing from one iteration to the next.
 \end{oss*}
-The pseudocode to compute $\alpha_{\min}$ is shown in Algorithm~\ref{alg:exp_mp_alpha_min}. Note that, given the choice of $d=d^{[m_i/m_i]}$ at line~\algref{alg:exp_mp_alpha_min}{line:d_formula_pade}, the value of $\norm{X^d}_1$ may be required even though $X^d$ is not present in $\mathcal{A}$ at that stage. Once again, the powers of $X^2$ currently available can be exploited, at the expense of computing only an estimate of the order of magnitude of $\alpha_{\min}$. This is shown at line~\algref{alg:exp_mp_alpha_min}{line:gamma_d_normest1}. Specifically, $\norm{X^d}_1$ is estimated by running in precision $p_{\textup{bnd}}$ the 1-norm estimator \texttt{normest1}, using the oracle $v\mapsto\textsc{EvalPowVec}(d,X,v,\texttt{approximant})$ shown in the last two code snippets of Algorithm~\ref{alg:exp_mp_alpha_min} and described below. The resulting estimate is stored in $\gamma_d$, so that each required quantity $\lvert\lvert X^d\rvert\rvert^{\cramped{1/d}}_1$ is estimated at most once.  
+The pseudocode to compute $\alpha_{\min}$ is shown in Algorithm~\ref{alg:exp_mp_alpha_min}. 
+\begin{algorithm}[htp]
+	\caption{\emph{Function to compute the value of $\alpha_{\min}$ which is used in the evaluation of the bound. The \emph{\textsc{EvalPowVec}} function is in Algorithm~\ref{alg:EvalPowVec}.}}
+	\label{alg:exp_mp_alpha_min}
+	\begin{algorithmic}[1]
+		\Function{\textsc{OptAlpha}}{$X,m,\texttt{approximant}$}
+		\If{$\mathtt{approximant}=\,\mathtt{\colon\!diagonalcheap}$}
+		\State $d\gets\left\lfloor\frac{1+\sqrt{5+8m}}{2}\right\rfloor$\label{line:d_formula_pade}
+		\Else 
+		\State $d\gets\left\lfloor\frac{1+\sqrt{5+4m}}{2}\right\rfloor$
+		\EndIf
+		\With{$\mathtt{setprecision}(p_{\textup{bnd}})$}
+		\If{$\gamma_d=-\infty$}
+		\State $\gamma_d\gets\texttt{normest1}\qty(v\mapsto\textsc{EvalPowVec}(d,X,v,\texttt{approximant}))^{\frac{1}{d}}$\label{line:gamma_d_normest1}
+		\EndIf
+		\If{$\gamma_{d+1}=-\infty$}
+		\State $\gamma_{d+1}\gets\begin{multlined}[t]
+			\texttt{normest1}(v\mapsto\\
+			\mapsto\textsc{EvalPowVec}\qty(d+1,X,v,\texttt{approximant}))^{\frac{1}{d+1}}
+		\end{multlined}$\label{line:gamma_d+1_normest1}
+		\EndIf
+		\EndWith
+		\State\Return $\min\qty{\max\qty{\gamma_d,\gamma_{d+1}},\alpha_{\min}}$
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+Note that, given the choice of $d=d^{[m_i/m_i]}$ at line~\algref{alg:exp_mp_alpha_min}{line:d_formula_pade}, the value of $\norm{X^d}_1$ may be required even though $X^d$ is not present in $\mathcal{A}$ at that stage. Once again, the powers of $X^2$ currently available can be exploited, at the expense of computing only an estimate of the order of magnitude of $\alpha_{\min}$. This is shown at lines~\algref{alg:exp_mp_alpha_min}{line:gamma_d_normest1}--\algref{alg:exp_mp_alpha_min}{line:gamma_d+1_normest1}. Specifically, $\norm{X^d}_1$ is estimated by running in precision $p_{\textup{bnd}}$ the 1-norm estimator \texttt{normest1}, using the oracle $v\mapsto\textsc{EvalPowVec}(d,X,v,\texttt{approximant})$ shown in Algorithm~\ref{alg:EvalPowVec} and described below. The resulting estimate is stored in $\gamma_d$, so that each required quantity $\lvert\lvert X^d\rvert\rvert^{\cramped{1/d}}_1$ is estimated at most once.  
 
-In order to estimate $\norm*{X^d}_1$, \texttt{normest1} applies repeatedly the action of $X^d$; specifically, it computes repeatedly the quantity $X^dV$, with $V\in\C{n}{q}$ and $q$ being a small integer value. \textcolor{red}{Magari qui spiego meglio, o mi ricollego alla spiegazione che spero di aver fatto nel frattempo in~\ref{subs:compute_estimate_cond}}
+\begin{oss*}
+	Recall from Section~\ref{subs:compute_estimate_cond} that \matlab{}'s \texttt{normest1} and Julia's \texttt{opnorm1est} implement different algorithms for estimating the matrix 1-norm. Since they rely on the same underlying principles and both accept an anonymous function as input, and since they play the same role within \texttt{exp\_mp}, we shall use the name \texttt{normest1} to refer to either implementation whenever the distinction is irrelevant.
+	
+	Since the estimator is executed in precision $p_{\textup{bnd}}$, the powers stored in $\mathcal{A}$ are not used directly by \textsc{EvalPowVec}; instead, they are first converted into the corresponding floating-point type. In Julia, this conversion is unavoidable, since \texttt{opnorm1est} only supports single or double precision. 
+\end{oss*}
 
 If the matrix multiplications were performed from right to left, evaluating $X^{d}V$ would require $O(2dn^{2}q)$ flops. The availability of the precomputed powers of $X$ allows this cost to be reduced to as little as $O(2\log_2(d)n^{2}q)$ flops in the ideal case. This reduction is achieved by the function $\textsc{EvalPowVec}$, which -- in its diagonal Padé variant -- evaluates $X^{d}V$ using the powers of $X^2$ stored in $\mathcal{A}$, following a strategy closely resembling the \emph{binary powering} algorithm briefly introduced at the end of Section~\ref{subs:paterson-stockmeyer}.
-The computation is driven by two variables $\tilde{d}$ and $l$, initialized to $d$ and $\text{length}(\mathcal{A})$ respectively (line~\algref{alg:exp_mp_alpha_min}{line:l_initializ} of the second snippet in Algorithm~\ref{alg:exp_mp_alpha_min}). At each iteration, the function multiplies $V$ by $\mathcal{A}_{l}=X^{2l}$ exactly $\lfloor\tilde{d}/(2l)\rfloor$ times, namely for the number of times the exponent $2l$ fits into $\tilde{d}$ (line~\algref{alg:exp_mp_alpha_min}{line:evalpowvec_for_loop}). At this point, the values of $\tilde{d}$ and $l$ are updated, setting the former to the remainder $\tilde{d}\mod{2l}$ (line~\algref{alg:exp_mp_alpha_min}{line:d_update}), and the latter to the largest integer satisfying $2l\le\tilde{d}$ (line~\algref{alg:exp_mp_alpha_min}{line:l_update}). The same procedure is then repeated with the updated values of $\tilde{d}$ and $l$ until no stored power can contribute to the evaluation. 
-Since $\mathcal{A}$ stores powers of $X^2$ rather than $X$, an additional multiplication by $X$ is performed whenever the remaining exponent $\tilde{d}$ is equal to $1$, which occurs precisely when the original exponent $d$ is odd (line~\algref{alg:exp_mp_alpha_min}{line:final_mult_X}).
+The computation is driven by two variables $\tilde{d}$ and $l$, initialized to $d$ and $\text{length}(\mathcal{A})$ respectively (line~\algref{alg:EvalPowVec}{line:l_initializ} of the first snippet in Algorithm~\ref{alg:EvalPowVec}). At each iteration, the function multiplies $V$ by $\mathcal{A}_{l}=X^{2l}$ exactly $\lfloor\tilde{d}/(2l)\rfloor$ times, namely for the number of times the exponent $2l$ fits into $\tilde{d}$ (line~\algref{alg:EvalPowVec}{line:evalpowvec_for_loop}). At this point, the values of $\tilde{d}$ and $l$ are updated, setting the former to the remainder $(\tilde{d}\mod{2l})$ (line~\algref{alg:EvalPowVec}{line:d_update}), and the latter to the largest integer satisfying $2l\le\tilde{d}$ (line~\algref{alg:EvalPowVec}{line:l_update}). The same procedure is then repeated with the updated values of $\tilde{d}$ and $l$ until no stored power can contribute to the evaluation. 
+Since $\mathcal{A}$ stores powers of $X^2$ rather than $X$, an additional multiplication by $X$ is performed whenever the remaining exponent $\tilde{d}$ is equal to $1$, which occurs precisely when the original exponent $d$ is odd (line~\algref{alg:EvalPowVec}{line:final_mult_X}).
 
-In some cases, the computation of $\gamma_{d+1}$ at line~\algref{alg:exp_mp_alpha_min}{line:gamma_d+1_normest1} can be avoided by exploiting values already stored in $\gamma$. Let $p,q$ be positive integers such that $p+q=d+1$. Then
+In some cases, the computation of $\gamma_{d+1}$ at line~\algref{alg:EvalPowVec}{line:gamma_d+1_normest1} can be avoided by exploiting values already stored in $\gamma$. Let $p,q$ be positive integers such that $p+q=d+1$. Then
 \begin{align*}
 	\gamma_{d+1} &\le \norm*{X^{d+1}}^{1/(d+1)}=\norm{X^pX^q}^{1/(d+1)}\le\norm{X^p}^{1/(d+1)}\norm{X^q}^{1/(d+1)}\\
 	 &=\qty(\norm{X^p}^{1/p})^{\frac{p}{d+1}}\qty(\norm{X^q}^{1/q})^{\frac{q}{d+1}}=\gamma_p^{\frac{p}{d+1}}\gamma_q^{\frac{q}{d+1}}.
 \end{align*}
 Therefore, if earlier iterations have computed values $\gamma_p,\gamma_q\in\gamma$ such that $\gamma_p^{\frac{p}{d+1}}\gamma_q^{\frac{q}{d+1}}<\gamma_d$, then $\max\qty{\gamma_d,\gamma_{d+1}}=\gamma_d$. Note that $\gamma_{d+1}$ may still need to be computed at a later stage of the algorithm.
 
-For simplicity, this optimization is omitted from Algorithm~\ref{alg:exp_mp_alpha_min}, but it is implemented in both the Julia and the \matlab{} implementations of \texttt{exp\_mp}. 
-\smallskip 
+For simplicity, this optimization is omitted from Algorithm~\ref{alg:EvalPowVec}, but it is implemented in both the Julia and the \matlab{} implementations of \texttt{exp\_mp}. 
 
 \begin{algorithm}[hbp]
-	\caption{\emph{Functions to compute the value of $\alpha_{\min}$ which is used in the evaluation of the bound.}}
-	\label{alg:exp_mp_alpha_min}
-	\begin{algorithmic}[1]
-		\Function{\textsc{OptAlpha}}{$X,m,\texttt{approximant}$}
-			\If{$\mathtt{approximant}=\,\mathtt{\colon\!diagonalcheap}$}
-				\State $d\gets\left\lfloor\frac{1+\sqrt{5+8m}}{2}\right\rfloor$\label{line:d_formula_pade}
-			\Else 
-				\State $d\gets\left\lfloor\frac{1+\sqrt{5+4m}}{2}\right\rfloor$
-			\EndIf
-			\If{$\gamma_d=-\infty$}
-				\State $\gamma_d\gets\textsc{normest1}\qty(v\mapsto\textsc{EvalPowVec}(d,X,v,\texttt{approximant}))^{1/d}$\label{line:gamma_d_normest1}
-			\EndIf
-			\If{$\gamma_{d+1}=-\infty$}
-				\State $\gamma_{d+1}\gets\begin{multlined}[t]
-					\textsc{normest1}(v\mapsto\\
-					\mapsto\textsc{EvalPowVec}\qty(d+1,X,v,\texttt{approximant}))^{1/(d+1)}
-					\end{multlined}$\label{line:gamma_d+1_normest1}
-			\EndIf
-			\State\Return $\min\qty{\max\qty{\gamma_d,\gamma_{d+1}},\alpha_{\min}}$
-		\EndFunction
-	\end{algorithmic}
-	\hrule
+	\caption{\emph{The two versions of the oracle implementing the action of $X^d$ using elements of $\mathcal{A}$, employed to compute $\alpha_{\min}$.}}
+	\label{alg:EvalPowVec}
 	\begin{algorithmic}[1]
 		\Function{\textsc{EvalPowVec}}{$d,X,V,\mathtt{\colon\!diagonalcheap}$}
 		\Statex\textbf{Input}: $d\in\mathbb{N}$: matrix power. $X\in\C{n}{n}$: matrix. $V\in\C{n}{q}$
@@ -480,9 +493,23 @@ For simplicity, this optimization is omitted from Algorithm~\ref{alg:exp_mp_alph
 	\end{algorithmic}
 \end{algorithm}
 
-Once $\eta$ and $\alpha_{\min}$ have been evaluated, the upper bound $\delta$ can be updated, as shown at line~\algref{alg:eval_bound_pade}{line:delta_computation} of Algorithm~\ref{alg:eval_bound_pade}. 
+Once $\eta$ and $\alpha_{\min}$ have been evaluated, the upper bound $\delta$ can be updated, as shown at line~\algref{alg:eval_bound_pade}{line:delta_computation} of Algorithm~\ref{alg:eval_bound_pade}. Note that the polynomials $p_m$ and $q_m$ that appear therein are polynomials of a \emph{scalar} variable, their evaluation is inexpensive with respect to the overall cost of the algorithm.
 
- 
+The new approximation $\psi$ of $\norm{r_{m_i}(2^{-s_i}X)}_1$ can be computed, as shown at line~\algref{alg:eval_bound_pade}{line:psi_computation} of Algorithm~\ref{alg:eval_bound_pade}. Note that 
+\begin{align*}
+	r_{m_i}(2^{-s_i}X) &= q_{m_i}(2^{-s_i}X)^{-1}p_{m_i}(2^{-s_i}X) = \qty(U_{\textup{e}}-U_{\textup{o}})^{-1}\qty(U_{\textup{e}}+U_{\textup{o}})\\
+	 &= \qty(U_{\textup{e}}-U_{\textup{o}})^{-1}\qty(U_{\textup{e}}-U_{\textup{o}}+2U_{\textup{o}})=I+2\qty(U_{\textup{e}}-U_{\textup{o}})^{-1}U_{\textup{o}}\\
+	 &= I+2U^{-1}L^{-1}U_{\textup{o}},
+\end{align*}
+so the argument to \texttt{normest1} is an anonymous function that implements the action of the Padé approximant, as expected. Thus, previously computed quantities can be reused for this evaluation, without explicitely forming the approximant.
+
+Finally, the variable $\kappa_A$ is updated to the condition number of the current denominator, 
+\[
+	\kappa_A\gets\norm{q_{m_i}(2^{-s_i}X)^{-1}}_1\norm{q_{m_i}(2^{-s_i}X)}_1,
+\]
+using techniques analogous to those described so far (line~\algref{alg:eval_bound_pade}{line:kappa_computation}).
+
+\subsection{Taylor approximants}
 
 
 

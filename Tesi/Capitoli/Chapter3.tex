@@ -161,8 +161,53 @@ If $\mu\ne0$ then $A$ has distinct eigenvalues. In this case, $\exp(A)$ could be
 \end{oss}
 
 \subsection{Preprocessing}\label{subs:preprocessing}
-\textcolor{red}{Vedi~\cite[§~4.10]{higham:matfun_book} e~\cite[§~10.7.3]{higham:matfun_book} }
+Preprocessing techniques modify the input data, in an attempt to improve the accuracy of an algorithm to comptue the function of a matrix. Although preprocessing techniques for the matrix exponential are of particular interest for us, similar techniques can be applied to matrix functions in general.
 
+The two most common preprocessing techniques are shifting and balancing. Both aim to reduce the norm of the input matrix; this is particularly beneficial for methods based on Taylor or Padé approximants, such as scaling and squaring presented in Section~\ref{subs:scaling_and_squaring}, because these approximants are most accurate near the origin.
+\smallskip 
+
+Shifting for the matrix exponential relies on the identity~\eqref{eqn:expm_shifting}. In its most basic form, it prescribes that $\exp(A)$ can be approximated as $e^{\mu}Y$ where $\mu\in\C$ and $Y$ is an approximation to $\exp(A-\mu I)$. A good choice for the translation factor is $\mu=\tr(A)/n$, because it minimizes $\norm{A-\mu I}_F$ over all possible $\mu\in\C$. See also~\cite[Thm.~4.21]{higham:matfun_book}. %However, as discussed in~\cite[§~10.7.3]{higham:matfun_book}, this choice is not always appropriate, especially if $A$ has eigenvalues with large negative real parts.
+Note that this translation factor corresponds to the average of the eigenvalues of the input matrix.
+
+The benefits of shifting, however, are not limited to approximation properties. There is, however, a more fundamental reason for reducing the norm of the input matrix, namely that the matrix exponential itself is better conditioned near the origin. Indeed, it is shown in~\cite[Thm.~10.18]{higham:matfun_book} that if $\mu\in\C$ is such that $\norm{A-\mu I}<\norm{A}$ then $\kappa_{\exp}(A-\mu I)<\kappa_{\exp}(A)$. This property is not tied to any numerical method. Rather, it states that whenever shifting reduces the norm of the input matrix, the computation of its exponential becomes less sensitive to perturbations.
+\smallskip 
+
+Balancing is a heuristic that attempts to equalize the norms of the $i$th row and $i$th column, for each $i$. Over time, ``balancing'' has become synonimous with the balancing algorithms in \textsc{lapack}~\cite{lapack:book} such as \texttt{xGEBAL}. This function is also commonly employed as a preprocessing technique for eigenvalue computation. It operates in two phases, both optional: permutation and scaling. In the permutation phase, the aim is to find and isolate rows or columns that correspond to isolated eigenvalues; more precisely, rows and columns of the input matrix $A$ are swapped to put it in the form
+\[
+	PAP^{\top} = \begin{pmatrix}
+		T_1 & X & Y\\
+		 & B & Z\\
+		 & & T_2
+	\end{pmatrix}
+\]
+where $T_1$ and $T_2$ are upper triangular matrices whose eigenvalues lie along the diagonal. The scaling phase consists in applying a diagonal similarity transformation $D$ to make the 1-norms of each row of $B$ and of its corresponding column nearly equal. More precisely, a transformation
+\begin{align*}
+	D^{-1}PAP^{\top}D &\equiv\operatorname{Diag}(I,D_1^{-1},I)PAP^{\top}\operatorname{Diag}(I,D_1,I)\\
+	&=\begin{pmatrix}
+		I & 	   & \\
+		  & D_1^{-1} & \\
+		  &		   & I
+	\end{pmatrix}
+	\begin{pmatrix}
+		T_1 & X & Y\\
+		& B & Z\\
+		& & T_2
+	\end{pmatrix}
+	\begin{pmatrix}
+		I & & \\
+		& D_1 & \\
+		&   & I
+	\end{pmatrix}\\
+	&=\begin{pmatrix}
+		T_1 & XD_1 & Y\\
+		& D_1^{-1}BD_1 & D_1^{-1}Z\\
+		& & T_2
+	\end{pmatrix}
+\end{align*}
+is applied. More details on the implementation can be found at the official \textsc{lapack} Netlib repository \url{https://netlib.org/lapack/explore-html/df/df3/group__gebal.html} \textcolor{red}{Come lo formatto un link? Lo lascio visibile o metto l'alternative text?}. In summary, \texttt{xGEBAL} applies a similarity transformation to the input matrix $A\in\C{n}{n}$ at a $O(n^2)$ cost, without introducing rounding errors (see also~\cite[§~4.10]{higham:matfun_book}). Despite its purpose, it is not guaranteed to reduce the norm of $A$.
+\smallskip 
+
+Balancing and shifting can be combined. In~\cite[§~10.7.3]{higham:matfun_book}, Higham suggests to not preprocess the input automatically, as the accuracy of the computed result could be worsened by an uncareful application of such techniques.
 
 \section{Conditioning}\label{sect:expm_conditioning}
 %\textcolor{red}{Cfr.~\cite[§~3]{higham:matfun_book} and~\cite[§~10.2]{higham:matfun_book}. Forse anche un articolo di VanLoan piuttosto datato.}
@@ -730,6 +775,18 @@ which -- for a given $m$ -- is potentially satisfied with a much smaller $s$ whe
 The remaining aspects of the algorithm are not relevant here and are therefore omitted; see~\cite{higham:alhi09_new} for a detailed treatment.
 
 \subsubsection{\textcolor{red}{Miscellanea}}\label{subs:expm_sas_miscellanea}
-\textcolor{red}{Lo shifting proposto in~\cite{exptayotf18}. Calcolare expm e la derivata~\cite{higham:alhi09}. Qui parlo di come si ottiene l'``oracolo'' che implementa l'azione di $L_{\exp}(A)$ (è un punto lasciato in sospeso in~\ref{subs:compute_estimate_cond})}
+The discussion in Section~\ref{subs:preprocessing} suggests that scaling and squaring can particularly benefit from preprocessing, potentially, because the norm reduction in the input can reduce the cost of the method. However, some preprocessing techniques sometimes have little effect or could even worsen the accuracy of the computed result (see the discussion in~\cite[§~10.7.3]{higham:matfun_book}).
+
+For example, if $A$ has large negative eigenvalues then $A-\mu I$ can have eigenvalues with a large real part, causing the computation of its exponential to overflow. To address this issue,~\cite{exptayotf18} propose to apply shifting in the following way:
+\[
+	\begin{dcases*}
+		e^{\mu}\,r_m\qty(2^{-s}(A-\mu I))^{2^s} & if $\Re(\mu)\ge 0$\\
+		\qty(e^{2^{-s}\mu}\,r_m\qty(2^{-s}(A-\mu I)))^{2^s} & otherwise.
+	\end{dcases*}
+\]
+where $\mu=\tr(A)/n$. The algorithm proposed in~\cite{exptayotf18} scales its argument by the sum of two powers of $2$, instead of scaling it by $2^{-s}$ as described so far. This may lead to a smaller scaling factor, thus to potentially less \emph{overscaling}. Since the multiprecision algorithm presented in this thesis doesn't employ this scaling technique, further details will not be given.
+
+
+\textcolor{red}{Calcolare expm e la derivata~\cite{higham:alhi09}. Qui parlo di come si ottiene l'``oracolo'' che implementa l'azione di $L_{\exp}(A)$ (è un punto lasciato in sospeso in~\ref{subs:compute_estimate_cond})}
 
 

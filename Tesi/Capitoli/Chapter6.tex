@@ -134,20 +134,20 @@ Similarly to the first strategy, some confusion may arise by the fact that, by p
 One may think, as in Section~\ref{subs:1st_strat_argument}, that the computed $\hat{Y}$ should be ideally compared with $\mathcal{Y}=\exp(\mathcal{A})=H^{\top}\!\exp(D)H$. Reasoning as in Remark~\ref{oss:A_double_prec}, $Y_{\textup{true}}$ is just an approximation $\widetilde{\exp(\mathcal{A})}$ of $\exp(\mathcal{A})$.
 The algorithm however is fed with $A$, not $\mathcal{A}$, thus it returns and approximation $\hat{Y}$ of $\exp(A)$, not of $\exp(\mathcal{A})$. Therefore $\hat{Y}$ should be compared with a good proxy of $\exp(A)$, not with $Y_{\textup{true}}$.
 
-Figure~\vref{img:plot_expm_test2} pictures the situation. The ticks on the axis represent floating point data, they're widely spaced apart for illustration purposes. The curly brace between $\hat{Y}$ and $\exp(A)$ highlights the gap that is measured in the first testing strategy.
+Figure~\vref{fig:plot_expm_test2} pictures the situation. The ticks on the axis represent floating point data, they're widely spaced apart for illustration purposes. The curly brace between $\hat{Y}$ and $\exp(A)$ highlights the gap that is measured in the first testing strategy.
 \begin{figure}[hbp]
 	\centering
 	\includegraphics[width=\textwidth]{Immagini/plot_expm_test2.pdf}
 	\caption{\emph{Conceptual illustration of the absolute errors measured in the first and second testing strategies.}}
-	\label{img:plot_expm_test2}
+	\label{fig:plot_expm_test2}
 \end{figure}
 \smallskip 
 
-Instead, in the second strategy $\hat{Y}$ is compared with $Y_{\textup{true}}$. In Figure~\ref{img:plot_expm_test2}, the gap between the two terms is enclosed in a square brace. Now,
+Instead, in the second strategy $\hat{Y}$ is compared with $Y_{\textup{true}}$. In Figure~\ref{fig:plot_expm_test2}, the gap between the two terms is enclosed in a square brace. Now,
 \[
 	\norm{\hat{Y}-Y_{\textup{true}}}\le\norm{\hat{Y}-\exp(A)}+\norm{\exp(A)-Y_{\textup{true}}}.
 \]
-As discussed, the first term $\norm*{\hat{Y}-\exp(A)}$ is the error that the algorithm actually achieves. Figure~\ref{img:plot_expm_test2} suggests that this second term should be roughly of size $\norm{L_{\exp}(\mathcal{A})}\norm*{\mathcal{A}-A}$. Let us give a more rigorous bound. 
+As discussed, the first term $\norm*{\hat{Y}-\exp(A)}$ is the error that the algorithm actually achieves. Figure~\ref{fig:plot_expm_test2} suggests that this second term should be roughly of size $\norm{L_{\exp}(\mathcal{A})}\norm*{\mathcal{A}-A}$. Let us give a more rigorous bound. 
 \begin{align*}
 	\norm{\exp(A)-Y_{\textup{true}}}&=\norm{\exp(A)-H^{\top}\!\mathtt{*}\exp(D)\mathtt{*}H}\\
 	&=\norm{\exp(H^{\top}\!DH+E_1)-H^{\top}\!\exp(D)H+E_2}\\
@@ -455,7 +455,11 @@ To test this, the experiments described in Section~\ref{sect:experimental_setup}
 
 Figure~\ref{fig:delta_abserr_direct_comparison} provides the answer, at a glance. In the left plots of the figure, the overwhelming majority of the datapoits relative to $\delta$ are below the ones corresponding to the absolute error $\norm{\exp(2^{-s}A)-r_m(2^{-s}A)}_1$. We should observe the opposite behaviour.
 
-The plots in the right column of the figure compare the ratio $\delta/\psi$ with the relative error in the 1-norm. Since -- as noted in Remark~\ref{oss:psi_not_lower_bound} -- $\psi$ is not a lower bound to $\norm{\exp(2^{-s}A)}_1$, there is no theoretical guarantee that $\delta/\psi$ bounds the relative error. Although this comparison is less significant than the one in the left plots of the figure, it is equally interesting.
+The plots in the right column of the figure compare the ratio $\delta/\psi$ with 
+\[
+	\frac{\norm{\exp(2^{-s}A)-r_m(2^{-s}A)}_1}{\norm{\exp(2^{-s}A)}_1},
+\]
+i.e. the relative error in the 1-norm. Since -- as noted in Remark~\ref{oss:psi_not_lower_bound} -- $\psi$ is not a lower bound to $\norm{\exp(2^{-s}A)}_1$, there is no theoretical guarantee that $\delta/\psi$ bounds the relative error. Although this comparison is less significant than the one in the plots in the left-hand side, it is equally interesting.
 
 \begin{figure}[htp]
 	\centering
@@ -466,7 +470,7 @@ The plots in the right column of the figure compare the ratio $\delta/\psi$ with
 
 It turns out that $\norm{\exp(2^{-s}A)-r_m(2^{-s}A)}_1\le\delta$ in only $71$ of the $1832$ samples considered for this analysis. The computed value of $\delta$ is exactly zero in $188$ of the samples, but only $45$ of these also have a zero absolute error. 
 
-Figure~\ref{fig:delta_abserr_ratio} displays the ratios between the value of $\delta$ and the forward error it is supposed to bound, for each sample. \textcolor{red}{The figure shows that both approximants yield equally poor results. The figure shows that $\delta$ can be significantly smaller than the error it is supposed to bound}
+Figure~\ref{fig:delta_abserr_ratio} displays the ratios between the value of $\delta$ and the forward error it is supposed to bound, for each sample. The figure suggests that both approximants yield equally poor results, as the values of $\delta$ returned by the algorithm are significantly smaller than the error it is supposed to bound.
 
 \begin{figure}[hbp]
 	\centering
@@ -475,3 +479,30 @@ Figure~\ref{fig:delta_abserr_ratio} displays the ratios between the value of $\d
 	\label{fig:delta_abserr_ratio}
 \end{figure}
 
+A closer look at Figure~\ref{fig:delta_abserr_direct_comparison} reveals that the plotted errors are of the order of machine precision. Indeed, the observed behaviour is explained by the fact that $\exp(2^{-s}A)$ is not actually compared with $r_m(2^{-s}A)$, but with a floating point approximation.
+
+Considering absolute errors for simplicity, the datapoints actually represent the quantity
+$\norm{Y-\tilde{r}_m(2^{-s}A)}_1$ where $Y$ is the high-precision approximation of $\exp(2^{-s}A)$ computed by \textsc{mpmath} and $\tilde{r}_m(2^{-s}A)$ is the floating point approximation of $r_m(2^{-s}A)$ computed by \texttt{exp\_mp}. In fact, the algorithm performs all arithmetic operations at a finite working precision, thus it can only approximate $r_m(2^{-s}A)$ at the corresponding level of accuracy.
+Since
+\begin{equation}\label{eqn:absolute_error_delta_ub}
+	\norm{Y-\tilde{r}_m(2^{-s}A)}_1\le\norm{Y-r_m(2^{-s}A)}_1+\norm{r_m(2^{-s}A)-\tilde{r}_m(2^{-s}A)}_1
+\end{equation}
+and the second term in the left-hand side of~\eqref{eqn:absolute_error_delta_ub} is such that 
+\[
+	\norm{r_m(2^{-s}A)-\tilde{r}_m(2^{-s}A)}_1\le O(u_p)\norm{r_m(2^{-s}A)}
+\]
+where $p$ is the working precision of \texttt{exp\_mp}, it is not surprising that the error values in the left-hand side plots of Figure~\ref{fig:delta_abserr_direct_comparison} are of the order of machine precision.
+
+\begin{oss*}
+	The first summand $\norm{Y-r_m(A)}_1$ in the left-hand side of~\ref{eqn:absolute_error_delta_ub} is not the quantity bounded by $\delta$. However, $Y$ can be made arbitrarily close to $\exp(A)$.
+	
+	A close approximation to $r_m(2^{-s}A)$ could be obtained by computing the powers of $A$ at a high precision, evaluating $U_{\textup{e}}$ and $U_{\textup{o}}$ and finally by solving $(U_{\textup{e}}-U_{\textup{o}})\backslash\,(U_{\textup{e}}+U_{\textup{o}})$ at a high precision. Note that the working precision should be chosen so that the rounding errors in this computation are negligible with respect to the value of $\delta$ returned by \texttt{exp\_mp} \textcolor{red}{giusto?}. 
+	Moreover, the described procedure would assess the validity of the truncation error bound itself, but this is not a property of the \texttt{exp\_mp} algorithm. Hence, it would provide little insight into the the rounding errors that it introduced. \textcolor{red}{Ci sta, come considerazione?}
+	
+	%Moreover, while the described procedure would assess the validity of the truncation error bound itself, it would tell us little about the errors committed by the algorithm that evaluates the approximant, as the two are unrelated
+\end{oss*}
+
+Analogous considerations can be made for the relative errors displayed in the plots in the left-hand side of Figure~\ref{fig:delta_abserr_direct_comparison}, since it holds that 
+\[
+	\frac{\norm{Y-\tilde{r}_m(2^{-s}A)}_1}{\norm{Y}_1}\overset{.}{\le}\frac{\norm{Y-r_m(2^{-s}A)}_1}{\norm{Y}_1}+\frac{\norm{r_m(2^{-s}A)-\tilde{r}_m(2^{-s}A)}_1}{\norm{r_m(2^{-s}A)}_1}.
+\]
