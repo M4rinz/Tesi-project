@@ -1054,7 +1054,8 @@ function exp_mp(
     setprecision(BigFloat, working_precision)
     # oss: Taylor è in grado di funzionare anche con Float64 senza mai tirare in ballo 
     #      i BigFloats. Ma questo è un algoritmo in precisione arbitraria...
-    A = T <: Real ? BigFloat.(A) : Complex{BigFloat}.(A)  
+    #A = T <: Real ? BigFloat.(A) : Complex{BigFloat}.(A)  
+    A = T <: Real ? big(T).(A) : Complex{big(T)}.(A)  
     # questa è la cosa più vicina al MATLAB originale, 
     # posto che Advanpix funzioni come i BigFloats (penso proprio di sì)
 
