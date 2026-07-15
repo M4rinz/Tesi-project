@@ -17,14 +17,14 @@ const Y_TRUE_PREC = 1792
 
 
 ############## Files per runnare esperimenti e scrivere su CSV ##############
-csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "ms-bench-v0.1.5alpha-08_07.csv")
+csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "ms-bench-v0.1.5alpha-15_07.csv")
 
 const CSV_HEADER = [
     "kind", "n", "eltype", "ishermitian",
     "approximant", "algorithm",
     "m", "s", "delta", "psi", "cond_q", "epsilon",
     "m_base", "s_base",
-    "precision"
+    "precision", "extra_precision"
 ]
 
 ensure_csv_header(csvfile, CSV_HEADER)
@@ -46,8 +46,8 @@ function run_and_record(
             push!(ALGS, :realschur)
         end
         wrk_p = 53
-        for alg in ALGS
-            print("Running: kind=$kind, n=$n, eltype=$(T), approximant=$approximant, algorithm=$alg, precision=$wrk_p\n")
+        for alg in ALGS, xtra_p_flag in [true, false]
+            print("Running: kind=$kind, n=$n, eltype=$(T), approximant=$approximant, algorithm=$alg, precision=$wrk_p, use_extra_precision=$xtra_p_flag\n")
             
             # Initialize with NaN values in case of error
             m = NaN
@@ -60,7 +60,7 @@ function run_and_record(
             epsilon = NaN
             
             try
-                _, _, params = exp_mp(A; approximant=approximant, algorithm=alg, working_precision=53)
+                _, _, params = exp_mp(A; approximant=approximant, algorithm=alg, working_precision=53, use_extra_precision=xtra_p_flag)
                 
                 m       = params.m
                 s       = params.s
@@ -81,7 +81,7 @@ function run_and_record(
                     string(approximant), string(alg),
                     m, s, format_long_number(delta), format_long_number(psi), cond_q, format_long_number(epsilon),
                     m_base, s_base,
-                    wrk_p]
+                    wrk_p, xtra_p_flag]
             write_row(csvfile, row)
         end
     end

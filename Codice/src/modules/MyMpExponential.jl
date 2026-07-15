@@ -1031,7 +1031,8 @@ function exp_mp(
     maxdegree::Integer = 100,
     algorithm::Symbol = :transfree,         # schur?
     approximant::Symbol = :diagonalcheap,   # chosen approximant
-    use_abs_err::Bool = false               # as stopping crit. in the main while loop
+    use_abs_err::Bool = false,              # as stopping crit. in the main while loop
+    use_extra_precision::Bool = true              # increase precision in some internal computations?
 ) where {T<:Number}
     n = LinearAlgebra.checksquare(A)
 
@@ -1054,8 +1055,7 @@ function exp_mp(
     setprecision(BigFloat, working_precision)
     # oss: Taylor è in grado di funzionare anche con Float64 senza mai tirare in ballo 
     #      i BigFloats. Ma questo è un algoritmo in precisione arbitraria...
-    #A = T <: Real ? BigFloat.(A) : Complex{BigFloat}.(A)  
-    A = T <: Real ? big(T).(A) : Complex{big(T)}.(A)  
+    A = T <: Real ? BigFloat.(A) : Complex{BigFloat}.(A)  
     # questa è la cosa più vicina al MATLAB originale, 
     # posto che Advanpix funzioni come i BigFloats (penso proprio di sì)
 
@@ -1193,7 +1193,8 @@ function exp_mp(
                 end
             end
         end
-        extra_precision = true
+        #extra_precision = true
+        extra_precision = use_extra_precision
 
         α = alpha!(alpha_vec, XandP, m, s)
         δ, ψ, κ_A, compute_ψ, tempo = eval_error!(XandP, α, m, s, extra_precision, 

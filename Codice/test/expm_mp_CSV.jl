@@ -227,7 +227,7 @@ end
 
 
 ############## Files per runnare esperimenti e scrivere su CSV ##############
-csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.5alpha-04_06-mpmath_ref.csv")
+csvfile = joinpath(@__DIR__, "..", "..", "Dati_benchmarks_et_al", "bench-v0.1.5alpha-15_07-mpmath_ref.csv")
 
 const CSV_HEADER = [
     "kind", "n", "eltype", "ishermitian",
@@ -238,7 +238,7 @@ const CSV_HEADER = [
     "rel_err_F", "abs_err_1", "nrm1_Ytrue",
     "Ytrue_method", "cond_expA_F", 
     "condA_1", "condA_2",
-    "precision"
+    "precision", "extra_precision"
 ]
 
 ensure_csv_header(csvfile, CSV_HEADER)
@@ -307,7 +307,7 @@ function run_and_record(
             format_long_number(rel_err_F), format_long_number(abs_err_1), format_long_number(nrm1_Ytrue),
             Ytrue_method, format_long_number(cond_E), 
             condA_1, condA_2,
-            53]
+            53, NaN]
     write_row(csvfile, row)
 
     # run configurations using exp_mp
@@ -317,8 +317,8 @@ function run_and_record(
         if T <: Real
             push!(ALGS, :realschur)
         end
-        for alg in ALGS, wrk_p in PRECS
-            print("Running: kind=$kind, n=$n, eltype=$(T), approximant=$approximant, algorithm=$alg, precision=$wrk_p\n")
+        for alg in ALGS, wrk_p in PRECS, xtra_p_flag in [true, false]
+            print("Running: kind=$kind, n=$n, eltype=$(T), approximant=$approximant, algorithm=$alg, precision=$wrk_p, use_extra_precision=$xtra_p_flag\n")
             
             # Initialize with NaN values in case of error
             schur_time = NaN
@@ -338,7 +338,7 @@ function run_and_record(
             Y = nothing
             
             try
-                t = @elapsed Y, times, params = exp_mp(A; approximant=approximant, algorithm=alg, working_precision=wrk_p)
+                t = @elapsed Y, times, params = exp_mp(A; approximant=approximant, algorithm=alg, working_precision=wrk_p, use_extra_precision=xtra_p_flag)
                 
                 # get times
                 schur_time = times[1]
@@ -375,98 +375,98 @@ function run_and_record(
                    format_long_number(rel_err_F), format_long_number(abs_err_1), format_long_number(nrm1_Ytrue),
                    Ytrue_method, format_long_number(cond_E), 
                    condA_1, condA_2,
-                   wrk_p]
+                   wrk_p, xtra_p_flag]
             write_row(csvfile, row)
         end
     end
 end
 
 
-## First experiment: Float64 random 
-for n in [8, 24] #[16, 64, 256]
-    A = rand(n,n);
-    run_and_record("rand_$n", A)
-end
-print("randn experiment completed\n")
+# ## First experiment: Float64 random 
+# for n in [8, 24] #[16, 64, 256]
+#     A = rand(n,n);
+#     run_and_record("rand_$n", A)
+# end
+# print("randn experiment completed\n")
 
-## Second experiment: BigFloat random
-for n in [8, 24] #[16, 64, 256]
-    A = rand(BigFloat, n,n)
-    run_and_record("rand_$(n)_big", A)
-end
-print("randn_big experiment completed\n")
+# ## Second experiment: BigFloat random
+# for n in [8, 24] #[16, 64, 256]
+#     A = rand(BigFloat, n,n)
+#     run_and_record("rand_$(n)_big", A)
+# end
+# print("randn_big experiment completed\n")
 
-## Third experiment: Fasi's matrices
-_, _, _, n_matrices = FasiMatrices(-42) 
-for k=1:n_matrices
-    A, Y_true, k, _ = FasiMatrices(k, Y_true_precision=Y_TRUE_PREC)
-    run_and_record("Fasi_$k", A, Y_true)
-end
-print("FasiMatrices experiment completed\n")
+# ## Third experiment: Fasi's matrices
+# _, _, _, n_matrices = FasiMatrices(-42) 
+# for k=1:n_matrices
+#     A, Y_true, k, _ = FasiMatrices(k, Y_true_precision=Y_TRUE_PREC)
+#     run_and_record("Fasi_$k", A, Y_true)
+# end
+# print("FasiMatrices experiment completed\n")
 
-## Fourth experiment: matrices from `expm_testmats` 
-_, _, _, n_matrices = expm_testmats(-42)
-for k=1:n_matrices
-    if k in [11, 12, 32] # dipendono da n
-        for n in [4, 24]
-            A, Y_true, id, _ = expm_testmats(k, n, Y_true_precision=Y_TRUE_PREC)
-            run_and_record(id, A, Y_true)
-        end
-    else 
-        A, Y_true, id, _ = expm_testmats(k, Y_true_precision=Y_TRUE_PREC)
-        run_and_record(id, A, Y_true)
-    end
-end
-print("expm_testmats experiment completed\n")
+# ## Fourth experiment: matrices from `expm_testmats` 
+# _, _, _, n_matrices = expm_testmats(-42)
+# for k=1:n_matrices
+#     if k in [11, 12, 32] # dipendono da n
+#         for n in [4, 24]
+#             A, Y_true, id, _ = expm_testmats(k, n, Y_true_precision=Y_TRUE_PREC)
+#             run_and_record(id, A, Y_true)
+#         end
+#     else 
+#         A, Y_true, id, _ = expm_testmats(k, Y_true_precision=Y_TRUE_PREC)
+#         run_and_record(id, A, Y_true)
+#     end
+# end
+# print("expm_testmats experiment completed\n")
 
-## fifth experiment: matrices from `gallery_getall_expm`
-_, _, n_matrices = gallery_getall_expm(-42)
-for k=1:n_matrices 
-    A, id, _ = gallery_getall_expm(k)
-    run_and_record(id, A, nothing)
-end
-print("gallery_getall_expm experiment completed\n")
+# ## fifth experiment: matrices from `gallery_getall_expm`
+# _, _, n_matrices = gallery_getall_expm(-42)
+# for k=1:n_matrices 
+#     A, id, _ = gallery_getall_expm(k)
+#     run_and_record(id, A, nothing)
+# end
+# print("gallery_getall_expm experiment completed\n")
 
-## Sixth experiment: Hadamard + diagonalization (ComplexF64)
-for n in [8]   #[16, 64, 256]
-    H = hadamard(n)
-    H = Matrix{Float64}(H) / sqrt(n)
-    D = Diagonal(100rand(n).-50 + 100im*rand(n).-50)
-    A = H' * D * H
-    #Y_true = H' * exp(D) * H
-    run_and_record("hadamard_diag_$n", A)
-end
-print("hadamard_diag experiment completed\n")
+# ## Sixth experiment: Hadamard + diagonalization (ComplexF64)
+# for n in [8]   #[16, 64, 256]
+#     H = hadamard(n)
+#     H = Matrix{Float64}(H) / sqrt(n)
+#     D = Diagonal(100rand(n).-50 + 100im*rand(n).-50)
+#     A = H' * D * H
+#     #Y_true = H' * exp(D) * H
+#     run_and_record("hadamard_diag_$n", A)
+# end
+# print("hadamard_diag experiment completed\n")
 
-## Seventh experiment: Hadamard + diagonalization (BigFloat)
-for n in [8]   #[16, 64, 256]
-    H = hadamard(n)
-    H = Matrix{BigFloat}(H) / sqrt(big(n))
-    D = Diagonal(100rand(BigFloat, n).-50 + 100im*rand(BigFloat, n).-50)
-    A = H' * D * H
-    #Y_true = H' * exp(D) * H
-    run_and_record("hadamard_diag_big_$n", A)
-end
-print("hadamard_diag_big experiment completed\n")
+# ## Seventh experiment: Hadamard + diagonalization (BigFloat)
+# for n in [8]   #[16, 64, 256]
+#     H = hadamard(n)
+#     H = Matrix{BigFloat}(H) / sqrt(big(n))
+#     D = Diagonal(100rand(BigFloat, n).-50 + 100im*rand(BigFloat, n).-50)
+#     A = H' * D * H
+#     #Y_true = H' * exp(D) * H
+#     run_and_record("hadamard_diag_big_$n", A)
+# end
+# print("hadamard_diag_big experiment completed\n")
 
-## 8th experiment: Hadamard + Jordan form (ComplexF64)
-for n in [8]     # [16, 64, 256]
-    H = hadamard(n)
-    H = Matrix{Float64}(H) / sqrt(n)
-    J = create_J(n)
-    A = H' * J * H
-    #Y_true = H' * exp(J) * H
-    run_and_record("hadamard_jord_$n", A)
-end
-print("hadamard_jord experiment completed \n")
+# ## 8th experiment: Hadamard + Jordan form (ComplexF64)
+# for n in [8]     # [16, 64, 256]
+#     H = hadamard(n)
+#     H = Matrix{Float64}(H) / sqrt(n)
+#     J = create_J(n)
+#     A = H' * J * H
+#     #Y_true = H' * exp(J) * H
+#     run_and_record("hadamard_jord_$n", A)
+# end
+# print("hadamard_jord experiment completed \n")
 
-## Ninth experiment: Hadamard + Jordan form (ComplexF64)
-for n in [8]     # [16, 64, 256]
-    H = hadamard(n)
-    H = Matrix{Float64}(H) / sqrt(n)
-    J = create_J(n, BigFloat)
-    A = H' * J * H
-    #Y_true = H' * exp(J) * H
-    run_and_record("hadamard_jord_big_$n", A)
-end
-print("hadamard_jord_big experiment completed \n")
+# ## Ninth experiment: Hadamard + Jordan form (ComplexF64)
+# for n in [8]     # [16, 64, 256]
+#     H = hadamard(n)
+#     H = Matrix{Float64}(H) / sqrt(n)
+#     J = create_J(n, BigFloat)
+#     A = H' * J * H
+#     #Y_true = H' * exp(J) * H
+#     run_and_record("hadamard_jord_big_$n", A)
+# end
+# print("hadamard_jord_big experiment completed \n")
