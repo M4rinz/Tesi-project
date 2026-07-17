@@ -352,6 +352,7 @@ The adjoint of the Fréchet derivative can be used to estimate the condition num
 
 \subsection{Properties of the Fréchet derivative}\label{subs:frechet_properties}
 The Fréchet derivative enjoys most of the usual properties of derivatives. The sum, product, inverse and chain rules are all satisfied. The rules can be stated, in order, as follows:
+\begin{subequations}\label{eqn:frechet_rules}
 \begin{align}
 	L_{f+g}(A) & = E\mapsto L_f(A)[E] + L_g(A)[E]\nonumber \\
 	L_{f\cdot g}(A) & = E\mapsto\big(L_f(A)[E]\cdot g(A) + f(A)\cdot L_g(A)[E]\big)\label{eqn:frechet_prod_rule}\\
@@ -360,8 +361,9 @@ The Fréchet derivative enjoys most of the usual properties of derivatives. The 
 			E\mapsto L_f(A)^{-1}[E],\\ 
 			\text{or equivalently}\ L_f(A)\big[L_{f^{-1}}\qty(f(A))[E]\big]=E
 		\end{multlined}\nonumber \\
-	L_{f\circ g}(A) & = L_f(g(A))\circ L_g(A) = E\mapsto L_f\qty(g(A))\big[L_g\qty(A)\qty[E]\big].
+	L_{f\circ g}(A) & = L_f(g(A))\circ L_g(A) = E\mapsto L_f\qty(g(A))\big[L_g\qty(A)\qty[E]\big].\label{eqn:frechet_chain_rule}
 \end{align}
+\end{subequations}
 \noindent We recall four of the many computation-oriented properties of the Fréchet derivative.
 
 By analogy with the scalar case $\dd f(x)=f'(x)\dd{x}$, one may be tempted to define the differential of a matrix function at $A$ evaluated along $E$ as $f'(A)E$. This is \emph{not} the same as $L_f(A)[E]$ in general, but if $A$ and $E$ commute then $ L_f(A)[E]=f'(A)E$.
@@ -517,7 +519,7 @@ In theory, $f(A)$ could be computed by directly applying Definition~\ref{def:mat
 \begin{oss*}
 	Even if it could, the computed result may be a poor approximation of $f(A)$ anyway. This is because the accuracy of the Jordan form method is limited by the conditioning of the matrix $V$. This phenomenon is discussed in Section~\ref{subs:diagonalization} for the diagonalizable case, but the analysis holds in this more general case as well.
 \end{oss*}
-One of the most basic tenets of numerical linear algebra is that ``\emph{anything that the Jordan decomposition can do, the Schur decomposition can do better!}'' \textcolor{red}{Si trova in Van Loan 1975 ``A Study of the Matrix Exponential'', che già pensavo di citare per qualche risultato.}
+One of the most basic tenets of numerical linear algebra is that ``\emph{anything that the Jordan decomposition can do, the Schur decomposition can do better!}''~\cite{vanloan:StudyMatrixExponential75}
 \smallskip 
 
 The Schur-Parlett method exploits the fact that the elements of a function of a upper triangular matrix can be computed through a clever recurrence.
@@ -594,7 +596,7 @@ The total number of matrix multiplications is therefore
 		0 & otherwise.
 	\end{dcases*}
 \end{equation}
-By taking its derivative with respect to $\nu$ (and dropping the $\lfloor\phantom{r}\rfloor$ in $r$), we see that $C_m(\nu)$ in~\eqref{eqn:ps_cost} is minimized by $\sqrt{m}$; thus the cost is approximately minimized by either $\nu=\lfloor\sqrt{m}\rfloor$ or $\nu=\lceil\sqrt{m}\rceil$. With either choice of ``batch size'', evaluating a polynomial of degree $m$ at a $n$-by-$n$ matrix costs $O(\sqrt{m}n^3)$ flops.
+By taking its derivative with respect to $\nu$ (and dropping the $\lfloor\phantom{r}\rfloor$ in $r$), we see that $C_m(\nu)$ in~\eqref{eqn:ps_cost} is minimized by $\sqrt{m}$; thus the cost is approximately minimized by either $\nu=\lfloor\sqrt{m}\rfloor$ or $\nu=\lceil\sqrt{m}\rceil$. With either choice of ``batch size'', evaluating a polynomial of degree $m$ at a $n$-by-$n$ matrix costs $O(\sqrt{m}n^3)$ flops. See also~\cite[Thm.~1]{fasi:ps_optimality}.
 
 It can be easily seen that the two extreme cases $\nu=1$ and $\nu=m$ correspond to the Horner and to the explicit powers evaluation schemes, respectively.
 

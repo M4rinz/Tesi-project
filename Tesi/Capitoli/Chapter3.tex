@@ -231,7 +231,7 @@ For a proof of this identity, see~\cite[Prob.~10.1]{higham:matfun_book} and the 
 
 Other identities satisfied by $L_{\exp}(A)$ and by its Kronecker representation can be found in~\cite[§~10.2]{higham:matfun_book}.
 
-\textcolor{red}{Eventuali proprietà aggiuntive del differenziale di Fréchet di expm vanno qui}
+%\textcolor{red}{Eventuali proprietà aggiuntive del differenziale di Fréchet di expm vanno qui}
 
 Let us now focus on the conditioning of the matrix exponential.
 \begin{lemma}\label{lemma:bounds_derivative_expm}
@@ -259,7 +259,7 @@ Let us now focus on the conditioning of the matrix exponential.
 \end{corollario_lemma}
 Since $\norm{\exp(A)}$ can be much smaller than $e^{\norm{A}}$, the upper bound in Corollary~\ref{cor:bounds_cond_expm} suggests that the matrix exponential function can be very ill-conditioned. For some matrices, however, the upper bound may be rather pessimistic.
 
-\begin{lemma}{\cite[Thm.~10.16]{higham:matfun_book}}
+\begin{lemma}{\cite[Thm.~10.16]{higham:matfun_book}}\label{lemma:cond_exp_nrm2_normal}
 	If $A\in\C{n}{n}$ is normal then in the $2$-norm, $\kappa_{\exp}(A)=\norm{A}_2$.
 \end{lemma}
 \begin{proof}	
@@ -508,7 +508,7 @@ where we defined $\tilde{h}_{2m+1}(z)\coloneqq\sum_{k=2m+1}^{\infty}\abs{c_k}z^k
 \end{equation}
 \begin{oss*}
 	If all the coefficients $c_k$ were one-signed, then $\tilde{h}_{2m+1}(\norm{2^{-s}A})$ would be equal to $\abs{h_{2m+1}(\norm{2^{-s}A})}$. Unfortunately, this is not the case in general. 
-	In Equation~\eqref{eqn:backerr_bound_htilde}, the relative error is being bounded by something larger than $\abs{h_{2m+1}(\norm{2^{-s}A})}$.
+	In~\eqref{eqn:backerr_bound_htilde}, the relative error is being bounded by something larger than $\abs{h_{2m+1}(\norm{2^{-s}A})}$.
 \end{oss*}
 For $m=1,\dots,21$ the values
 \begin{equation}\label{eqn:theta_m_def}
@@ -548,11 +548,11 @@ Thus $p_m(X)$ and $q_m(X)$ can be efficiently evaluated by splitting the even an
 \[
 	p_m(X) = \sum_{i=0}^{m}\beta_iX^i = \underbrace{\smashoperator[lr]{\sum_{k=0}^{\left\lfloor m/2\right\rfloor}}\beta_{2k}X^{2k}}_{\coloneqq U_{\textup{e}}} + \underbrace{X\smashoperator[lr]{\sum_{k=0}^{\left\lceil -1+m/2\right\rceil}}\beta_{2k+1}X^{2k}}_{\coloneqq U_{\textup{o}}}
 \]
-we have that $q_m(X)=U_{\textup{e}}-U_{\textup{o}}$. The $U_{\textup{e}}$ and $U_{\textup{o}}$ terms can be evaluated using the Paterson-Stockmeyer scheme on $X^2$, with ``batch size'' $\nu$, see Section~\ref{subs:paterson-stockmeyer}. We note that the matrix powers can be computed once and used to evaluate both terms, but forming $V$ requires one extra multiplication by $X$. Recalling Equation~\eqref{eqn:ps_cost}, the total cost in matrix multiplications to evaluate $U_{\textup{e}}$ and $U_{\textup{o}}$ is given by
+we have that $q_m(X)=U_{\textup{e}}-U_{\textup{o}}$. The $U_{\textup{e}}$ and $U_{\textup{o}}$ terms can be evaluated using the Paterson-Stockmeyer scheme on $X^2$, with ``batch size'' $\nu$, see Section~\ref{subs:paterson-stockmeyer}. We note that the matrix powers can be computed once and used to evaluate both terms, but forming $U_{\textup{o}}$ requires one extra multiplication by $X$. Recalling Equation~\eqref{eqn:ps_cost}, the total cost in matrix multiplications to evaluate $U_{\textup{e}}$ and $U_{\textup{o}}$ is given by
 \[
 	C_m^{\textup{tot}}(\nu)=\nu+1+\left\lfloor\frac{\lfloor m/2\rfloor}{\nu}\right\rfloor-\mathbbm{1}_{\big\{[\,\lfloor m/2\rfloor\,]_{\nu}=0\big\}}+ \left\lfloor\frac{\lceil m/2-1\rceil}{\nu}\right\rfloor - \mathbbm{1}_{\big\{[\,\lceil m/2-1\rceil\,]_{\nu}=0\big\}},
 \]
-which -- as discussed in Section~\ref{subs:paterson-stockmeyer} -- is approximately minimized by taking either $\nu=\lfloor\sqrt{m-1/2}\rfloor$ or $\nu=\lceil\sqrt{m-1/2}\,\rceil$ \textcolor{red}{(devo rivedere le parentesi qui, per scrupolo)}. 
+which -- as discussed in Section~\ref{subs:paterson-stockmeyer} -- is approximately minimized by taking either $\nu=\lfloor\sqrt{m-1/2}\rfloor$ or $\nu=\lceil\sqrt{m-1/2}\,\rceil$. See also~\cite{fasi:ps_optimality}.
 \begin{oss}
 	The evaluation scheme for $p_m(A)$ and $q_m(A)$ that was just described can be applied to any degree $m$, but not all of them are worth considering.
 	
@@ -643,7 +643,7 @@ The overscaling phenomenon in the $2$-by-$2$ block upper triangular case was ana
 
 The block triangular setting is useful for understanding why overscaling may lead to numerical issues, but the phenomenon is not restricted to this class of matrices, as the numerical experiments in~\cite{higham:alhi09_new} show. \cite{dieci_papini:exp_blockTri} introduced an improved error bound for the approximation to $\exp(A)$ where $A$ is block triangular, but proposes no algorithm for the general $A$. 
 
-In turn, a scaling and squaring algorithm that deals with this issue in the general case is proposed in~\cite{higham:alhi09_new}. The algorithm combines two main ideas: a sharper bound on the truncation error, which can lead to smaller values of $s$; and modifications to the squaring phase for the (quasi-) upper triangular case that attenuate the propagation of rounding errors. Both these developments are outlined in the following sections. 
+In turn, a scaling and squaring algorithm that deals with this issue in the general case is proposed in~\cite{higham:alhi09_new}. The algorithm combines two main ideas: a sharper bound on the truncation error, which can lead to smaller values of $s$; and modifications to the squaring phase for the (quasi-)upper triangular case that attenuate the propagation of rounding errors. Both these developments are outlined in the following sections. 
 
 \begin{oss*}
 	The overscaling phenomenon has influenced much of the subsequent development of scaling and squaring algorithms. Many variants proposed after Higham's algorithm are built around the idea of reducing the amount of scaling as much as possible, while maintaining a high level of accuracy.
@@ -719,7 +719,7 @@ The second improvement that~\cite{higham:alhi09_new} introduced is a sharper tru
 \[
 	\rho(A)\le\norm{A^k}^{1/k}\le\norm{A}\qquad\forall\,k\in\mathbb{N}\setminus\{0\}
 \]
-and on the empirical observation that the sequence $\qty{\norm{A^k}^{1/k}}_{k\ge 1}$ is typically nonincreasing.
+and on the empirical observation that the sequence $\qty{\lvert\lvert A^k\rvert\rvert^{1/k}}_{k\ge 1}$ is typically nonincreasing.
 
 Let $t$ be such that $\norm{A^t}^{1/t}=\max\big\{\norm*{A^k}^{1/k}\mid k\ge 2m+1, c_k\ne 0\big\}$. Then it can easily be proven (see~\cite[Thm.~1.1]{higham:alhi09_new}) that if $\rho(A)$ is within the radius of convergence of $h_m$ then
 \begin{equation}\label{eqn:backerr_bound_htilde_nrmt}
@@ -731,7 +731,7 @@ Equation~\eqref{eqn:backerr_bound_htilde_nrmt} provides a sharper bound than~\eq
 
 Using Theorem~\ref{thm:backerr_bound_alpha} (which is a slight variation of~\cite[Thm.~4.2]{higham:alhi09_new}) we can give a more convenient bound in which only matrix powers that are computed appear.
 \begin{teorema}\label{thm:backerr_bound_alpha}
-	Let $g_l(x)=\sum_{k=l}^{\infty}a_kx^k$ be a power series with radius of convergence $\omega$, let $\tilde{g}_l(x)=\sum_{k=l}^{\infty}\abs{a_k}x^k$ and let $p$ be a positive integer. Assume that $A\in\C{n}{n}$ is such that $\rho(A)<\omega$. Then
+	Let $g_l(x)=\sum_{k=l}^{\infty}a_kx^k$ be a power series with radius of convergence $\omega$, let $\tilde{g}_l(x)=\sum_{k=l}^{\infty}\abs{a_k}x^k$ and let $d$ be a positive integer. Assume that $A\in\C{n}{n}$ is such that $\rho(A)<\omega$. Then
 	\begin{enumerate}
 		\item $\norm{g_l(A)}\le\tilde{g}_l(\alpha_d(A))$ if $l\ge d(d-1)$, where
 			\begin{equation}\label{eqn:alpha_d_def}
@@ -774,7 +774,7 @@ which -- for a given $m$ -- is potentially satisfied with a much smaller $s$ whe
 
 The remaining aspects of the algorithm are not relevant here and are therefore omitted; see~\cite{higham:alhi09_new} for a detailed treatment.
 
-\subsubsection{\textcolor{red}{Miscellanea}}\label{subs:expm_sas_miscellanea}
+\subsubsection{\textcolor{red}{Other extensions and improvements}}\label{subs:expm_sas_miscellanea}
 The discussion in Section~\ref{subs:preprocessing} suggests that scaling and squaring can particularly benefit from preprocessing, potentially, because the norm reduction in the input can reduce the cost of the method. However, some preprocessing techniques sometimes have little effect or could even worsen the accuracy of the computed result (see the discussion in~\cite[§~10.7.3]{higham:matfun_book}).
 
 For example, if $A$ has large negative eigenvalues then $A-\mu I$ can have eigenvalues with a large real part, causing the computation of its exponential to overflow. To address this issue,~\cite{exptayotf18} propose to apply shifting in the following way:
@@ -785,8 +785,85 @@ For example, if $A$ has large negative eigenvalues then $A-\mu I$ can have eigen
 	\end{dcases*}
 \]
 where $\mu=\tr(A)/n$. The algorithm proposed in~\cite{exptayotf18} scales its argument by the sum of two powers of $2$, instead of scaling it by $2^{-s}$ as described so far. This may lead to a smaller scaling factor, thus to potentially less \emph{overscaling}. Since the multiprecision algorithm presented in this thesis doesn't employ this scaling technique, further details will not be given.
+\medskip 
+
+An interesting extension of Higham's scaling and squaring algorithm is presented in~\cite{higham:alhi09}. It simultaneously approximates  $\exp(A)$ and $L_{\exp}(A)[E]$ for a given direction $E\in\C{n}{n}$.
+In direct analogy with the approximation $r_m(2^{-s}A)^{\cramped{2^s}}$ of $\exp(A)$, the proposed algorithm approximates $L_{\exp}(A)$ by the Fréchet derivative of the function implemented by scaling and squaring, namely by
+\[
+	L_0\equiv L_{(x\mapsto x^{\cramped{2^s}})\circ r_m\circ(x\mapsto 2^{-s}x)}(A).
+\]
+The approximation of the derivative is thus given by the derivative of the chosen approximant.
+
+The first question that naturally arises is how the original algorithm should be modified to compute such an approximation, and what is the resulting computational cost. A second question is under what circumstances the Fréchet derivative of $r_m$ at $A$ provides a good approximation to $L_{\exp}(A)$.
+\smallskip 
+
+Let $X$ denote $2^{-s}A$. By differentiating the relation $q_m(X)r_m(X)=p_m(X)$  using the product rule in~\eqref{eqn:frechet_prod_rule}, we get that $L_{r_m}(X)$ satisfies
+\begin{align*}
+	L_{q_m}(X)[E]r_m(X)+q_m(X)L_{r_m}(X)[E]=L_{p_m}(X)[E] &\iff \\
+	L_{r_m}(X)[E] = q_m(X)^{-1}\big(L_{q_m}(X)[E]-L_{q_m}(X)[E]r_m(A)\big), &
+\end{align*}
+i.e. it satisfies a multiple right-hand side linear system in which the Fréchet derivatives of $p_m$ and $q_m$ at $2^{-s}A$, along $E$, appear. The algorithm evaluates $p_m(X)$ and $q_m(X)$ by computing a sequence of intermediate quantities, each obtained from previously computed ones through successive applications of elementary matrix operations. Applying the differentiation rules in~\eqref{eqn:frechet_rules} to these operations determines how the Fréchet derivative of each intermediate quantity is computed from the Fréchet derivatives of the quantities on which it depends. Thus, each intermediate quantity is computed together with its Fréchet derivative, ultimately yielding $L_{p_m}(X)[E]$ and $L_{q_m}(X)[E]$ while also evaluating $p_m(X)$ and $q_m(X)$. This procedure is essentially equivalent to applying forward-mode automatic differentiation to the evaluation of the Padé approximant.
+
+Then, $L_{r_m}(A)$ has to be obtained from $L_{r_m}(X)$. This is obtained by expanding the squaring phase. By using the chain rule~\eqref{eqn:frechet_chain_rule} and the rules in~\eqref{eqn:frechet_rules}, it can be proven that 
+\begin{align*}
+	L_{\exp}(A) &= L_{(x\mapsto x^2)\circ\exp}\qty(A/2)\\
+	 &= L_{x\mapsto x^2}\qty(\exp(\mathsmaller{\frac{A}{2}}))\circ L_{\exp}\qty(\mathsmaller{\frac{A}{2}})\circ L_{x\mapsto x/2}(A)\\
+	 &= E\mapsto e^{\frac{A}{2}}L_{\exp}\qty(\mathsmaller{\frac{A}{2}})\qty[\mathsmaller{\frac{E}{2}}]+L_{\exp}(\mathsmaller{\frac{A}{2}})\qty[\mathsmaller{\frac{E}{2}}]e^{\frac{A}{2}},
+\end{align*}
+which relates $L_{\exp}(A)$ and $L_{\exp}(A/2)$ and can be applied recursively to obtain $L_{\exp}(A)[E]$ from $L_{\exp}(2^{-s}A)[2^{-s}E]$. The squaring phase now reads as in Algorithm~\ref{alg:squaring_sas_frechet}, where
+\begin{equation}\label{eqn:Y_L_squaring_sas_frechet}
+	\begin{dcases}
+		Y_s = r_m(2^{-s}A)\\
+		\begin{split}
+			L_s &= L_{r_m}(2^{-s}A)[2^{-s}E] \\
+			 &\ \ \approx L_{\exp}(2^{-s}A)[2^{-s}E]
+		\end{split}
+	\end{dcases}\implies 
+	\begin{dcases}
+		Y_i = r_m(2^{-s}A)^{2^{s-i}}\\
+		L_i \approx L_{\exp}(2^{-i}A)[2^{-i}E]
+	\end{dcases}
+	\qquad\forall\,i\in[s].
+\end{equation}
+
+\begin{algorithm}[htp]
+	\caption{\emph{Squaring phase of the scaling and squaring algorithm~\cite{higham:alhi09} that computes the matrix exponential and its Fréchet derivative}}
+	\label{alg:squaring_sas_frechet}
+	\begin{algorithmic}[0]
+		\For{$i=1,\dots,s$}
+			\State $Y_{i-1}\gets Y_i^2$
+			\State $L_{i-1}\gets L_iY_i+Y_iL_i$
+		\EndFor
+	\end{algorithmic}
+\end{algorithm}
+
+As a consequence of the product rule~\eqref{eqn:frechet_prod_rule}, the cost of evaluating the Fréchet derivative of a matrix polynomial is at most twice that of evaluating the polynomial itself. See also~\cite[Thm.~4.1]{higham:alhi09}. It follows that the overall cost of the algorithm in~\cite{higham:alhi09} is at most three times that of Higham's original scaling and squaring algorithm~\cite{higham:SaS_revisited}. By contrast, the identity in Equation~\eqref{eqn:mathias_trick} allows the simultaneous evaluation of a matrix function and its Fréchet derivative at approximately eight times the cost of computing the function alone.
+\smallskip 
+
+Let us now turn to the the accuracy of the approximation. It is shown in~\cite[Thm.~6.3]{higham:alhi09} that $L_0$ in~\eqref{eqn:Y_L_squaring_sas_frechet} satisfies
+\begin{equation}\label{eqn:L_0_backerr_result}
+	L_0=L_{\exp}(A+\Delta{A})[E+\Delta{E}],
+\end{equation}
+where $\Delta{A}$ is the same perturbation that appears in Equation~\eqref{eqn:A_backerr_result} and $\Delta{E}$ is related to its Fréchet derivative. Thus, $L_0$ is the exact Fréchet derivative for the exponential of a perturbed matrix in a perturbed direction; Equation~\eqref{eqn:L_0_backerr_result} is therefore a backward error result. 
+
+The relative backwar error $\norm{\Delta{E}}/\norm{E}$ is bounded by adapting the techniques employed in~\cite{higham:SaS_revisited} to bound the norm of $\Delta{A}$. Namely, an upper bound for $\norm{\Delta{E}}$ in analytical form is first derived and then evaluated using high precision arithmetic. This leads, for each approximant order $m$, to constants $l_m$ satisfying 
+$
+	\norm{\Delta{E}}/\norm{E}\le u_{53}\ \text{whenever } \norm{2^{-s}A}\le l_m.
+$
+It holds that $l_m\le\theta_m$ for all $m$, and that $\lim_{m\to\infty}l_m/\theta_m=1$. Consequently, the $l_m$ can be used in place of the corresponding $\theta_m$.
+\medskip 
+
+In Julia, the algorithm of~\cite{higham:alhi09} is available through the \texttt{ChainRules.jl} library~\cite{sw:ChainRules}. Its implementation was used to construct the oracle $E\mapsto L_{\exp}(A)[E]$ employed to estimate the conditioning of the matrix exponential in our numerical experiments, as described in Section~\ref{subs:compute_estimate_cond}
+
+\textcolor{red}{Forse: articolo più recente di Al Mohy.}
 
 
-\textcolor{red}{Calcolare expm e la derivata~\cite{higham:alhi09}. Qui parlo di come si ottiene l'``oracolo'' che implementa l'azione di $L_{\exp}(A)$ (è un punto lasciato in sospeso in~\ref{subs:compute_estimate_cond})}
+
+
+
+
+
+
+
 
 

@@ -188,19 +188,31 @@ Let us finally describe the experimental setup. The algorithm has been tested in
 %\end{oss*}
 
 The experiments have been conducted on a laptop equipped with a \textsc{AMD} Ryzen\textsuperscript{\texttrademark}~5 5600H CPU, with 6 cores and 2 threads per core. The memory hierarchy is as follows: $\SIqty{16}{\giga\byte}$ DDR4 RAM, $\SIqty{16}{\mega\byte}$ L3 cache, $\SIqty{3}{\mega\byte}$ L2 cache (private per core), $\SIqty{384}{\kilo\byte}$ L1 cache equally split between data and instruction (private per core). 
-The main software specifications are summarized in Table~\ref{tab:sw_specs}. 
+The main software specifications are summarized in Table~\vref{tab:sw_specs}. 
 \begin{table}[htp]
 	\centering
 	\caption{\emph{Main software specifications.}}
 	\label{tab:sw_specs}
-	\begin{tabular}{rcccc}
-	\toprule
-		\multirow{2}*{\textbf{Software}} & Ubuntu  & \multirow{2}*{Julia} & \multirow{2}*{\texttt{GenericSchur.jl}} & \multirow{2}*{\texttt{MatrixEquations.jl}} \\
-		 				  & (OS)	& & & \\
-	\midrule
-		\multirow{2}*{\textbf{Version}} & 24.04.03 & \multirow{2}*{1.12.4} & \multirow{2}*{v0.5.6} & \multirow{2}*{v2.5.7}\\
-		 & \textsc{LTS} &  & & \\
-	\bottomrule
+%	\begin{tabular}{rcccccc}
+%	\toprule
+%		\multirow{2}*{\textbf{Software}} & Ubuntu  & \multirow{2}*{Julia} & \multirow{2}*{\texttt{GenericSchur.jl}} & \multirow{2}*{\texttt{MatrixEquations.jl}} & \multirow{2}*{\texttt{ChainRules.jl}} & \multirow{2}*{\texttt{ChainRulesCore.jl}}\\
+%		 				  & (OS)	& & & \\
+%	\midrule
+%		\multirow{2}*{\textbf{Version}} & 24.04.03 & \multirow{2}*{1.12.4} & \multirow{2}*{v0.5.6} & \multirow{2}*{v2.5.8} & \multirow{2}*{v1.7.3} & \multirow{2}*{v1.26.1}\\
+%		 & \textsc{LTS} &  & & & & \\
+%	\bottomrule
+%	\end{tabular}
+	\begin{tabular}{cc}
+		\toprule
+		\textbf{Software} & \textbf{Version}\\
+		\midrule
+		Operative System & Ubuntu 24.04.03 \textsc{LTS}\\
+		Julia & 1.12.4\\
+		\texttt{GenericSchur.jl} & v0.5.6\\
+		\texttt{MatrixEquations.jl} & v2.5.8\\
+		\texttt{ChainRules.jl} & v1.7.3\\
+		\texttt{ChainRulesCore.jl} & v1.26.1\\
+		\bottomrule
 	\end{tabular}
 \end{table}
 
@@ -224,7 +236,7 @@ Figure~\vref{fig:hist_matrix_sizes} shows how many $n\times n$ matrices are pres
 	\caption{\emph{Number of distinct test matrices per matrix size.}}
 	\label{fig:hist_matrix_sizes}
 \end{figure}
-Most matrices are $10$-by-$10$, the maximum size is $24$-by-$24$. Such small sizes are motivated by performance considerations, as the algorithm to compute $\kappa_{\exp}$ (Algorithm~\ref{alg:exact_cond_n}) struggles even on matrices of moderate size, and \textcolor{red}{-- as already discussed somewhere --} \texttt{exp\_mp} is computationally expensive as well. 
+Most matrices are $10$-by-$10$, the maximum size is $24$-by-$24$. Such small sizes are motivated by performance considerations, as the algorithm to compute $\kappa_{\exp}$ (Algorithm~\ref{alg:exact_cond_n}) struggles even on matrices of moderate size, and \textcolor{red}{-- as already discussed in Section~\ref{subs:cost_analysis} --} \texttt{exp\_mp} is computationally expensive as well. 
 The accuracy tests in~\cite{higham:hf19_mpexpm} also use small matrices only, presumably for the same reasons.
 
 Table~\ref{tab:hermitian_test_matrices} specifies how many samples refer to Hermitian matrices and how many refer to non Hermitian matrices.
@@ -396,14 +408,14 @@ All in all, the closer the performance profile is to the top left corner, the be
 \smallskip 
 
 For all values of working precision, the Schur-Padé variants perform worse than their transformation-free counterparts.
-When the working precision is $53$, the same as \textsc{IEEE} standard 754 double precision, the performance profiles suggest that \texttt{exp\_d} and \texttt{exp\_t} are competitive with Julia's \texttt{expm}, even outperforming it. This is remarkable, because Julia's implementation of the matrix exponential is specifically tailored for double precision, as noted in Remark~\ref{oss:sas_specifico_double}. 
+When the working precision is $53$, the same as \textsc{IEEE} standard 754 double precision, the performance profiles suggest that \texttt{exp\_d} and \texttt{exp\_t} are competitive with Julia's \texttt{expm}, even outperforming it. This looks remarkable at first, because Julia's implementation of the matrix exponential is specifically tailored for double precision, as noted in Remark~\ref{oss:sas_specifico_double}. However, this observation comes with an important caveat, which whill be discussed in Section~\ref{subs:exp_mp_double}. 
 When the working precision is $256$, the \texttt{exp\_t} variant achieves, on all matrix exponentials, relative errors that are within a small factor from the lowest relative error (on that same matrix exponential). It is most likely the best variant for most matrices, outperforming \texttt{exp\_d}. The Schur-Padé variants are significantly worse.
 When the working precision is $851$, \texttt{exp\_d} outperforms the other variants. However, all of them achieve relative errors within a factor $100$ from the lowest, on almost all prolems.
 
 Table~\vref{tab:samples_within_bnd} reports, for each configuration and for each working precision $p$, the number of test matrices $A$ for which the forward relative error is bounded by $n^2\cdot\kappa_{\exp}($A$)\cdot u_p$, where $n$ is the size of the matrix. 
 \begin{table}[hbp]
 	\centering
-	\caption{\emph{Number (and percentage) of matrices for which the relative error is bounded by $n^2\cdot\kappa_{\exp}\cdot u_p$, for each \texttt{exp\_mp} configuration and for each working precision value.}}
+	\caption{\emph{Number (and percentage) of matrices for which the relative error is bounded by $n^2\cdot\kappa_{\exp}\cdot u_p$, for each \emph{\texttt{exp\_mp}} configuration and for each working precision value.}}
 	\label{tab:samples_within_bnd}
 	\begin{tabular}{ccccc}
 		\toprule
@@ -446,20 +458,60 @@ Table~\vref{tab:samples_within_bnd} reports, for each configuration and for each
 
 Each configuration is able to compute the matrix exponential at a satisfying level of accuracy in more than \SIqty{90}{\percent} of the cases, confirming the intuitions suggested by Figure~\ref{fig:exp_mp_fwerrs}.
 
+\subsection{Behaviour of the algorithm in double precision}\label{subs:exp_mp_double}
+Let us further investigate the behaviour of \texttt{exp\_mp} in double precision. The values of $m$ and $s$ chosen by \texttt{exp\_d}, \texttt{exp\_sp\_d} and \texttt{exp\_sas} are compared in Figure~\ref{fig:m_s_double}.
+\begin{figure}[hbp]
+	\centering 
+	\includegraphics[width=\textwidth]{Immagini/m_s_double_precision}
+	\caption{\emph{Values of $m$ (left) and $s$ (right) chosen by \emph{\texttt{exp\_sas}}, \emph{\texttt{exp\_d}} and \emph{\texttt{exp\_sp\_d}}. The plots in the bottom of the figure offer a restricted view of the same data.}}
+	\label{fig:m_s_double}
+\end{figure}
+
+The figure suggests that the three algorithms choose similar values of the two parameters, overall. There are some samples for which \texttt{exp\_sp\_d} selects the value $m=0$, while the other two algorithms select a positive approximant degree. This is a consequence of the normality of the corresponding matrix. Since the complex Schur form of a normal matrix is diagonal, \texttt{exp\_mp} computes the exponential by diagonalization instead of by a Padé approximant. 
+The two values of $m=91$ in the top-left plot correspond to the maximum allowed approximant degree. The denominator of the Padé approximant of the corresponding matrices remeins well conditioned even for large values of $m$. Therefore, the algorithm consistently favours increasing the approximant degree, limiting itself to a modest amount of scaling. Eventually, the maximum allowed degree is reached and the modified scaling phase terminates. \textcolor{red}{Se c'è bisogno, si può indagare cosa succede più nel dettaglio ma mi sembra poco rilevante. Secondo me, essenzialmente, aumentare $m$ smette di avere un impatto sul $\delta$. Quindi il criterio di arresto non scatta mai.}
+
+Despite the existence of adversarial counterexamples, the fact that the multiprecision algorithm selects the same parameter values as \texttt{exp\_sas} on the vast majority of test matrices. Since \texttt{exp\_sas} remains the method of choice to compute the exponential of a matrix, this suggests that the parameter selection strategy employed during the modified scaling phase is effective.
+\smallskip
+
+As also noted earlier, the results displayed in Figure~\ref{fig:exp_mp_fwerrs} and Figure~\ref{fig:perfprof_cplxschur} suggest that some configurations of \texttt{exp\_mp} are competitive, or even outperform, \texttt{exp\_sas} when the working precision is set to $53$.
+However, a comparison between \texttt{exp\_sas} and \texttt{exp\_mp} in its Julia and \matlab{} implementations is not entirely fair. In fact, both convert the input matrix into an arbitrary precision format, and slightly increase the working precision when performing some specific computations. In particular, this occurs during the evaluation of the Padé approximant and during the evaluation of the upper bound $\delta$ on the truncation error.
+
+Note that the working precision is \emph{not} increased when the Taylor approximant is constructed, but it is increased when $\delta$ is evaluated. This leads in many cases to the choice of different values of $m$, as Figure~\ref{fig:m_s_taylor_double_extra_precision} shows.
+\begin{figure}[hbp]
+	\centering
+	\subfloat[\emph{With extra precision}]{
+		\includegraphics[width=\textwidth]{Immagini/m_s_taylor_extra_prec}
+		\label{fig:m_s_taylor_double_extra_precision:true}	
+	}\\
+	\subfloat[\emph{Without extra precision}]{
+		\includegraphics[width=\textwidth]{Immagini/m_s_taylor_no_extra}
+		\label{fig:m_s_taylor_double_extra_precision:false}
+	}
+	\caption{\emph{Values of $m$ and $s$ chosen by \emph{\texttt{exp\_t}} and \emph{\texttt{exp\_sp\_t}}, with (Figure~\ref{fig:m_s_taylor_double_extra_precision:true}) and without (Figure~\ref{fig:m_s_taylor_double_extra_precision:false}) the increase in precision for the internal computations. }}
+	\label{fig:m_s_taylor_double_extra_precision}
+\end{figure}
+
+In particular, the internal increase in working precision leads almost always to equal or lower parameter values. The same behaviour is observed when a Padé approximant is employed.
+
+\textcolor{red}{Anche con Padé, a seconda se si fa l'aumento di precisione o no i parametri cambiano. Ho dei plots.}
+
+
+
 \section{Is \texorpdfstring{$\delta$}{δ} an upper bound to the truncation error?}\label{sect:is_delta_bound?}
 Recall that in \texttt{exp\_mp} the final value of $\delta$, according to its definition, bounds the absolute truncation error $\norm{\exp(2^{-s}X)-r_m(2^{-s}X)}_1$, where $m$ and $s$ here are the approximant degree and scaling factors obtained at the end of the modified scaling phase, and $X$ is the transformed version of $A$ (see the discussion in Section~\ref{sect:exp_mp_description}).
 We already noted that $\delta$ should not be compared with the truncation error of the computed approximation of $\exp(A)$, see Remark~\ref{oss:delta_not_upper_bound}.
 
-However, it's interesting to check whether the aforementioned property of $\delta$ is satisfied in practice.
-To test this, the experiments described in Section~\ref{sect:experimental_setup} have been executed by returning the unscaled matrix exponential, correctly transformed. The reference solution has been computed using \textsc{mpmath}. The Hermitian test matrices have been excluded by the analysis, since the computation of their exponential by \texttt{exp\_mp} doesn't involve $\delta$. The samples corresponding to Julia's \texttt{expm} have been excluded for the same reason.   
+However, it's interesting to check whether the observed absolute error is bounded by $\delta$.  
+%However, it's interesting to check whether the aforementioned property of $\delta$ is satisfied in practice.
+To test this, the experiments described in Section~\ref{sect:experimental_setup} have been executed by returning the unscaled matrix exponential, correctly transformed. The reference solution has been computed using \textsc{mpmath}. The Hermitian test matrices have been excluded by the analysis, since the computation of their exponential by \texttt{exp\_mp} doesn't involve $\delta$. The samples corresponding to Julia's \texttt{exp\_sas} have been excluded for the same reason.   
 
-Figure~\ref{fig:delta_abserr_direct_comparison} provides the answer, at a glance. In the left plots of the figure, the overwhelming majority of the datapoits relative to $\delta$ are below the ones corresponding to the absolute error $\norm{\exp(2^{-s}A)-r_m(2^{-s}A)}_1$. We should observe the opposite behaviour.
+Figure~\ref{fig:delta_abserr_direct_comparison} provides the answer, at a glance. In the left plots of the figure, the overwhelming majority of the datapoits relative to $\delta$ are below the ones corresponding to the observed absolute error $\norm*{Y_{\textup{true}}-\hat{Y}}_1$, where $Y_{\textup{true}}$ is the high-precision approximation of $\exp(2^{-s}X)$ computed by \textsc{mpmath} and $\hat{Y}=\tilde{r}_m(2^{-s}X)$ is the solution computed by \texttt{exp\_mp}. %We expect to observe observe the opposite behaviour.
 
 The plots in the right column of the figure compare the ratio $\delta/\psi$ with 
 \[
-	\frac{\norm{\exp(2^{-s}A)-r_m(2^{-s}A)}_1}{\norm{\exp(2^{-s}A)}_1},
+	\frac{\norm{Y_{\textup{true}}-\hat{Y}}_1}{\norm{Y_{\textup{true}}}_1},
 \]
-i.e. the relative error in the 1-norm. Since -- as noted in Remark~\ref{oss:psi_not_lower_bound} -- $\psi$ is not a lower bound to $\norm{\exp(2^{-s}A)}_1$, there is no theoretical guarantee that $\delta/\psi$ bounds the relative error. Although this comparison is less significant than the one in the plots in the left-hand side, it is equally interesting.
+i.e. the observed relative error in the 1-norm. Since -- as noted in Remark~\ref{oss:psi_not_lower_bound} -- $\psi$ is not a lower bound to $\norm{\exp(2^{-s}X)}_1$, there is no theoretical guarantee that $\delta/\psi$ bounds the relative error. Although this comparison is less significant than the one in the plots in the left-hand side, it is equally interesting.
 
 \begin{figure}[htp]
 	\centering
@@ -468,9 +520,9 @@ i.e. the relative error in the 1-norm. Since -- as noted in Remark~\ref{oss:psi_
 	\label{fig:delta_abserr_direct_comparison}
 \end{figure}
 
-It turns out that $\norm{\exp(2^{-s}A)-r_m(2^{-s}A)}_1\le\delta$ in only $71$ of the $1832$ samples considered for this analysis. The computed value of $\delta$ is exactly zero in $188$ of the samples, but only $45$ of these also have a zero absolute error. 
+It turns out that $\norm*{Y_{\textup{true}}-\hat{Y}}_1\le\delta$ in only $71$ of the $1832$ samples considered for this analysis. The computed value of $\delta$ is exactly zero in $188$ of the samples, but only $45$ of these also have a zero absolute error. 
 
-Figure~\ref{fig:delta_abserr_ratio} displays the ratios between the value of $\delta$ and the forward error it is supposed to bound, for each sample. The figure suggests that both approximants yield equally poor results, as the values of $\delta$ returned by the algorithm are significantly smaller than the error it is supposed to bound.
+Figure~\ref{fig:delta_abserr_ratio} displays the ratios between the value of $\delta$ and the observed absolute forward error, for each sample. The figure suggests that both approximants yield equally poor results, as the values of $\delta$ returned by the algorithm are significantly smaller than the absolute error.
 
 \begin{figure}[hbp]
 	\centering
@@ -479,22 +531,20 @@ Figure~\ref{fig:delta_abserr_ratio} displays the ratios between the value of $\d
 	\label{fig:delta_abserr_ratio}
 \end{figure}
 
-A closer look at Figure~\ref{fig:delta_abserr_direct_comparison} reveals that the plotted errors are of the order of machine precision. Indeed, the observed behaviour is explained by the fact that $\exp(2^{-s}A)$ is not actually compared with $r_m(2^{-s}A)$, but with a floating point approximation.
+At first sight, one may expect the two figures to exhibit the opposite trend, since the theoretical bound predicts that $\delta$ should dominate the error. The apparent discrepancy is explained by the fact that $Y_{\textup{true}}\approx\exp(2^{-s}X)$ is not actually compared with $r_m(2^{-s}A)$, as in the theoretical analysis, but with a floating point approximation $\hat{Y}$. Since the algorithm performs all arithmetic operations at a finite working precision, it can only approximate the exact Padé approximant $r_m(2^{-s}A)$ at the corresponding level of accuracy. 
 
-Considering absolute errors for simplicity, the datapoints actually represent the quantity
-$\norm{Y-\tilde{r}_m(2^{-s}A)}_1$ where $Y$ is the high-precision approximation of $\exp(2^{-s}A)$ computed by \textsc{mpmath} and $\tilde{r}_m(2^{-s}A)$ is the floating point approximation of $r_m(2^{-s}A)$ computed by \texttt{exp\_mp}. In fact, the algorithm performs all arithmetic operations at a finite working precision, thus it can only approximate $r_m(2^{-s}A)$ at the corresponding level of accuracy.
 Since
 \begin{equation}\label{eqn:absolute_error_delta_ub}
-	\norm{Y-\tilde{r}_m(2^{-s}A)}_1\le\norm{Y-r_m(2^{-s}A)}_1+\norm{r_m(2^{-s}A)-\tilde{r}_m(2^{-s}A)}_1
+	\norm{Y_{\textup{true}}-\hat{Y}}_1\le\norm{Y_{\textup{true}}-r_m(2^{-s}A)}_1+\norm{r_m(2^{-s}A)-\hat{Y}}_1
 \end{equation}
 and the second term in the left-hand side of~\eqref{eqn:absolute_error_delta_ub} is such that 
 \[
-	\norm{r_m(2^{-s}A)-\tilde{r}_m(2^{-s}A)}_1\le O(u_p)\norm{r_m(2^{-s}A)}
+	\norm{r_m(2^{-s}A)-\hat{Y}}_1\le O(u_p)\norm{r_m(2^{-s}A)}_1
 \]
 where $p$ is the working precision of \texttt{exp\_mp}, it is not surprising that the error values in the left-hand side plots of Figure~\ref{fig:delta_abserr_direct_comparison} are of the order of machine precision.
 
 \begin{oss*}
-	The first summand $\norm{Y-r_m(A)}_1$ in the left-hand side of~\ref{eqn:absolute_error_delta_ub} is not the quantity bounded by $\delta$. However, $Y$ can be made arbitrarily close to $\exp(A)$.
+	The first summand $\norm{Y_{\textup{true}}-r_m(A)}_1$ in the left-hand side of~\eqref{eqn:absolute_error_delta_ub} is not exactly the quantity bounded by $\delta$. However, $Y_{\textup{true}}$ can be made arbitrarily close to $\exp(A)$.
 	
 	A close approximation to $r_m(2^{-s}A)$ could be obtained by computing the powers of $A$ at a high precision, evaluating $U_{\textup{e}}$ and $U_{\textup{o}}$ and finally by solving $(U_{\textup{e}}-U_{\textup{o}})\backslash\,(U_{\textup{e}}+U_{\textup{o}})$ at a high precision. Note that the working precision should be chosen so that the rounding errors in this computation are negligible with respect to the value of $\delta$ returned by \texttt{exp\_mp} \textcolor{red}{giusto?}. 
 	Moreover, the described procedure would assess the validity of the truncation error bound itself, but this is not a property of the \texttt{exp\_mp} algorithm. Hence, it would provide little insight into the the rounding errors that it introduced. \textcolor{red}{Ci sta, come considerazione?}
@@ -504,5 +554,5 @@ where $p$ is the working precision of \texttt{exp\_mp}, it is not surprising tha
 
 Analogous considerations can be made for the relative errors displayed in the plots in the left-hand side of Figure~\ref{fig:delta_abserr_direct_comparison}, since it holds that 
 \[
-	\frac{\norm{Y-\tilde{r}_m(2^{-s}A)}_1}{\norm{Y}_1}\overset{.}{\le}\frac{\norm{Y-r_m(2^{-s}A)}_1}{\norm{Y}_1}+\frac{\norm{r_m(2^{-s}A)-\tilde{r}_m(2^{-s}A)}_1}{\norm{r_m(2^{-s}A)}_1}.
+	\frac{\norm*{Y_{\textup{true}}-\hat{Y}}_1}{\norm{Y_{\textup{true}}}_1}\overset{.}{\le}\frac{\norm{Y_{\textup{true}}-r_m(2^{-s}A)}_1}{\norm{Y_{\textup{true}}}_1}+\frac{\norm*{r_m(2^{-s}A)-\hat{Y}}_1}{\norm{r_m(2^{-s}A)}_1}.
 \]
