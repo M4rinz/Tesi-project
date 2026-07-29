@@ -1,3 +1,4 @@
+% Articoli Higham (+ articolo Al-Mohy)
 @article{higham:alhi09,
     author = {Al-Mohy, Awad H. and Higham, Nicholas J.},
     title = {Computing the Fréchet Derivative of the Matrix Exponential, with an Application to Condition Number Estimation},
@@ -77,6 +78,33 @@
 	eprint = {https://doi.org/10.1137/S0895479899356080}
 }
 
+@article{higham:MatrixDepot,
+	author = {Higham, Nicholas J. and Zhang, Weijian},
+	title = {Matrix Depot: an extensible test matrix collection for Julia},
+	journal = {PeerJ Computer Science},
+	volume = {2:e58},
+	number = {},
+	pages = {},
+	year = {2016},
+	doi ={https://doi.org/10.7717/peerj-cs.58},
+	url = {https://github.com/JuliaLinearAlgebra/MatrixDepot.jl}
+}
+
+@article{almohy:expm_tri_25,
+	author = {Al-Mohy, Awad H.},
+	title = {A New Algorithm for Computing the Exponential of a Block Triangular Matrix},
+	journal = {SIAM Journal on Scientific Computing},
+	volume = {47},
+	number = {5},
+	pages = {A3064-A3081},
+	year = {2025},
+	doi = {10.1137/24M1699747},
+	URL = {https://doi.org/10.1137/24M1699747},
+	eprint = {2410.03575v2},
+	eprinttype = {arxiv}
+}
+
+% Libri Higham (e altri)
 @book{higham:matfun_book,
     author = {Higham, Nicholas J.},
     title = {Functions of Matrices},
@@ -138,7 +166,6 @@
 	publisher = {Oxford University Press},
 	year = {2011},
 	month = {10},
-	abstract = {This book is devoted to the analysis of the structure of complex networks by combining results from algebraic, topological, and extremal graph theory with statistical and molecular physics, as well as with contributions from mathematical chemistry, biology, and social sciences. It is divided into two parts consisting of twelve chapters dedicated to the development of theoretic tools for the structural analysis of networks, and seven chapters illustrating, in a critical way, applications of these tools to real-world scenarios. The first chapters provide detailed coverage of adjacency, metric, and topological properties of networks, followed by chapters devoted to the analysis of fragment-based and global invariants in complex networks. Then, there are chapters that analyse the concepts of communicability, centrality, bipartivity, expansibility, and communities in networks, as well as the study of random networks of different types. The second part of the book starts with an analysis of the study of gene regulation and transcription networks, followed by a chapter dedicated to the study of protein residue networks and another on protein–protein interaction networks. Then, the study of reaction networks is critically presented in three main sections devoted to man-made organic reactions, the chemical reactions in planetary atmospheres, and metabolic networks. This part of the book continues with the study of anatomical networks, which include intercellular, vascular, and brain networks. Another chapter studies the use of complex networks in ecological scenarios by examining not only food webs, but also mutualistic webs and landscape networks. The final chapter of the book is devoted to the study of both social and economic networks.},
 	isbn = {9780199591756},
 	doi = {10.1093/acprof:oso/9780199591756.001.0001},
 	url = {https://doi.org/10.1093/acprof:oso/9780199591756.001.0001},
@@ -151,18 +178,6 @@
 	year = {1999},
 	edition = {3},
 	location = {Philadelphia, PA}
-}
-
-@article{higham:MatrixDepot,
-	author = {Higham, Nicholas J. and Zhang, Weijian},
-	title = {Matrix Depot: an extensible test matrix collection for Julia},
-	journal = {PeerJ Computer Science},
-	volume = {2:e58},
-	number = {},
-	pages = {},
-	year = {2016},
-	doi ={https://doi.org/10.7717/peerj-cs.58},
-	url = {https://github.com/JuliaLinearAlgebra/MatrixDepot.jl}
 }
 
 @misc{fasi25:TypedMatrices,
@@ -186,7 +201,6 @@
 	doi = {10.1137/141000671},
 	URL = {https://doi.org/10.1137/141000671},
 	eprint = {https://doi.org/10.1137/141000671},
-	abstract = { Bridging cultures that have often been distant, Julia combines expertise from the diverse fields of computer science and computational science to create a new approach to numerical computing. Julia is designed to be easy and fast and questions notions generally held to be “laws of nature" by practitioners of numerical computing: \beginlist \item High-level dynamic programs have to be slow. \item One must prototype in one language and then rewrite in another language for speed or deployment. \item There are parts of a system appropriate for the programmer, and other parts that are best left untouched as they have been built by the experts. \endlist We introduce the Julia programming language and its design---a dance between specialization and abstraction. Specialization allows for custom treatment. Multiple dispatch, a technique from computer science, picks the right algorithm for the right circumstance. Abstraction, which is what good computation is really about, recognizes what remains the same after differences are stripped away. Abstractions in mathematics are captured as code through another technique from computer science, generic programming. Julia shows that one can achieve machine performance without sacrificing human convenience. }
 }
 
 @article{paterson_stockmeyer:article,
@@ -247,6 +261,7 @@
 	urldate     = {2026-07-16}
 }
 
+% links e software, repos etc
 @misc{link:gh_exp_conversation,
     key = {},
     title = {{Support for \texttt{Base.expm}}},
@@ -272,44 +287,6 @@
 	year = 2025,
 	version = {v0.5.6},
 	note = "Online; accessed May 09, 2026", 
-}
-
-@software{sw:ChainRules,
-  author       = {Frames White and
-                  Michael Abbott and
-                  Jarrett Revels and
-                  Miha Zgubic and
-                  Seth Axen and
-                  Alex Arslan and
-                  Simeon David Schaub and
-                  Nick Robinson and
-                  Yingbo Ma and
-                  Christopher Rackauckas and
-                  Sam and
-                  Niklas Heim and
-                  David Müller-Widmann and
-                  Gaurav Dhingra and
-                  Will and
-                  Niklas Schmitz and
-                  Mason Protter and
-                  Keno Fischer and
-                  Carlo Lucibello and
-                  Neven Sajko and
-                  Rainer Heintzmann and
-                  Frank Schäfer and
-                  Andreas Noack and
-                  Anton Smirnov and
-                  Andrei Zhabinski and
-                  Rory Finnegan and
-                  mattBrzezinski and
-                  Jerry Ling},
-  title        = {JuliaDiff/ChainRules.jl: v1.73.0},
-  month        = feb,
-  year         = 2026,
-  publisher    = {Zenodo},
-  version      = {v1.73.0},
-  doi          = {10.5281/zenodo.18614316},
-  url          = {https://doi.org/10.5281/zenodo.18614316},
 }
 
 @software{sw:MatrixEquations,
@@ -382,6 +359,24 @@
     note    = "Online; accessed February 26, 2026", 
 }
 
+@software{matlab_mpct,
+	title = {Multiprecision Computing Toolbox},
+	author = {{Advanpix}},
+	%organization = {Advanpix},
+	location = {Tokyo},
+	version = {},
+	url = {https://www.advanpix.com}
+}
+
+@manual{mpmath,
+	key     = {mpmath},
+	author  = {The mpmath development team},
+	title   = {mpmath: a {P}ython library for arbitrary-precision floating-point arithmetic (version 1.4.0)},
+	note    = {{\tt http://mpmath.org/}},
+	year    = {2026},
+}
+
+
 @article{blanes:efficient_SaS,
     author = {Blanes, Sergio and Kopylov, Nikita and Seydao\u{g}lu, Muaz},
     title = {Efficient Scaling and Squaring Method for the Matrix Exponential},
@@ -408,30 +403,6 @@
     keywords = {Backward error estimate for the matrix exponential, Overscaling, Multiple precision floating point computation, Scaling and squaring algorithm, Truncated Taylor series, Krylov methods},
 }
 
-@article{ruiz:high_2016,
-	title = {High performance computing of the matrix exponential},
-	volume = {291},
-	issn = {0377-0427},
-	url = {https://www.sciencedirect.com/science/article/pii/S0377042715002101},
-	doi = {10.1016/j.cam.2015.04.001},
-	series = {Mathematical Modeling and Computational Methods},
-	pages = {370--379},
-	journaltitle = {Journal of Computational and Applied Mathematics},
-	author = {Ruiz, P. and Sastre, J. and Ibáñez, J. and Defez, E.},
-	urldate = {2026-02-19},
-	date = {2016-01-01},
-	keywords = {matrix function, matrix exponential, calcolare expm, Padé approximant, scaling and squaring},
-}
-
-@software{matlab_mpct,
-    title = {Multiprecision Computing Toolbox},
-    author = {{Advanpix}},
-    %organization = {Advanpix},
-    location = {Tokyo},
-    version = {},
-    url = {https://www.advanpix.com}
-}
-
 @article{article:MPFR,
 	author = {Fousse, Laurent and Hanrot, Guillaume and Lef\`{e}vre, Vincent and P\'{e}lissier, Patrick and Zimmermann, Paul},
 	title = {MPFR: A multiple-precision binary floating-point library with correct rounding},
@@ -451,14 +422,6 @@
 	pages = {13–es},
 	numpages = {15},
 	keywords = {IEEE 754 standard, Multiple-precision arithmetic, correct rounding, elementary function, floating-point arithmetic, portable software}
-}
-
-@manual{mpmath,
-	key     = {mpmath},
-	author  = {The mpmath development team},
-	title   = {mpmath: a {P}ython library for arbitrary-precision floating-point arithmetic (version 1.4.0)},
-	note    = {{\tt http://mpmath.org/}},
-	year    = {2026},
 }
 
 @article{article:BLAS,
@@ -579,7 +542,7 @@
 	volume = {119},  
 	series = {Proceedings of Machine Learning Research},  
 	day = {13--18},
-	month = {Jul},  
+	month = {jul},  
 	publisher = {PMLR},  
 	pdf = {http://proceedings.mlr.press/v119/xiao20a/xiao20a.pdf}, 
 	url = {https://proceedings.mlr.press/v119/xiao20a.html},  
@@ -613,3 +576,78 @@
 	keywords = {Paterson–Stockmeyer method, Polynomial evaluation, Matrix polynomial, Matrix rational function, Matrix function},
 	abstract = {Many state-of-the-art algorithms reduce the computation of transcendental matrix functions to the evaluation of polynomial or rational approximants at a matrix argument. This task can be accomplished efficiently by resorting to the Paterson–Stockmeyer method, an evaluation scheme originally developed for polynomials of matrices that extends quite naturally to rational functions. An important feature of this technique is that the number of matrix multiplications required to evaluate an approximant of order n grows slower than n itself, with the result that different approximants yield the same asymptotic computational cost. We analyze the number of matrix multiplications required by the Paterson–Stockmeyer method and by two widely used generalizations, one for evaluating diagonal Padé approximants of general functions and one specifically tailored to those of the exponential. In all the three cases, we identify the approximants of maximum order for any given computational cost.}
 }
+
+@article{fasi:jfr23_compgraphs,
+	author = {Jarlebring, Elias and Fasi, Massimiliano and Ringh, Emil},
+	title = {Computational Graphs for Matrix Functions},
+	year = {2023},
+	issue_date = {December 2022},
+	publisher = {Association for Computing Machinery},
+	address = {New York, NY, USA},
+	volume = {48},
+	number = {4},
+	issn = {0098-3500},
+	url = {https://doi.org/10.1145/3568991},
+	doi = {10.1145/3568991},
+	eprint = {2107.12198},
+	eprinttype = {arxiv},
+	journal = {ACM Trans. Math. Softw.},
+	month = mar,
+	articleno = {39},
+	numpages = {35},
+	keywords = {Polynomials of matrices, functions of matrices, computational graphs}
+}
+
+% spagnoli, beyond P-S
+@article{sastre:siad25_beyond,
+	author = {Sastre Martínez, Jorge and Iba\~nez, J. and Alonso, José and Defez, D.},
+	year = {2025},
+	month = {12},
+	pages = {684},
+	title = {Beyond Paterson–Stockmeyer: Advancing Matrix Polynomial Computation},
+	journal = {WSEAS Transactions on Mathematics},
+	doi = {10.37394/23206.2025.24.68}
+}
+
+@article{sastre:si21_efficient,
+	author = {Sastre, Jorge and Ibáñez, Javier},
+	title = {Efficient Evaluation of Matrix Polynomials beyond the Paterson–Stockmeyer Method},
+	journal = {Mathematics},
+	volume = {9},
+	year = {2021},
+	number = {14},
+	eid = {1600},
+	url = {https://www.mdpi.com/2227-7390/9/14/1600},
+	issn = {2227-7390},
+	doi = {10.3390/math9141600}
+}
+
+
+% spagnoli, expm con Taylor
+@article{sastre:boosting_19:expm,
+	title = {Boosting the computation of the matrix exponential},
+	journal = {Applied Mathematics and Computation},
+	volume = {340},
+	pages = {206-220},
+	year = {2019},
+	issn = {0096-3003},
+	doi = {https://doi.org/10.1016/j.amc.2018.08.017},
+	url = {https://www.sciencedirect.com/science/article/pii/S0096300318307318},
+	author = {J. Sastre and J. Ibáñez and E. Defez},
+	keywords = {Matrix exponential, Scaling and squaring, Taylor series, Efficient matrix polynomial evaluation},
+}
+
+%@article{ruiz:high_2016,
+%	title = {High performance computing of the matrix exponential},
+%	volume = {291},
+%	issn = {0377-0427},
+%	url = {https://www.sciencedirect.com/science/article/pii/S0377042715002101},
+%	doi = {10.1016/j.cam.2015.04.001},
+%	series = {Mathematical Modeling and Computational Methods},
+%	pages = {370--379},
+%	journaltitle = {Journal of Computational and Applied Mathematics},
+%	author = {Ruiz, P. and Sastre, J. and Ibáñez, J. and Defez, E.},
+%	urldate = {2026-02-19},
+%	date = {2016-01-01},
+%	keywords = {matrix function, matrix exponential, calcolare expm, Padé approximant, scaling and squaring},
+%}

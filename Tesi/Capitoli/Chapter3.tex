@@ -204,13 +204,12 @@ where $T_1$ and $T_2$ are upper triangular matrices whose eigenvalues lie along 
 		& & T_2
 	\end{pmatrix}
 \end{align*}
-is applied. More details on the implementation can be found at the official \textsc{lapack} Netlib repository \url{https://netlib.org/lapack/explore-html/df/df3/group__gebal.html} \textcolor{red}{Come lo formatto un link? Lo lascio visibile o metto l'alternative text?}. In summary, \texttt{xGEBAL} applies a similarity transformation to the input matrix $A\in\C{n}{n}$ at a $O(n^2)$ cost, without introducing rounding errors (see also~\cite[§~4.10]{higham:matfun_book}). Despite its purpose, it is not guaranteed to reduce the norm of $A$.
+is applied. More details on the implementation can be found at the official \textsc{lapack} Netlib repository \url{https://netlib.org/lapack/explore-html/df/df3/group__gebal.html}. In summary, \texttt{xGEBAL} applies a similarity transformation to the input matrix $A\in\C{n}{n}$ at a $O(n^2)$ cost, without introducing rounding errors (see also~\cite[§~4.10]{higham:matfun_book}). Despite its purpose, it is not guaranteed to reduce the norm of $A$.
 \smallskip 
 
 Balancing and shifting can be combined. In~\cite[§~10.7.3]{higham:matfun_book}, Higham suggests to not preprocess the input automatically, as the accuracy of the computed result could be worsened by an uncareful application of such techniques.
 
 \section{Conditioning}\label{sect:expm_conditioning}
-%\textcolor{red}{Cfr.~\cite[§~3]{higham:matfun_book} and~\cite[§~10.2]{higham:matfun_book}. Forse anche un articolo di VanLoan piuttosto datato.}
 The concept of conditioning of matrix functions was presented in Section~\ref{sect:cond_matfun}. This section will present results that are specific to the matrix exponential. Despite the extensive effort devoted to the study of the sensitivity of this function, the topic is far from being fully understood. Out of the numerous results available in the literature, only a few classical ones will be presented here. The reader is referred to the cited references for a more comprehensive treatment of the subject. 
 \smallskip 
 
@@ -349,13 +348,13 @@ This behaviour is typical of highly nonnormal matrices and of matrices with badl
 	\subfloat[\emph{2-norms of the first 20 powers of $A$ in~\eqref{eqn:A_hump_phenomenon}.}]
 	{
 		%\raggedright
-		\includegraphics[width=0.48\textwidth]{Immagini/plot_normA_hump.pdf}
+		\includegraphics[width=0.46\textwidth]{Immagini/plot_normA_hump.pdf}
 		\label{fig:plot_normA_hump}
 	}\ 	
 	\subfloat[\emph{2-norms of $\exp(tA)$ for $A$ in~\eqref{eqn:A_exp_tA_hump}.}]
 	{
 		%\raggedleft
-		\includegraphics[width=0.48\textwidth]{Immagini/plot_norm_exp_tC_hump.pdf}
+		\includegraphics[width=0.46\textwidth]{Immagini/plot_norm_exp_tC_hump.pdf}
 		\label{fig:plot_norm_exp_tC_hump}
 	}
 	\caption{\emph{Plots illustrating two occurrences of the hump phenomenon.}}
@@ -417,10 +416,16 @@ If a $[k/m]$ Padé approximant of $f$ exists, then it is unique. The numerator a
 \end{equation}
 Among the many possible ones, two families of Padé approximants are most often chosen: the Taylor approximants and the diagonal Padé approximants. 
 
-Diagonal Padé approximants are the more popular of the two, although newer state-of-the-art scaling and squaring implementations employ Taylor approximants \textcolor{red}{citare spagnoli?}. Yet, the default \matlab{} and Julia implementations use diagonal Padé approximants.
+Diagonal Padé approximants are the more popular of the two, although newer state-of-the-art scaling and squaring implementations employ Taylor approximants. See~\cite{sastre:boosting_19:expm} and the references therein. Yet, the default \matlab{} and Julia implementations still use diagonal Padé approximants.
 Diagonal approximants have many advantages over their nondiagonal counterparts. Firstly, they achieve a higher order of approximation for a given number of matrix multiplications. Secondly, as we will see, symmetries in their coefficients considerably simplify their evaluation. Finally, diagonal Padé approximants enjoy favourable stability properties when $\Sigma(A)\subseteq\mathrm{LHP}$, see~\cite[§~3, Method 2]{moler_vanloan:19_dubious_ways, moler_vanloan:19_dubious_ways_25yrs}.
+\smallskip
 
-The fact that in Taylor approximants the denominator is a constant simplifies both the computations and the theoretical analysis. There are evaluation schemes that are tailored for Taylor polynomials \textcolor{red}{di nuovo citare spagnoli?}, making their computations particularly efficient. Error bounds are easier to derive and to work with.
+The fact that in Taylor approximants the denominator is a constant simplifies both the computations and the theoretical analysis. 
+
+More recently, newer matrix polynomial evaluation methods~\cite{sastre:si21_efficient, sastre:siad25_beyond} based on the ideas outlined in Section~\ref{subs:beyond_p-s} have been successfully applied to Taylor approximant to the matrix exponential. See~\cite{sastre:boosting_19:expm}. These methods compute Taylor approximants more efficiently than Paterson-Stockmeyer for a wide range of degrees, although stability concerns limit the achievable approximation degree. All in all, there exist evaluation schemes tailored for Taylor polynomials that achieve a higher approximation degree than the diagonal Padé approximant that could be evaluated at the same cost. This helps explain the increasing use of Taylor approximants in more recent algorithms for computing the matrix exponential.
+
+Another advantage of Taylor approximants is that error bounds are easier to derive and to work with.
+
 \begin{notazione}\label{notaz:taylor_pade_naming}
 	Even though Taylor approximants are Padé approximants, we will reserve the latter term to diagonal Padé approximants. 
 	We will be primarily concerned with diagonal Padé approximants; thus the term \emph{Padé approximant} will denote a diagonal Padé approximant, unless otherwise specified.
@@ -774,7 +779,7 @@ which -- for a given $m$ -- is potentially satisfied with a much smaller $s$ whe
 
 The remaining aspects of the algorithm are not relevant here and are therefore omitted; see~\cite{higham:alhi09_new} for a detailed treatment.
 
-\subsubsection{\textcolor{red}{Other extensions and improvements}}\label{subs:expm_sas_miscellanea}
+\subsubsection{Other extensions and improvements}\label{subs:expm_sas_miscellanea}
 The discussion in Section~\ref{subs:preprocessing} suggests that scaling and squaring can particularly benefit from preprocessing, potentially, because the norm reduction in the input can reduce the cost of the method. However, some preprocessing techniques sometimes have little effect or could even worsen the accuracy of the computed result (see the discussion in~\cite[§~10.7.3]{higham:matfun_book}).
 
 For example, if $A$ has large negative eigenvalues then $A-\mu I$ can have eigenvalues with a large real part, causing the computation of its exponential to overflow. To address this issue,~\cite{exptayotf18} propose to apply shifting in the following way:
@@ -802,7 +807,10 @@ Let $X$ denote $2^{-s}A$. By differentiating the relation $q_m(X)r_m(X)=p_m(X)$ 
 	L_{q_m}(X)[E]r_m(X)+q_m(X)L_{r_m}(X)[E]=L_{p_m}(X)[E] &\iff \\
 	L_{r_m}(X)[E] = q_m(X)^{-1}\big(L_{q_m}(X)[E]-L_{q_m}(X)[E]r_m(A)\big), &
 \end{align*}
-i.e. it satisfies a multiple right-hand side linear system in which the Fréchet derivatives of $p_m$ and $q_m$ at $2^{-s}A$, along $E$, appear. The algorithm evaluates $p_m(X)$ and $q_m(X)$ by computing a sequence of intermediate quantities, each obtained from previously computed ones through successive applications of elementary matrix operations. Applying the differentiation rules in~\eqref{eqn:frechet_rules} to these operations determines how the Fréchet derivative of each intermediate quantity is computed from the Fréchet derivatives of the quantities on which it depends. Thus, each intermediate quantity is computed together with its Fréchet derivative, ultimately yielding $L_{p_m}(X)[E]$ and $L_{q_m}(X)[E]$ while also evaluating $p_m(X)$ and $q_m(X)$. This procedure is essentially equivalent to applying forward-mode automatic differentiation to the evaluation of the Padé approximant.
+i.e. it satisfies a multiple right-hand side linear system in which the Fréchet derivatives of $p_m$ and $q_m$ at $2^{-s}A$, along $E$, appear. The algorithm evaluates $p_m(X)$ and $q_m(X)$ by computing a sequence of intermediate quantities, each obtained from previously computed ones through successive applications of elementary matrix operations. 
+%Applying the differentiation rules in~\eqref{eqn:frechet_rules} to these operations determines how the Fréchet derivative of each intermediate quantity is computed from the Fréchet derivatives of the quantities on which it depends. 
+The Fréchet derivative of each intermediate quantity can be obtained by applying the differentiation rules in~\eqref{eqn:frechet_rules} to these operations. In particular, this specifies how the Fréchet derivative of $p_m(X)$, $q_m(X)$ and of each intermediate quantity is related to the Fréchet derivatives of the quantities on which it depends.
+Thus, each intermediate quantity is computed together with its Fréchet derivative, ultimately yielding $L_{p_m}(X)[E]$ and $L_{q_m}(X)[E]$ while also evaluating $p_m(X)$ and $q_m(X)$. This procedure is essentially equivalent to applying forward-mode automatic differentiation to the evaluation of the Padé approximant.
 
 Then, $L_{r_m}(A)$ has to be obtained from $L_{r_m}(X)$. This is obtained by expanding the squaring phase. By using the chain rule~\eqref{eqn:frechet_chain_rule} and the rules in~\eqref{eqn:frechet_rules}, it can be proven that 
 \begin{align*}
@@ -810,14 +818,14 @@ Then, $L_{r_m}(A)$ has to be obtained from $L_{r_m}(X)$. This is obtained by exp
 	 &= L_{x\mapsto x^2}\qty(\exp(\mathsmaller{\frac{A}{2}}))\circ L_{\exp}\qty(\mathsmaller{\frac{A}{2}})\circ L_{x\mapsto x/2}(A)\\
 	 &= E\mapsto e^{\frac{A}{2}}L_{\exp}\qty(\mathsmaller{\frac{A}{2}})\qty[\mathsmaller{\frac{E}{2}}]+L_{\exp}(\mathsmaller{\frac{A}{2}})\qty[\mathsmaller{\frac{E}{2}}]e^{\frac{A}{2}},
 \end{align*}
-which relates $L_{\exp}(A)$ and $L_{\exp}(A/2)$ and can be applied recursively to obtain $L_{\exp}(A)[E]$ from $L_{\exp}(2^{-s}A)[2^{-s}E]$. The squaring phase now reads as in Algorithm~\ref{alg:squaring_sas_frechet}, where
+which relates $L_{\exp}(A)$ and $L_{\exp}(A/2)$ and can be applied recursively to obtain $L_{\exp}(A)[E]$ from $L_s\coloneqq L_{\exp}(2^{-s}A)[2^{-s}E]$. The squaring phase now reads as in Algorithm~\ref{alg:squaring_sas_frechet}, where
 \begin{equation}\label{eqn:Y_L_squaring_sas_frechet}
 	\begin{dcases}
 		Y_s = r_m(2^{-s}A)\\
-		\begin{split}
+		\begin{aligned}
 			L_s &= L_{r_m}(2^{-s}A)[2^{-s}E] \\
 			 &\ \ \approx L_{\exp}(2^{-s}A)[2^{-s}E]
-		\end{split}
+		\end{aligned}
 	\end{dcases}\implies 
 	\begin{dcases}
 		Y_i = r_m(2^{-s}A)^{2^{s-i}}\\
@@ -837,7 +845,8 @@ which relates $L_{\exp}(A)$ and $L_{\exp}(A/2)$ and can be applied recursively t
 	\end{algorithmic}
 \end{algorithm}
 
-As a consequence of the product rule~\eqref{eqn:frechet_prod_rule}, the cost of evaluating the Fréchet derivative of a matrix polynomial is at most twice that of evaluating the polynomial itself. See also~\cite[Thm.~4.1]{higham:alhi09}. It follows that the overall cost of the algorithm in~\cite{higham:alhi09} is at most three times that of Higham's original scaling and squaring algorithm~\cite{higham:SaS_revisited}. By contrast, the identity in Equation~\eqref{eqn:mathias_trick} allows the simultaneous evaluation of a matrix function and its Fréchet derivative at approximately eight times the cost of computing the function alone.
+As a consequence of the product rule~\eqref{eqn:frechet_prod_rule}, the cost of evaluating the Fréchet derivative of a matrix polynomial is at most twice that of evaluating the polynomial itself. See also~\cite[Thm.~4.1]{higham:alhi09}. It follows that the overall cost of the algorithm in~\cite{higham:alhi09} is at most three times that of Higham's original scaling and squaring algorithm~\cite{higham:SaS_revisited}. 
+By contrast, simultaneously evaluating a matrix function and its Fréchet derivative through the identity in Equation~\eqref{eqn:mathias_trick} costs approximately eight times as mush as evaluating the function alone.
 \smallskip 
 
 Let us now turn to the the accuracy of the approximation. It is shown in~\cite[Thm.~6.3]{higham:alhi09} that $L_0$ in~\eqref{eqn:Y_L_squaring_sas_frechet} satisfies
@@ -851,11 +860,18 @@ $
 	\norm{\Delta{E}}/\norm{E}\le u_{53}\ \text{whenever } \norm{2^{-s}A}\le l_m.
 $
 It holds that $l_m\le\theta_m$ for all $m$, and that $\lim_{m\to\infty}l_m/\theta_m=1$. Consequently, the $l_m$ can be used in place of the corresponding $\theta_m$.
+\smallskip 
+
+More recently, Al-Mohy~\cite{almohy:expm_tri_25} proposed an algorithm to compute the exponential of a block triangular matrix, extending the approach in~\cite{higham:alhi09} through a generalization of~\eqref{eqn:mathias_trick}.
 \medskip 
 
-In Julia, the algorithm of~\cite{higham:alhi09} is available through the \texttt{ChainRules.jl} library~\cite{sw:ChainRules}. Its implementation was used to construct the oracle $E\mapsto L_{\exp}(A)[E]$ employed to estimate the conditioning of the matrix exponential in our numerical experiments, as described in Section~\ref{subs:compute_estimate_cond}
+In Julia, the algorithm of~\cite{higham:alhi09} is available through the \texttt{ChainRules.jl} library~\cite{sw:ChainRules}. Its implementation was used to construct the oracle $E\mapsto L_{\exp}(A)[E]$ employed to estimate the conditioning of the matrix exponential in our numerical experiments, as described in Section~\ref{subs:compute_estimate_cond}. 
 
-\textcolor{red}{Forse: articolo più recente di Al Mohy.}
+
+
+
+
+
 
 
 

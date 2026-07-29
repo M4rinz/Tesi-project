@@ -175,9 +175,9 @@ Note that the commercial Multiprecision Computing Toolbox~\cite{matlab_mpct} by 
 			\State $X\gets A$
 		\EndIf
 		\If{$\mathtt{approximant}==\mathtt{\colon\!taylor}$}
-			\State $\mathcal{A}\gets\qty[I, X]$
+			\State $\mathcal{A}\gets\qty[X]$
 		\Else
-			\State $\mathcal{A}\gets\qty[I, X^2]$
+			\State $\mathcal{A}\gets\qty[X^2]$\label{line:initialize_A:pade}
 		\EndIf
 		\State $s_0\gets 0,\qquad m_0\gets 1$
 		\State $\gamma\gets\qty[-\infty,-\infty,\dots]$
@@ -347,7 +347,7 @@ Let us now fully motivate these variations.
 
 Computing the powers $I, X^2,\dots, (X^2)^{\nu}$ ($\nu=\lceil\sqrt{m_i}\rceil$) in high precision and storing them in $\mathcal{A}$ is advantageous, since their computation is the most expensive operation performed by \texttt{exp\_mp}, and the resulting matrices are reused throughout the algorithm.
 
-Besides being used at each iteration of the modified scaling phase, these powers can also be employed by the function \textsc{EvalApproximant} at line~\algref{alg:exp_mp_pseudocode}{line:eval_approximant} to evaluate the final approximant of the matrix exponential. Computing them in advance does not waste computational effort, since the values of $m_i$ cannot decrease across the iterations. Consequently, every matrix powers that is formed is eventually used. Thus the matrix powers are computed in high precision, even though -- as we will discuss shortly -- the evaluation of the bound doesn't strictly require it.
+Besides being used at each iteration of the modified scaling phase, these powers can also be employed by the function \textsc{EvalApproximant} at line~\algref{alg:exp_mp_pseudocode}{line:eval_approximant} to evaluate the final approximant of the matrix exponential. Computing them in advance does not waste computational effort, since the values of $m_i$ cannot decrease across the iterations. Consequently, every matrix powers that is formed is eventually used. This is why the matrix powers are computed in high precision, even though -- as we will discuss shortly -- the evaluation of the bound doesn't strictly require it.
 
 \begin{oss}\label{oss:denominator_eval_point}
 	Notice that the point at which the denominator is evaluated may change from one iteration of the modified scaling phase to the next. 
@@ -357,17 +357,14 @@ Besides being used at each iteration of the modified scaling phase, these powers
 
 The \emph{batch size} $\nu=\lceil\sqrt{m_i}\rceil$ increases with $m_i$, although not linearly. Hence an iteration may select an approximant degree that yields a value of $\nu$ strictly larger than that of the previous iteration. When this happens, additional powers of $X^2$ must be computed and appended to $\mathcal{A}$. This updated is performed in lines~\algref{alg:exp_mp_paterson_stockmeyer}{line:add_powers_for_loop}--\algref{alg:exp_mp_paterson_stockmeyer}{line:add_powers_for_loop_end} of Algorithm~\ref{alg:exp_mp_paterson_stockmeyer}.
 \begin{oss*}
-	The function $\text{length}(\mathcal{A})$ at line~\algref{alg:exp_mp_paterson_stockmeyer}{line:add_powers_for_loop} returns the number of positive powers stored in $\mathcal{A}$. In other words, if $\text{length}(\mathcal{A})=l$ then $\mathcal{A}$ contains $l+1$ matrices from $\mathcal{A}_0=I$ to $\mathcal{A}_l=X^{2l}$. 
+	The function $\text{length}(\mathcal{A})$ at line~\algref{alg:exp_mp_paterson_stockmeyer}{line:add_powers_for_loop} returns the size of $\mathcal{A}$, which corresponds to the number of positive powers stored. In other words, if $\text{length}(\mathcal{A})=l$ then $\mathcal{A}$ contains $l$ matrices from $\mathcal{A}_1=X^2$ to $\mathcal{A}_l=X^{2l}$. Recalling how $\mathcal{A}$ is initialized at line~\algref{alg:exp_mp_pseudocode}{line:initialize_A:pade} of Algorithm~\ref{alg:exp_mp_pseudocode}, it holds that $\text{length}(\mathcal{A})\ge 1$ at any point during the execution of the algorithm, since $\mathcal{A}$ can only grow in size. We convene that $\mathcal{A}_0=I$ anyway.
 \end{oss*}
 \smallskip 
 
-In the stopping criterion~\eqref{eqn:exp_mp_stopping_crit} we can settle for $\eta$ being an approximation of $\norm{q_{m_i}(2^{-s_i}X)^{-1}}_1$ of the correct order of magnitude. 
+In the stopping criterion~\eqref{eqn:exp_mp_stopping_crit} we can settle for $\eta$ being an approximation of $\lvert\lvert q_{m_i}(2^{-s_i}X)^{-1}\rvert\rvert_1$ of the correct order of magnitude. 
 Without this design choice, \texttt{exp\_mp} would be prohibitely expensive, as each evaluation of the bound would add $O(2n^3/3)$ arbitrary precision flops, due to the LU factorization. As also observed in Section~\ref{subs:multiprecision_in_Julia}, the computation of the LU factorization is way more optimized in double precision (i.e. the precision that corresponds to the default value of $p_{\textup{bnd}}$) than it is in arbitrary precision.
 
 In practice, the $L$ and $U$ matrices produced at line~\algref{alg:eval_bound_pade}{line:LU_fact_q} contain double precision data, so $\eta$ can be computed using the \texttt{normest1} function introduced in Section~\ref{subs:compute_estimate_cond}, which only accepts data in single or double precision.
-
-%{\color{red}
-%Il polinomio viene valutato in precisione più bassa. In pratica, L e U alla riga~\algref{alg:eval_bound_pade}{line:LU_fact_q} sono matrici di Float64. $\eta$ è solo una stima della norma 1. Due aspetti: (1) la funzione normest1 accetta argomenti in precisione doppia, non funziona in precisione arbitaria; (2) se a ogni passo dobbiamo veramente fare una LU in precisione arbitraria, stiamo freschi! Tentiamo di minimizzare le flops in multiprecisione va che è meglio.}
 
 \begin{algorithm}[hbp]
 	\caption{\emph{Functions to evaluate the approximant of the matrix exponential; and auxiliary function to evaluate the even and odd parts of its numerator at a given precision $\hat{p}$. The function \emph{\textsc{Poly\_PS}} is in Algorithm~\ref{alg:exp_mp_paterson_stockmeyer}.}}
@@ -433,12 +430,12 @@ The pseudocode to compute $\alpha_{\min}$ is shown in Algorithm~\ref{alg:exp_mp_
 		\EndFunction
 	\end{algorithmic}
 \end{algorithm}
-Note that, given the choice of $d=d^{[m_i/m_i]}$ at line~\algref{alg:exp_mp_alpha_min}{line:d_formula_pade}, the value of $\norm{X^d}_1$ may be required even though $X^d$ is not present in $\mathcal{A}$ at that stage. Once again, the powers of $X^2$ currently available can be exploited, at the expense of computing only an estimate of the order of magnitude of $\alpha_{\min}$. This is shown at lines~\algref{alg:exp_mp_alpha_min}{line:gamma_d_normest1}--\algref{alg:exp_mp_alpha_min}{line:gamma_d+1_normest1}. Specifically, $\norm{X^d}_1$ is estimated by running in precision $p_{\textup{bnd}}$ the 1-norm estimator \texttt{normest1}, using the oracle $v\mapsto\textsc{EvalPowVec}(d,X,v,\texttt{approximant})$ shown in Algorithm~\ref{alg:EvalPowVec} and described below. The resulting estimate is stored in $\gamma_d$, so that each required quantity $\lvert\lvert X^d\rvert\rvert^{\cramped{1/d}}_1$ is estimated at most once.  
+Note that, given the choice of $d=d^{[m_i/m_i]}$ at line~\algref{alg:exp_mp_alpha_min}{line:d_formula_pade}, the value of $\lvert\lvert{X^d}\rvert\rvert_1$ may be required even though $X^d$ is not present in $\mathcal{A}$ at that stage. Once again, the powers of $X^2$ currently available can be exploited, at the expense of computing only an estimate of the order of magnitude of $\alpha_{\min}$. This is shown at lines~\algref{alg:exp_mp_alpha_min}{line:gamma_d_normest1}--\algref{alg:exp_mp_alpha_min}{line:gamma_d+1_normest1}. Specifically, $\norm*{X^d}_1$ is estimated by running in precision $p_{\textup{bnd}}$ the 1-norm estimator \texttt{normest1}, using the oracle $v\mapsto\textsc{EvalPowVec}(d,X,v,\texttt{approximant})$ shown in Algorithm~\ref{alg:EvalPowVec} and described below. The resulting estimate is stored in $\gamma_d$, so that each required quantity $\lvert\lvert X^d\rvert\rvert^{\cramped{1/d}}_1$ is estimated at most once.  
 
 \begin{oss*}
 	Recall from Section~\ref{subs:compute_estimate_cond} that \matlab{}'s \texttt{normest1} and Julia's \texttt{opnorm1est} implement different algorithms for estimating the matrix 1-norm. Since they rely on the same underlying principles and both accept an anonymous function as input, and since they play the same role within \texttt{exp\_mp}, we shall use the name \texttt{normest1} to refer to either implementation whenever the distinction is irrelevant.
 	
-	Since the estimator is executed in precision $p_{\textup{bnd}}$, the powers stored in $\mathcal{A}$ are not used directly by \textsc{EvalPowVec}; instead, they are first converted into the corresponding floating-point type. In Julia, this conversion is unavoidable, since \texttt{opnorm1est} only supports single or double precision. 
+	Since the estimator is executed at precision $p_{\textup{bnd}}$, the powers stored in $\mathcal{A}$ are not used directly by \textsc{EvalPowVec}; instead, they are first converted into the corresponding floating-point type. In Julia, this conversion is unavoidable, since \texttt{opnorm1est} only supports single or double precision. 
 \end{oss*}
 
 If the matrix multiplications were performed from right to left, evaluating $X^{d}V$ would require $O(2dn^{2}q)$ flops. The availability of the precomputed powers of $X$ allows this cost to be reduced to as little as $O(2\log_2(d)n^{2}q)$ flops in the ideal case. This reduction is achieved by the function $\textsc{EvalPowVec}$, which -- in its diagonal Padé variant -- evaluates $X^{d}V$ using the powers of $X^2$ stored in $\mathcal{A}$, following a strategy closely resembling the \emph{binary powering} algorithm briefly introduced at the end of Section~\ref{subs:paterson-stockmeyer}.
@@ -567,21 +564,64 @@ Alternative estimates for $\psi$, and their impact on the behaviour of the algor
 \smallskip
 
 Finally, note that the default value $1$ can be returned for $\kappa_A$, in view of Remark~\ref{oss:kappa_A_taylor}.
+
 \section{Cost analysis of the overall algorithm}\label{subs:cost_analysis}
-\textcolor{red}{\textbf{Rivedere}}
-
-Let $m_{\hat{\imath}}$ and $s_{\hat{\imath}}$ denote, respectively, the values of the approximant degree and scaling factor chosen at the end of the modified scaling phase, which involved $\hat{\imath}$ iterations. Recall from Section~\ref{subs:choosing_approx_deg} that the number of multiplications $\pi_m$ required to evaluate the numerator and the denominator of the $[m/m]$ Padé approximant is given by~\eqref{eqn:optcost_pi_m}. The value of $\pi_m$ can be interpreted as the cost of evaluating the approximant.
+It is natural to ask what is the computational cost of the algorithm just described. 
+As will be shown in this section, \texttt{exp\_mp} is computationally expensive, as the number of (high precision) floating point operations involved grows cubically with the size of the matrix. The high computational cost shows up in practice; see also~\cite{higham:hf19_mpexpm}. 
 \smallskip 
 
-In its Padé variant, the algorithm requires $O\big((\pi_{m_{\hat{\imath}}} + s_{\hat{\imath}}) n^3)$ floating point operations in precision $p_{\textup{wrk}}$ to evaluate the Padé approximant and to perform the final squaring phase. This cost also includes the computation of the matrix powers, which takes place during the parameter selection phase.
+Let $m_{\hat{\imath}}$ and $s_{\hat{\imath}}$ denote, respectively, the values of the approximant degree and scaling factor chosen at the end of the modified scaling phase, which involved $\hat{\imath}$ iterations. Recall from Section~\ref{subs:choosing_approx_deg} that the number of multiplications $\pi_m$ required to evaluate the numerator and the denominator of the $[m/m]$ Padé approximant is given by~\eqref{eqn:optcost_pi_m}. Note that the equation states that $\pi_m=O(2\sqrt{m})$. 
 
-Each iteration $i$ of the parameter selection phase evaluates and factorizes the denominator $q_{m_i}(2^{s_i}X)$ at precision ${p_{\textup{bnd}}}$. Since the matrix powers are computed only once at higher precision, and their convertion into the lower precision format requires no additional floating point operation, the evaluation adds $\sqrt{m_i}n^3$ floating point operations at precision ${p_{\textup{bnd}}}$ per iteration instead of $2\sqrt{m_i}n^3$. The factorization adds $O(\frac{2}{3}\hat{\imath}n^3)$ floating point operations at lower precision to the overall cost.
-	
-The evaluation of $\alpha_{\min}$ is inexpensive with respect to the total cost because it's $O(n^2)$ \textcolor{red}{Lo stimatore della norma tipicamente invoca poche volte (5-6) l'oracolo. L'oracolo ha costo minore di $O(2dn^2q)$ dove: $q=1$ o $2$, $d=\sqrt{m_i}$ ma poi in realtà sfruttando le potenze già calcolate invece che $d$ può comparire un $\log_2(d)$ nel caso migliore.}	
-\smallskip 
+\subsection{Cost analysis of the Padé variant}
+Let us begin by analyzing the cost of the main phases of the algorithm when Padé approximants are employed.
 
-Let us now turn to the Taylor approximant variant of the algorithm. In this case, the evaluation of the approximant requires $O\qty(2\sqrt{m_{\hat{\imath}}}n^3)$ floating point operations at precision $p_{\textup{wrk}}$, also taking into account the formation of the matrix powers. The squaring phase further adds $O\qty(s_{\hat{\imath}}n^3)$ high precision floating point operations. 
+\subsubsection{Evaluating the approximant and computing matrix powers at precision \texorpdfstring{$p_{\textup{wrk}}$}{p_wrk}}
+Recall that the approximant is evaluated by solving a multiple right-hand side linear system which involves its numerator and its denominator. The cost of this operation is comparable with one matrix multiplication, thus, with a slight but unharmful abuse, the value of $\pi_m$ can be interpreted as the cost of evaluating the approximant.
 
-As in the previous case, the evaluation of $\alpha_{\min}$ is inexpensive. Since the cost of forming the matrix powers is already being accounted for, and their conversion into the lower precision $p_{\textup{bnd}}$ format requires no floating point operation, the computation of $\psi$ can be considered inexpensive as well.
+In its Padé variant, the algorithm requires $O\big((\pi_{m_{\hat{\imath}}} + s_{\hat{\imath}}) n^3)$ floating point operations at precision $p_{\textup{wrk}}$ to evaluate the Padé approximant $r_{m_{\hat{\imath}}}(2^{-s_{\hat{\imath}}}X)$ and to perform the final squaring phase. This cost also includes the computation of the matrix powers, which takes place during the parameter selection phase.
+
+If only floating point operations in precision $p_{\textup{wrk}}$ were considered, the overall cost of \texttt{exp\_mp} in its Padé variant would be 
+\[
+	O\big((2\sqrt{m_{\hat{\imath}}}+s_{\hat{\imath}})n^3\big).
+\] 
+However, a more rigorous analysis should also account for the evaluation of the forward error bound, which is performed at each iteration of the parameter selection phase.
+
+\subsubsection{Evaluating the forward error bound}
+Each iteration of the modified scaling phase updates $\alpha_{\min}$, though not always by computing a new $\gamma_d$. Anyways, the cost of this update is driven by the estimation of $\lvert\lvert{X^d}\rvert\rvert_1$.	
+As discussed in Section~\ref{subs:evalBound_pade}, calling \textsc{EvalPowVec} to evaluate the product $X^dV$ would cost $O(2dn^2q)$ floating point operations at precision $p_{\textup{bnd}}$ if only the matrix $X$ was available, but this cost is reduced by using the precomputed powers of $X$. As noted in Section~\ref{subs:compute_estimate_cond}, the algorithm behind \texttt{normest1}~\cite[Alg.~3.21]{higham:matfun_book} typically calls the oracle 4 or 5 times; and usually $q$ is set as being equal to $1$ or to $2$. Therefore, the evaluation of $\alpha_{\min}$ is inexpensive with respect to the overall cost.
+
+%\begin{oss*}
+%	The computation of the 1-norm of an \emph{explicitly available} $n$-by-$n$ matrix requires $O(n^2)$ floating point operations, so all the 1-norms that appear in the \textsc{EvalBound} function (Algorithm~\ref{alg:eval_bound_pade}) can be evaluated at that cost.
+%	
+%	The use of \texttt{normest1} is only truly required by the update of $\alpha_{\min}$, beacuse it involves matrix powers that -- given the final value of $m$ -- would never be formed.
+%\end{oss*}
 
 
+The matrix powers are formed once at higher precision, and reused for numerous subsequent computations including the evaluation of the denominator $q_{m_i}(2^{-s_i}X)$; which is performed at each iteration $i$, at the lower precision $p_{\textup{bnd}}$.
+
+Since the cost of the formation of the matrix powers has already been taken into account, and since their conversion into the lower precision format requires no additional floating point operations, the evaluation of $q_{m_i}(2^{-s_i}X)$ adds $\sqrt{m_i}n^3$ floating point operations in precision ${p_{\textup{bnd}}}$ per iteration instead of $2\sqrt{m_i}n^3$.
+
+The LU decomposition of the denominator is then computed at precision $p_{\textup{bnd}}$, adding $O(\frac{2}{3}n^3)$ floating point operations per iteration. Recall that the $L$ and $U$ factors are reused in two occations: to compute an estimate $\nu$ of $\norm*{q_{m_i}(2^{-s_i}X)^{-1}}_1$, and to compute an estimate $\psi$ of $\norm{r_{m_i}(2^{-s_i}X)}_1$. Both computations require $O(n^2)$ floating point operations at precision $p_{\textup{bnd}}$, so their impact on the overall cost is negligible. The same applies to the estimate $\kappa_A$ of the 1-norm condition number of the denominator.
+
+Therefore, excluding lower-order terms, the evaluation of the denominator and its factorization have an overall final cost of $O\big((\sqrt{m_{\hat{\imath}}}+\frac{2}{3})\hat{\imath}n^3\big)$ floating point operations at lower precision. In fact, the optimal degrees $m_i$ form a nondecreasing sequence, thus
+\[
+	\sum_{i=1}^{\hat{\imath}}\qty(\sqrt{m_i}+\frac{2}{3})\le
+	\sum_{i=1}^{\hat{\imath}}\qty(\sqrt{m_{\hat{\imath}}}+\frac{2}{3})=
+	\qty(\sqrt{m_{\hat{\imath}}}+\frac{2}{3})\hat{\imath}.
+\]	
+
+Finally, notice that the computation of $\delta$ (see Equation~\eqref{eqn:exp_mp_stopping_crit} and line~\algref{alg:eval_bound_pade}{line:delta_computation} of Algorithm~\ref{alg:eval_bound_pade}) is linear in $n$.
+
+\subsection{Cost analysis of the Taylor variant}
+Let us now turn to the Taylor approximant variant of the algorithm. 
+
+\subsubsection{Evaluating the approximant and computing matrix powers at precision \texorpdfstring{$p_{\textup{wrk}}$}{p_wrk}}
+Analogously to the previous case, the evaluation of the approximant requires $O\qty(2\sqrt{m_{\hat{\imath}}}n^3)$ floating point operations at precision $p_{\textup{wrk}}$, also taking into account the formation of the matrix powers. The squaring phase further adds $O\qty(s_{\hat{\imath}}n^3)$ high precision floating point operations. Thus, the Taylor variant of \texttt{exp\_mp} performs $O\big((2\sqrt{m_{\hat{\imath}}}+s_{\hat{\imath}})n^3\big)$ floating point operations at precision $p_{\textup{wrk}}$, i.e. the same as the Padé variant. Let us further analyze the overall cost of the algorithm by considering the operations performed during the evaluation of the forward error bound.
+
+\subsubsection{Evaluating the forward error bound}
+The cost analysis of the parameter selection phase is greatly simplified by the fact that the denominator plays no role in the error bound~\eqref{eqn:q_abserr_bound}.
+
+As in the previous case, the evaluation of $\alpha_{\min}$ is inexpensive. Since the cost of forming the matrix powers is already accounted for, and their conversion to the lower-precision $p_{\textup{bnd}}$ format requires no floating point operations, the computation of $\psi$ can be considered inexpensive as well; see the final discussion in Section~\ref{subs:evalBound_taylor}.
+
+\subsection{Schur-Padé variants}
+If the parameter selection phase is preceded by the computation of a Schur form of the input matrix, the cost of this preprocessing step should also be taken into account. This amounts to $O(n^3)$ floating point operations at precision $p_{\textup{wrk}}$. 

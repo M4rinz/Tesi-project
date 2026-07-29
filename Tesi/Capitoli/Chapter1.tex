@@ -51,7 +51,9 @@ The following definition is arguably the most important one in all numerical ana
 	This value will be denoted as $u_t$, or simply as $u$ when the precision $t$ is clear from the context. It holds that $u_t=\beta^{1-t}$.
 \end{definizione}
 
-What has been discussed so far shows that the finiteness of $t$ is a limitation on precision, the finiteness of $e$ is a limitation on range.\footnote{As a curiosity, Google's \texttt{bfloat16} trades precision for range. More information can be found in \href{https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus}{the blog post that introduced the format}.} There are only finitely many elements in $\mathcal{F}$, thus in general any $x\in\R$ can only be approximated by a floating point number.
+What has been discussed so far shows that the finiteness of $t$ is a limitation on precision, the finiteness of $e$ is a limitation on range.
+%\footnote{As a curiosity, Google's \texttt{bfloat16} trades precision for range. More information can be found in \href{https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus}{the blog post that introduced the format}.} 
+There are only finitely many elements in $\mathcal{F}$, thus in general any $x\in\R$ can only be approximated by a floating point number.
 Let $\mathtt{fl}(x)$ denote an element of $\mathcal{F}$ that is nearest to $x$, the mapping $x\mapsto\mathtt{fl}(x)$ is called \emph{rounding}. There are many \emph{rounding strategies}, see~\cite{higham:accuracy_book} and~\cite{article:IEEE754_2019} for details. If $x$ falls outside of the range of $\mathcal{F}$, it is said that $\mathtt{fl}(x)$ \emph{overflows} or \emph{underflows} depending on the circumstances.
 
 %\begin{notazione}
@@ -327,20 +329,20 @@ Definition~\ref{def:cond_number} can be easily adapted to other contexts such as
 The most famous example of condition number is that of matrix inversion, $\kappa(A)=\norm{A}\norm*{A^{-1}}$, often called \emph{the} condition number of $A\in\R{n}{n}$.
 
 \begin{notazione}\label{notaz:kappa_f}
-	Throughout the document, the relative condition number of $f$ at $x$ will be denoted as $\kappa_{f}(x)$. The used norm will be desumed by the context, even in the more delicate case in which $f$ is a function of a matrix (see equation~\eqref{eqn:cond_frechet} and the discussion thereafter). When $A$ is a matrix, $\kappa(A)$ will denote its condition number.
+	Throughout the document, the relative condition number of $f$ at $x$ will be denoted as $\kappa_{f}(x)$. The used norm will be desumed by the context, even in the more delicate case in which $f$ is a function of a matrix (see Equation~\eqref{eqn:cond_frechet} and the discussion thereafter). When $A$ is a matrix, $\kappa(A)$ will denote its condition number.
 \end{notazione}
 
 If $f\colon\R{n}\to\R{n}$ is differentiable, an explicit expression of the condition number can be given in terms of its Jacobian matrix $\mathbb{J}(x)\in\R{n}{n}$:
 \[
 	\operatorname{Cond}_{\text{abs}}(f,x)=\norm{\mathbb{J}(x)}\qquad\operatorname{Cond}_{\text{rel}}(f,x)=\frac{\norm{\mathbb{J}(x)}\norm{x}}{\norm{f(x)}}
 \]
-By using the \emph{Fréchet derivative}, these expressions will be generalized to matrix functions in Section~\ref{sect:cond_matfun} (see equation~\eqref{eqn:cond_frechet})
+By using the \emph{Fréchet derivative}, these expressions will be generalized to matrix functions in Section~\ref{sect:cond_matfun} (see Equation~\eqref{eqn:cond_frechet})
 
 By using Definition~\ref{def:cond_number}, we get the important relation
 \begin{equation}\label{eqn:backerr_fwerr_cond_relation}
 	\frac{\norm{f(x+\Delta{x})-f(x)}}{\norm{f(x)}}\le\kappa_f(x)\frac{\norm{\Delta{x}}}{\norm{x}}+o(\norm{\Delta{x}}).
 \end{equation}
-As a consequence of equation~\eqref{eqn:backerr_fwerr_cond_relation}, the approximate solution $\hat{y}$ computed by a backward stable algorithms satisfies
+As a consequence of Equation~\eqref{eqn:backerr_fwerr_cond_relation}, the approximate solution $\hat{y}$ computed by a backward stable algorithms satisfies
 \[
 	\frac{\norm{\hat{y}-y}}{\norm{y}}\le\kappa_f(x)\frac{\norm{\Delta{x}}}{\norm{x}} = \kappa_f(x)O(u).
 \]
@@ -348,6 +350,6 @@ This is a bound on the forward error in terms of the backward error. This bound 
 
 Notice however that the same bound~\eqref{eqn:backerr_fwerr_cond_relation} describes the effect of a (relative) perturbation on the input data of the order of machine precision.
 
-From equation~\eqref{eqn:backerr_fwerr_cond_relation}, we get the useful rule of thumb $E_{\text{rel}}\lesssim\kappa\cdot E_{\text{back}}$.
+From Equation~\eqref{eqn:backerr_fwerr_cond_relation}, we get the useful rule of thumb $E_{\text{rel}}\lesssim\kappa\cdot E_{\text{back}}$.
 This shows that, in backward error analysis, the task of bounding the forward error amounts to studying the sensitivity of the problem to perturbations. The effect of perturbations on a given problem needs to be studied only once, as it is not related to a specific numerical method. However, the conditioning of many problems -- including the computation of the matrix exponential -- is still not fully understood.
 

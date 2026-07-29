@@ -266,7 +266,7 @@ The Fréchet derivative of $f$ at $A$ may not exist, but if it exists then it is
 \end{equation}
 with the same notational convention~\ref{notaz:kappa_f}.
 
-In equation~\eqref{eqn:cond_frechet}, the norm of the Fréchet differential at $A$ appears. This norm is defined analogously to the norm of any linear operator (including matrices) as
+In Equation~\eqref{eqn:cond_frechet}, the norm of the Fréchet differential at $A$ appears. This norm is defined analogously to the norm of any linear operator (including matrices) as
 \begin{equation}\label{eqn:def_norm_frechet}
 	\norm{L_f(A)}\coloneqq\max_{\substack{E\in\C{n}{n}\\ E\ne 0}}\frac{\norm{L_f(A)[E]}}{\norm{E}}.
 \end{equation} 
@@ -300,7 +300,6 @@ which commutes since $\operatorname{Vec}$ is an isomorphism. The linear function
 \end{equation}
 Equation~\eqref{eqn:frechet_vec} not only is very useful for deriving properties of the Fréchet derivative, but can also be exploited by algorithms, as we will see in the following sections.
 
-%\textcolor{red}{Prodotti di Kronecker?}
 The matrix $K(A)$ is often referred to as the \emph{Kronecker representation} of $L_f(A)$ because, in many cases, it can be explicitly written by using the \emph{Kronecker product}, whose definition we now recall.
 \begin{definizione}\label{def:kronecker_product}
 	The \emph{Kronecker product} of $A\in\C{m}{n}$ and $B\in\C{p}{q}$ is the block matrix $A\otimes B\coloneqq(a_{i,j}B)\in\C{mp}{nq}$.
@@ -379,7 +378,7 @@ If $f\colon\Omega\subseteq\C{n}\to\C{n}$ is $2n-1$ times continuously differenti
 \end{equation}
 holds for any $A\in\C{n}{n}$ such that $\Lambda(A)\subseteq\Omega$ and for any direction $E\in\C{n}{n}$ for which $L_f(A)$ is defined. The reader is referred to~\cite[Thm.~3.6]{higham:matfun_book} for a proof of this result and additional details.
 
-Thanks to formula~\eqref{eqn:mathias_trick}, the problem of evaluating the Fréchet derivative is converted to that of computing the function on a matrix of twice the size. This computation returns both $f(A)$ and $L_f(A)[E]$, similarly to what happens in forward mode automatic differentiation.
+Thanks to the formula in~\eqref{eqn:mathias_trick}, the problem of evaluating the Fréchet derivative is converted to that of computing the function on a matrix of twice the size. This computation returns both $f(A)$ and $L_f(A)[E]$, similarly to what happens in forward mode automatic differentiation.
 However, the cost of evaluating a function on a matrix of size $n$ is usually $O(n^3)$, so the cost of computing $f(A)$ and $L_f(A)[E]$ using~\eqref{eqn:mathias_trick} is $8$ times that of computing $f(A)$ alone.
 
 Using~\eqref{eqn:mathias_trick} one can prove the following Lemma.
@@ -493,7 +492,7 @@ One such method is presented in~\cite[Alg.~3.21]{higham:matfun_book}; for a thor
 	Since \texttt{opnorm1est} is a direct call to \textsc{lapack}, it can only accept data in double or single precision.
 \end{oss*}
 
-The algoritm in~\cite[Alg.~3.21]{higham:matfun_book} is a very reliable estimator of the matrix 1-norm. In fact, it typically requires 4 or 5 iterations co compute its estimate, which is frequently an exact one. Although it can produce an arbitrarily poor approximation on specifically constructed counterexamples, it almost invariably produces an estimate correct to within a factor $3$, independently from the size $n$ of the matrix.
+The algoritm in~\cite[Alg.~3.21]{higham:matfun_book} is a very reliable estimator of the matrix 1-norm. In fact, it typically requires 4 or 5 iterations to compute its estimate, which is frequently an exact one. Although it can produce an arbitrarily poor approximation on specifically constructed counterexamples, it almost invariably produces an estimate correct to within a factor $3$, independently from the size $n$ of the matrix.
 
 In \matlab{}, 1-norm estimates can be computed using the \texttt{normest1} function, which implements the block generalization of~\cite[Alg.~3.21]{higham:matfun_book} introduced in~\cite{higham:hiti_normest1}. The algorithm repeatedly computes products of the form $MV$, where $M\in\C{n}{n}$ is the matrix whose 1-norm is to be estimated and $V\in\C{n}{q}$, with $q$ being a small positive integer. In the \matlab{} implementation, the default value is $q=2$. Setting $q=1$ recovers Algorithm~\cite[Alg.~3.21]{higham:matfun_book}. 
 
@@ -549,11 +548,12 @@ One such example is the Denman-Beavers iteration for the matrix square root, whi
 Matrix iterations are not in the scope of this thesis, more details on the topic can be found in~\cite[§~4.9]{higham:matfun_book}.
 
 
-\subsection{Matrix polynomials}\label{subs:paterson-stockmeyer}
+\subsection{Matrix polynomials}
 Unlike the scalar case, evaluating a polynomial $p(x)=\sum_{k=0}^m a_kx^k$ of degree $m\ge 1$ at a matrix argument by explicitly forming the matrix powers has the same asymptotical cost as evaluating it via the Horner's method (see~\cite[Algs.~4.2,4.3]{higham:matfun_book}). This is because both methods perform $m-1$ matrix multiplications. Since each one generally requires $O(n^3)$ flops, compared to the $O(n^2)$ typical cost of a linear combination, matrix multiplications dominate the computational cost.
 
+\subsubsection{The Paterson-Stockmeyer method}\label{subs:paterson-stockmeyer}
 A matrix polynomial can be evaluated with $O(\sqrt{m})$ matrix-matrix multiplications, using the Paterson-Stockmeyer method~\cite{paterson_stockmeyer:article}.
-In the Paterson-Stockmeyer scheme an integer index $\nu\in[m]$ (which we will call the \emph{``batch size''}) is chosen, $p(A)$ is rewritten as a polynomial in $A^{\nu}$ of degree $\le m$, whose coefficients are linear combinations of $I,A,\dots,A^{\nu-1}$. We now describe the method more rigorously.
+In the Paterson-Stockmeyer scheme an integer index $\nu\in[m]$ (which we will call the \emph{``batch size''} throughout this essay) is chosen, $p(A)$ is rewritten as a polynomial in $A^{\nu}$ of degree $\le m$, whose coefficients are linear combinations of $I,A,\dots,A^{\nu-1}$. We now describe the method more rigorously.
 
 The polynomial $p(A)$ is written as 
 \begin{equation}\label{eqn:ps_poly}
@@ -596,24 +596,49 @@ The total number of matrix multiplications is therefore
 		0 & otherwise.
 	\end{dcases*}
 \end{equation}
-By taking its derivative with respect to $\nu$ (and dropping the $\lfloor\phantom{r}\rfloor$ in $r$), we see that $C_m(\nu)$ in~\eqref{eqn:ps_cost} is minimized by $\sqrt{m}$; thus the cost is approximately minimized by either $\nu=\lfloor\sqrt{m}\rfloor$ or $\nu=\lceil\sqrt{m}\rceil$. With either choice of ``batch size'', evaluating a polynomial of degree $m$ at a $n$-by-$n$ matrix costs $O(\sqrt{m}n^3)$ flops. See also~\cite[Thm.~1]{fasi:ps_optimality}.
+By taking its derivative with respect to $\nu$ (and dropping the $\lfloor\phantom{r}\rfloor$ in $r$), we see that $C_m(\nu)$ in~\eqref{eqn:ps_cost} is minimized by $\sqrt{m}$; thus the cost is approximately minimized by either $\nu=\lfloor\sqrt{m}\rfloor$ or $\nu=\lceil\sqrt{m}\rceil$. With either choice of ``batch size'', evaluating a polynomial of degree $m$ at a $n$-by-$n$ matrix costs $O(\sqrt{m}n^3)$ flops. See also~\cite[§~1]{fasi:ps_optimality}.
 
 It can be easily seen that the two extreme cases $\nu=1$ and $\nu=m$ correspond to the Horner and to the explicit powers evaluation schemes, respectively.
 
 \begin{oss*}
-	The Paterson-Stockmeyer comes with its tradeoffs. The lower number of matrix-matrix multiplications comes with additional matrix-scalar products and matrix sums. As already discussed, these operations are cheaper than matrix-matrix multiplications.
+	The Paterson-Stockmeyer method comes with its tradeoffs. The lower number of matrix-matrix multiplications comes with additional matrix-scalar products and matrix sums. As already discussed, these operations are cheaper than matrix-matrix multiplications.
 	
 	As many intermediate quantities such as the matrix powers $I,A,\dots,A^{\nu}$ have to be repeatedly used, the Paterson-Stockmeyer has a higher memory footprint than the other two methods: it requires more units of storage and more memory operations. This memory cost can be reduced by computing $p(A)$ one column at a time, at the price of additional matrix-matrix multiplications. For details, see~\cite[§~4.2]{higham:matfun_book} and the references therein.
 \end{oss*}
 
 As we will see in Section~\ref{sect:exp_mp_description}, the Paterson-Stockmeyer is an essential building block of the multiprecision algorithm for the matrix exponential that this essay presents. 
 
-The same error bound holds for the three methods considered in this section, see~\cite[Thm.~4.5]{higham:matfun_book} for the precise statement. The essential point is that if there is significant cancellation in forming the polynomial $p$, then the error in the computed result can be large. 
+The same error bound holds for the three methods to evaluate matrix polynomials considered so far, see~\cite[Thm.~4.5]{higham:matfun_book} for the precise statement. The essential point is that if there is significant cancellation in forming the polynomial $p$, then the error in the computed result can be large. 
 
-\textcolor{red}{Forse: ultimamente, è uscita tutta una serie di articoli che cercano di ``battere'' Paterson-Stockmeyer.}
+\subsubsection{Beyond Paterson-Stockmeyer}\label{subs:beyond_p-s}
+The Paterson-Stockmeyer method is not the fastest known algorithm for evaluating polynomials of matrices: in the same article that introduced their method~\cite{paterson_stockmeyer:article}, Paterson and Stockmeyer discuss a technique that requires fewer matrix-matrix multiplications; which still underlies all methods that try to improve on the method that carries their name. 
+
+Research on faster algorithms for evaluating matrix polynomials is still very active at the time of writing. Although the topic is interesting, it is not central to this thesis. Therefore, we limit ourselves to a simple introduction of the general idea. The reader is referred to the cited literature for further details.
+\smallskip
+
+Let us fix a number $C\in\mathbb{N}\setminus\{0\}$ of matrix-matrix multiplications, and consider the recursive scheme 
+\begin{subequations}\label{eqn:degopt_poly:scheme}
+\begin{gather}
+	\begin{dcases}
+		\mu_{-1}=I\\ \mu_0=A
+	\end{dcases}, \qquad
+	\mu_r= \qty(\sum_{i=-1}^{r-1}m_{a,r,i}\mu_i)\qty(\sum_{i=-1}^{r-1}m_{b,r,i}\mu_i)\label{eqn:degopt_poly:intermediates}\\
+\intertext{so that} 
+	Y=\sum_{i=1}^C y_i\mu_i. \label{eqn:degopt_poly:final}
+\end{gather}	
+\end{subequations}
+$Y$ as in~\eqref{eqn:degopt_poly:final} is a polynomial in $A$ of degree at most $2^{C}$ that can be evaluated with $C$ matrix-matrix multiplications. See also~\cite[§~2]{paterson_stockmeyer:article} and~\cite[Eqn.~(2)]{fasi:jfr23_compgraphs}.
+
+\begin{oss*}
+	The procedure described in~\eqref{eqn:degopt_poly:scheme} proceeds in $C$ steps. Each step forms the product of two linear combinations of the quantities produced at the previous steps. Then, a final linear combination is performed.
+\end{oss*}
+
+It can be proven that in~\eqref{eqn:degopt_poly:scheme} the number of parameters $m_{a,\_,\_}$, $m_{b,\_,\_}$, $y_{\_}$ that appear is $O(C^2)$. It follows that not all polynomials of degree at most $2^C$ can be evaluated using that scheme, especially if $C$ is large. In fact, to evaluate a matrix polynomial $p(A)=\sum_{i=0}^{2^C}a_iA^i$ using~\eqref{eqn:degopt_poly:scheme}, the parameters must be obtained from the coefficients of the polynomial. In general, this yields a system of up to $2^C$ nonlinear equations in $O(C^2)$ unknowns. 
+
+In some cases, the system can be solved and may even admit more than one solution; see~\cite[§~2]{sastre:siad25_beyond}. A solution can be obtained using different techniques, such as symbolic arithmetic~\cite{sastre:si21_efficient, sastre:boosting_19:expm}. Another possibility is to formulate the general scheme in~\eqref{eqn:degopt_poly:scheme} is formulated as a computational graph, so that the choice of the parameters is interpreted as an optimization problem. See~\cite{fasi:jfr23_compgraphs} for further details.
 \bigskip
 
-\noindent We conclude this section by mentioning the \emph{binary powering algorithm}, because the scaling and squaring algorithm uses a special case of it. The binary powering algorithm efficiently computes $A^m$ (i.e. it evaluates the monomial $x^m$ at $A$) by using the binary representation of $m$ instead of explicitly forming all of the previous powers of the matrix. More details can be found in~\cite[§~4.1]{higham:matfun_book}.
+\noindent We conclude this section on the evaluation of matrix polynomials by mentioning the \emph{binary powering algorithm}, because the scaling and squaring algorithm uses a special case of it. The binary powering algorithm efficiently computes $A^m$ (i.e. it evaluates the monomial $x^m$ at $A$) by using the binary representation of $m$ instead of explicitly forming all of the previous powers of the matrix. More details can be found in~\cite[§~4.1]{higham:matfun_book}.
 
 
 
