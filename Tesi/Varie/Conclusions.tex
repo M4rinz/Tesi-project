@@ -1,0 +1,17 @@
+\chapter*{Conclusions}
+In this thesis we have reviewed floating point arithmetic, a classic topic in numerical analysis and computer science. We have then introduced matrix functions, discussing their definitions, their conditioning and some of their theoretical properties. Subsequently, we've specialized our treatment to the exponential of a matrix, in particular by presenting numerical methods for its approximation. Specifically, we focused on Higham's implementation of scaling and squaring, also describing its limitations and some of the proposed improvements. We have given a meticulous description of the multiprecision scaling and squaring algorithm by Fasi and Higham in Chapter~\ref{capitolo:4}, drawing extensively on the material presented in the previous chapters. Finally, we have confirmed through numerical experiments that the algorithm accurately approximates the matrix exponential for all configurations and working precisions considered. 
+\smallskip 
+
+The possible improvements to the proposed work are countless. 
+
+More numerical experiments could be performed. A first straightforward example would be to investigate the level of accuracy achieved at higher working precisions. The impact of the internal increase in working precision on the choice of the algorithmic parameters and on the achieved accuracy could be assessed in further detail. As suggested in the corresponding section, more effort could be put into checking whether the computed value of $\delta$ is an upper bound to the absolute forward error. As a last example, it would be interesting to check whether the cost of the algorithm follows the predicted asymptotic behaviour.
+
+Proving, or disproving, the conjecture concerning the signs of the coefficients of the series expansion of $q_m(0)^{-1}$, with $q_m$ being the denominator of the $[m/m]$ diagonal Padé approximant to the exponential function, would be a significant contribution to the multiprecision algorithm presented in this thesis.  
+Extensions to the proposed work concerning the multiprecision algorithm would not be limited to this, however. For example, other stopping criteria and parameter selection heuristics could be experimented with.
+
+Finally, a deeper investigation of the available literature could extend the proposed work in several ways. More algorithms could be considered and compared, possibly providing new ideas for the development of alternative multiprecision algorithms.
+
+
+
+
+

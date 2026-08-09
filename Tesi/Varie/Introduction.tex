@@ -1,7 +1,36 @@
 \chapter*{Introduction}
-\textcolor{red}{Hello! Introduction here!}
+The goal of this essay is to describe the multiprecision algorithm proposed by Fasi and Higham~\cite{higham:hf19_mpexpm} for computing the exponential of a matrix. A Julia implementation has been developed as part of the work for this thesis.
 
+The algorithm will only be described in Chapter~\ref{capitolo:4}; the previous chapters cover all of the necessary background, starting from floating point arithmetic. All the steps leading to its description are covered either directly or indirectly through numerous references to the existing literature. This makes the discussion longer, but it allows to treat the matrix exponential function, its properties and the computational methods to approximate it with full generality.
+A reader familiar enough with the topics of the first chapters may gloss over them, using the introduction to each chapter and this general introduction as a guide.
+\smallskip 
 
+The classic topics of floating point arithmetic, numerical errors and conditioning are treated in Chapter~\ref{capitolo:1}, with the aim of offering a review of the the foundations of numerical analysis and, most importantly, of presenting how multiprecision arithmetic works in Julia through numerous examples. In particular, this chapter illustrates how to perform some elementary linear algebra computations in arbitrary precision, in Julia. 
+\smallskip 
+
+Chapter~\ref{capitolo:2} is concerned with matrix functions. Their definitions and basic properties are presented, focusing on those that are more relevant to the algorithms considered in this thesis. Ample space is devoted to the conditioning of matrix functions, as the notion of Fréchet derivative is discussed together with several of its properties. 
+%\textcolor{red}{In particular, a description of how to compute or estimate the condition number of a matrix function is given. This is an important part of the assessment of the multiprecision algorithm.} 
+
+Unlike the particular case of the matrix exponential, which is treated separately in the third chapter, computational methods for general matrix functions are not considered in detail, with the exception of the evaluation of matrix polynomials. In particular, the Paterson--Stockmeyer scheme is thoroughly described, as it constitutes an essential component of the multiprecision algorithm.
+\smallskip 
+
+Chapter~\ref{capitolo:3} focuses on the matrix exponential, the general topic of this thesis. The chapter begins by reviewing some elementary properties and conditioning results specific to this function, and then proceeds to consider computational methods. In particular, scaling and squaring is described in detail, focusing on Higham's classic implementation, on its limitations and on some of the improvements that have been proposed since. 
+
+All of this allows for a review of more recent literature on the subject; and more importantly introduces the mathematical tools that are commonly employed to construct scaling and squaring algorithms and to analyze their behaviour. For example, all algorithms select the values of their main parameters based on some form of error analysis. In particular, some of the improvements described in this chapter are incorporated into the multiprecision algorithm by Fasi and Higham.
+\smallskip 
+
+As already mentioned, the multiprecision algorithm by Fasi and Higham is presented in Chapter~\ref{capitolo:4}. It performs scaling and squaring, employing either Taylor or diagonal Padé approximants. 
+
+Unlike Higham's original algorithm, which is tailored for double precision, this one selects its parameter values based on an upper bound on the \emph{forward} error of the chosen approximant to the matrix exponential and on some heuristic strategies. Both aspects are analyzed in detail. In general, all the steps of the algorithm are thoroughly described, using of numerous pseudocode listings. The chapter concludes with a cost analysis.
+\smallskip 
+
+Chapter~\ref{capitolo:6} presents the numerical experiments that have been conducted to assess the accuracy of the resulting algorithm. Two experimental strategies are analyzed and compared, to fully motivate the testing procedure adopted. The set of matrices used for the numerical experiments extends the one used in the original work~\cite{higham:hf19_mpexpm}. 
+The algorithm has been tested in all its possible configurations and at different working precisions; the resulting variants are compared based on the accuracy achieved on the test problems. The obtained results are presented and commented. 
+\smallskip 
+
+Finally, conclusions are drawn and some possible improvement to this work are proposed.
+
+\newpage 
 
 \section*{Notation}
 The following notational conventions will be used throughout this thesis. Additional notation will be introduced as needed.

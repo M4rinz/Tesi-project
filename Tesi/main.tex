@@ -146,7 +146,7 @@
 \listoffigures			% Indice delle tabelle
 \listoftables			% Indice delle figure
 \listofalgorithms 		% Indice degli algoritmi
-\lstlistoflistings		% Indice dei listati di codice
+%\lstlistoflistings		% Indice dei listati di codice
 
 
 %\addcontentsline{toc}{chapter}{Ringraziamenti}
@@ -157,17 +157,18 @@
 %\mainmatter
 \phantomsection
 \addcontentsline{toc}{chapter}{Introduction}
-\include{Varie/Introduction}	
+\include{Varie/Introduction}	% Introduzione e notazione
 
 \include{Capitoli/Chapter1}		% Aritmetica di macchina, precisione arbitraria
 \include{Capitoli/Chapter2}		% Funzioni di matrice
 \include{Capitoli/Chapter3}		% Esponenziale di matrice
-\include{Capitoli/Chapter4}		% Algoritmo di Higham e Fasi
-
+\include{Capitoli/Chapter4}		% Algoritmo di Fasi e Higham
 
 \include{Capitoli/Chapter6}		% Sperimentazioni numeriche
 	
-	
+\phantomsection
+\addcontentsline{toc}{chapter}{Conclusions}
+\include{Varie/Conclusions}		% Conclusioni
 	
 	
 %\backmatter
