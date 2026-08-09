@@ -543,7 +543,7 @@ Once $\alpha_{\min}$ is computed, the value of $\delta$ can be updated as shown 
 
 The last value that remains to be updated is $\psi$ (line~\algref{alg:eval_bound_tayl}{line:psi_computation:taylor}). As already noted in Remark~\ref{oss:psi_not_lower_bound}, if $\psi$ was a lower bound on $\norm{\exp(2^{-s_i}X)}_1$ then $\delta/\psi$ would be an upper bound on the relative error, which is a desireable property. One possible lower bound proposed in~\cite{higham:hf19_mpexpm} is $\norm{\exp(M)}_1\ge e^{\alpha(M)}$ where $\alpha(M)$ here denotes the \emph{spectral abscissa} $\alpha(M)\coloneqq\max\qty{\Re(\lambda)\mid\lambda\in\Lambda(M)}$ of $M\in\C{n}{n}$ introduced in the proof of Lemma~\ref{lemma:cond_exp_nrm2_normal}. However, the computation of the spectral abscissa requires $O(n^3)$ flops for dense matrices. Instead, \texttt{exp\_mp} adopts the estimate returned by the \textsc{EstimateNormExp} in Algorithm~\ref{alg:EstimateNormExp}, which can be evaluated at a $O(n^2)$ cost.
 
-\begin{algorithm}[hbp]
+\begin{algorithm}[htp]
 	\caption{\emph{Function that estimates $\exp(2^{-s}X)$ by means of truncated Taylor series, using the matrix powers already present in $\mathcal{A}$.}}
 	\label{alg:EstimateNormExp}
 	\begin{algorithmic}[1]
@@ -570,7 +570,7 @@ It is natural to ask what is the computational cost of the algorithm just descri
 As will be shown in this section, \texttt{exp\_mp} is computationally expensive, as the number of (high precision) floating point operations involved grows cubically with the size of the matrix. The high computational cost shows up in practice; see also~\cite{higham:hf19_mpexpm}. 
 \smallskip 
 
-Let $m_{\hat{\imath}}$ and $s_{\hat{\imath}}$ denote, respectively, the values of the approximant degree and scaling factor chosen at the end of the modified scaling phase, which involved $\hat{\imath}$ iterations. Recall from Section~\ref{subs:choosing_approx_deg} that the number of multiplications $\pi_m$ required to evaluate the numerator and the denominator of the $[m/m]$ Padé approximant is given by~\eqref{eqn:optcost_pi_m}. Note that the equation states that $\pi_m=O(2\sqrt{m})$. 
+Let $m_{\mathtt{f}}$ and $s_{\mathtt{f}}$ denote, respectively, the values of the approximant degree and scaling factor chosen at the end of the modified scaling phase, which involved $\mathtt{f}$ iterations. Recall from Section~\ref{subs:choosing_approx_deg} that the number of multiplications $\pi_m$ required to evaluate the numerator and the denominator of the $[m/m]$ Padé approximant is given by~\eqref{eqn:optcost_pi_m}. Note that the equation states that $\pi_m\approx 2\sqrt{m}$. 
 
 \subsection{Cost analysis of the Padé variant}
 Let us begin by analyzing the cost of the main phases of the algorithm when Padé approximants are employed.
@@ -578,11 +578,11 @@ Let us begin by analyzing the cost of the main phases of the algorithm when Pad�
 \subsubsection{Evaluating the approximant and computing matrix powers at precision \texorpdfstring{$p_{\textup{wrk}}$}{p_wrk}}
 Recall that the approximant is evaluated by solving a multiple right-hand side linear system which involves its numerator and its denominator. The cost of this operation is comparable with one matrix multiplication, thus, with a slight but unharmful abuse, the value of $\pi_m$ can be interpreted as the cost of evaluating the approximant.
 
-In its Padé variant, the algorithm requires $O\big((\pi_{m_{\hat{\imath}}} + s_{\hat{\imath}}) n^3)$ floating point operations at precision $p_{\textup{wrk}}$ to evaluate the Padé approximant $r_{m_{\hat{\imath}}}(2^{-s_{\hat{\imath}}}X)$ and to perform the final squaring phase. This cost also includes the computation of the matrix powers, which takes place during the parameter selection phase.
+In its Padé variant, the algorithm requires $O\big((\pi_{m_{\mathtt{f}}} + s_{\mathtt{f}}) n^3)$ floating point operations at precision $p_{\textup{wrk}}$ to evaluate the Padé approximant $r_{m_{\mathtt{f}}}(2^{-s_{\mathtt{f}}}X)$ and to perform the final squaring phase. This cost also includes the computation of the matrix powers, which takes place during the parameter selection phase.
 
 If only floating point operations in precision $p_{\textup{wrk}}$ were considered, the overall cost of \texttt{exp\_mp} in its Padé variant would be 
 \[
-	O\big((2\sqrt{m_{\hat{\imath}}}+s_{\hat{\imath}})n^3\big).
+	O\big((2\sqrt{m_{\mathtt{f}}}+s_{\mathtt{f}})n^3\big).
 \] 
 However, a more rigorous analysis should also account for the evaluation of the forward error bound, which is performed at each iteration of the parameter selection phase.
 
@@ -603,11 +603,11 @@ Since the cost of the formation of the matrix powers has already been taken into
 
 The LU decomposition of the denominator is then computed at precision $p_{\textup{bnd}}$, adding $O(\frac{2}{3}n^3)$ floating point operations per iteration. Recall that the $L$ and $U$ factors are reused in two occations: to compute an estimate $\nu$ of $\norm*{q_{m_i}(2^{-s_i}X)^{-1}}_1$, and to compute an estimate $\psi$ of $\norm{r_{m_i}(2^{-s_i}X)}_1$. Both computations require $O(n^2)$ floating point operations at precision $p_{\textup{bnd}}$, so their impact on the overall cost is negligible. The same applies to the estimate $\kappa_A$ of the 1-norm condition number of the denominator.
 
-Therefore, excluding lower-order terms, the evaluation of the denominator and its factorization have an overall final cost of $O\big((\sqrt{m_{\hat{\imath}}}+\frac{2}{3})\hat{\imath}n^3\big)$ floating point operations at lower precision. In fact, the optimal degrees $m_i$ form a nondecreasing sequence, thus
+Therefore, excluding lower-order terms, the evaluation of the denominator and its factorization have an overall final cost of $O\big((\sqrt{m_{\mathtt{f}}}+\frac{2}{3})\mathtt{f}\cdot n^3\big)$ floating point operations at lower precision. In fact, the optimal degrees $m_i$ form a nondecreasing sequence, thus
 \[
-	\sum_{i=1}^{\hat{\imath}}\qty(\sqrt{m_i}+\frac{2}{3})\le
-	\sum_{i=1}^{\hat{\imath}}\qty(\sqrt{m_{\hat{\imath}}}+\frac{2}{3})=
-	\qty(\sqrt{m_{\hat{\imath}}}+\frac{2}{3})\hat{\imath}.
+	\sum_{i=1}^{\mathtt{f}}\qty(\sqrt{m_i}+\frac{2}{3})\le
+	\sum_{i=1}^{\mathtt{f}}\qty(\sqrt{m_{\mathtt{f}}}+\frac{2}{3})=
+	\qty(\sqrt{m_{\mathtt{f}}}+\frac{2}{3})\mathtt{f}.
 \]	
 
 Finally, notice that the computation of $\delta$ (see Equation~\eqref{eqn:exp_mp_stopping_crit} and line~\algref{alg:eval_bound_pade}{line:delta_computation} of Algorithm~\ref{alg:eval_bound_pade}) is linear in $n$.
@@ -616,7 +616,7 @@ Finally, notice that the computation of $\delta$ (see Equation~\eqref{eqn:exp_mp
 Let us now turn to the Taylor approximant variant of the algorithm. 
 
 \subsubsection{Evaluating the approximant and computing matrix powers at precision \texorpdfstring{$p_{\textup{wrk}}$}{p_wrk}}
-Analogously to the previous case, the evaluation of the approximant requires $O\qty(2\sqrt{m_{\hat{\imath}}}n^3)$ floating point operations at precision $p_{\textup{wrk}}$, also taking into account the formation of the matrix powers. The squaring phase further adds $O\qty(s_{\hat{\imath}}n^3)$ high precision floating point operations. Thus, the Taylor variant of \texttt{exp\_mp} performs $O\big((2\sqrt{m_{\hat{\imath}}}+s_{\hat{\imath}})n^3\big)$ floating point operations at precision $p_{\textup{wrk}}$, i.e. the same as the Padé variant. Let us further analyze the overall cost of the algorithm by considering the operations performed during the evaluation of the forward error bound.
+Analogously to the previous case, the evaluation of the approximant requires $O\qty(2\sqrt{m_{\mathtt{f}}}n^3)$ floating point operations at precision $p_{\textup{wrk}}$, also taking into account the formation of the matrix powers. The squaring phase further adds $O\qty(s_{\mathtt{f}}n^3)$ high precision floating point operations. Thus, the Taylor variant of \texttt{exp\_mp} performs $O\big((2\sqrt{m_{\mathtt{f}}}+s_{\mathtt{f}})n^3\big)$ floating point operations at precision $p_{\textup{wrk}}$, i.e. the same as the Padé variant. Let us further analyze the overall cost of the algorithm by considering the operations performed during the evaluation of the forward error bound.
 
 \subsubsection{Evaluating the forward error bound}
 The cost analysis of the parameter selection phase is greatly simplified by the fact that the denominator plays no role in the error bound~\eqref{eqn:q_abserr_bound}.

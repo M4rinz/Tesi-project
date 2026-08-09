@@ -1,7 +1,7 @@
 \chapter{The Matrix Exponential}\label{capitolo:3}
 While Chapter~\ref{capitolo:2} presented the general theory of matrix functions as a whole, this chapter will focus on the matrix function around which this thesis revolves: the matrix exponential. 
 
-The function and some of its basic properties are introduced in Section~\ref{sect:expm_def_properties}. Section~\ref{sect:expm_conditioning} presents some conditioning results that are specific to the matrix exponential. Section~\ref{sect:comp_methods_expm} focuses on computational methods. In particular, a detailed description of scaling and squaring -- the most widely used algorithm for computing the matrix exponential -- and on some of the variants that have been proposed in recent years is given (Section~\ref{subs:scaling_and_squaring}).
+The function and some of its basic properties are introduced in Section~\ref{sect:expm_def_properties}. Section~\ref{sect:expm_conditioning} presents some conditioning results that are specific to the matrix exponential. Section~\ref{sect:comp_methods_expm} focuses on computational methods, beginning with a presentation of two of the most elementary ones. A detailed analysis of their weaknesses motivates the introduction of scaling and squaring, which remains to this day the most widely used method for computing the matrix exponential. Section~\ref{subs:scaling_and_squaring} gives a detailed description of Higham's implementation, and introduces some of the variants that have been proposed in recent years.
 
 
 \section{Definition and basic properties}\label{sect:expm_def_properties}
@@ -169,7 +169,7 @@ The two most common preprocessing techniques are shifting and balancing. Both ai
 Shifting for the matrix exponential relies on the identity~\eqref{eqn:expm_shifting}. In its most basic form, it prescribes that $\exp(A)$ can be approximated as $e^{\mu}Y$ where $\mu\in\C$ and $Y$ is an approximation to $\exp(A-\mu I)$. A good choice for the translation factor is $\mu=\tr(A)/n$, because it minimizes $\norm{A-\mu I}_F$ over all possible $\mu\in\C$. See also~\cite[Thm.~4.21]{higham:matfun_book}. %However, as discussed in~\cite[§~10.7.3]{higham:matfun_book}, this choice is not always appropriate, especially if $A$ has eigenvalues with large negative real parts.
 Note that this translation factor corresponds to the average of the eigenvalues of the input matrix.
 
-The benefits of shifting, however, are not limited to approximation properties. There is, however, a more fundamental reason for reducing the norm of the input matrix, namely that the matrix exponential itself is better conditioned near the origin. Indeed, it is shown in~\cite[Thm.~10.18]{higham:matfun_book} that if $\mu\in\C$ is such that $\norm{A-\mu I}<\norm{A}$ then $\kappa_{\exp}(A-\mu I)<\kappa_{\exp}(A)$. This property is not tied to any numerical method. Rather, it states that whenever shifting reduces the norm of the input matrix, the computation of its exponential becomes less sensitive to perturbations.
+The benefits of shifting, however, are not limited to approximation properties. There is a more fundamental reason for reducing the norm of the input matrix, namely that the matrix exponential itself is better conditioned near the origin. Indeed, it is shown in~\cite[Thm.~10.18]{higham:matfun_book} that if $\mu\in\C$ is such that $\norm{A-\mu I}<\norm{A}$ then $\kappa_{\exp}(A-\mu I)<\kappa_{\exp}(A)$. This property is not tied to any numerical method. Rather, it states that whenever shifting reduces the norm of the input matrix, the computation of its exponential becomes less sensitive to perturbations.
 \smallskip 
 
 Balancing is a heuristic that attempts to equalize the norms of the $i$th row and $i$th column, for each $i$. Over time, ``balancing'' has become synonimous with the balancing algorithms in \textsc{lapack}~\cite{lapack:book} such as \texttt{xGEBAL}. This function is also commonly employed as a preprocessing technique for eigenvalue computation. It operates in two phases, both optional: permutation and scaling. In the permutation phase, the aim is to find and isolate rows or columns that correspond to isolated eigenvalues; more precisely, rows and columns of the input matrix $A$ are swapped to put it in the form
@@ -440,7 +440,7 @@ In Higham's implementation of scaling and squaring, the aim is to choose the sca
 \subsubsection{Choosing the scaling parameter}
 We begin the discussion with the choice of the scaling parameter $s$. Let $r_m$ be the $[m/m]$ Padé approximant of the exponential. The main backward error result is given by the following theorem, which is a slight reformulation of~\cite[Thm.~2.1]{higham:SaS_revisited}.
 \begin{teorema}\label{teor:sas_backerr}
-	Let $s>0$ such that	$r_m(z)$ satisfies $\exp(2^{-s}A)r_m(2^{-s}A)=I+O\qty(A^{2m+1})$ so that $\norm{I-\exp(-2^{-s}A)r_m(2^{-s}A)}<1$. Then
+	Let $s>0$ such that	$r_m(z)$ satisfies $\exp(-2^{-s}A)r_m(2^{-s}A)=I+O\qty(A^{2m+1})$ so that $\norm{I-\exp(-2^{-s}A)r_m(2^{-s}A)}<1$. Then
 	\[
 		r_m(2^{-s}A)^{2^s}=\exp(A+\Delta{A}),
 	\]
@@ -521,7 +521,7 @@ For $m=1,\dots,21$ the values
 \end{equation}
 are computed using high precision arithmetic and symbolic computation software. They are listed in~\cite[Table~2.1]{higham:SaS_revisited}, together with the corresponding $\nu_m$ values introduced in the proof of Theorem~\ref{teor:sas_backerr}.
 \begin{oss*}
-	It holds that $\nu_m<\theta_m$ for all $m\in[21]$; this fact confirms that the upper bound~\eqref{eqn:backerr_bound_htilde} is valid, and that $q_m(2^{-s}A)$ is nonsingular for $\norm{2^{-s}A}\le\theta_m$.
+	It holds that $\nu_m<\theta_m$ for all $m=1,\dots 21$; this fact confirms that the upper bound~\eqref{eqn:backerr_bound_htilde} is valid, and that $q_m(2^{-s}A)$ is nonsingular for $\norm{2^{-s}A}\le\theta_m$.
 \end{oss*}
 If $s$ is chosen so that $\norm{2^{-s}A}\le\theta_m$, then the backward error in the Padé approximation is such that $\norm{\Delta{A}}/\norm{A}\le u_{53}$.
 \begin{oss*}

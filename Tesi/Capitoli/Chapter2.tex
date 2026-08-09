@@ -523,7 +523,7 @@ One of the most basic tenets of numerical linear algebra is that ``\emph{anythin
 
 The Schur-Parlett method exploits the fact that the elements of a function of a upper triangular matrix can be computed through a clever recurrence.
 
-In its simplest form, the method follows these key steps: a Schur form of $A=UTU^{H}$ is computed, so that $F(A)=Uf(T)U^{H}$. The diagonal elements of $F\coloneqq f(T)$ can be computed trivially. The off-diagonal elements can be recovered by reading the identity $TF=FT$ -- which holds by Lemma~\ref{lemma:matfun_trivial_properties} -- in the $(i,j)$th entry ($i<j$) and solving for the desired quantity. Indeed, 
+In its simplest form, the method follows these key steps: a Schur form of $A=UTU^{H}$ is computed, so that $f(A)=Uf(T)U^{H}$. The diagonal elements of $F\coloneqq f(T)$ can be computed trivially. The off-diagonal elements can be recovered by reading the identity $TF=FT$ -- which holds by Lemma~\ref{lemma:matfun_trivial_properties} -- in the $(i,j)$th entry ($i<j$) and solving for the desired quantity. Indeed, 
 \begin{equation}\label{eqn:parlett_recurrence}
 	T_{i,i}F_{i,j}-F_{i,j}T_{j,j} = \sum_{k=i}^{j-1}F_{i,k}T_{k,j} - \sum_{k=i+1}^jT_{i,k}F_{k,j},
 \end{equation}
@@ -613,7 +613,7 @@ The same error bound holds for the three methods to evaluate matrix polynomials 
 \subsubsection{Beyond Paterson-Stockmeyer}\label{subs:beyond_p-s}
 The Paterson-Stockmeyer method is not the fastest known algorithm for evaluating polynomials of matrices: in the same article that introduced their method~\cite{paterson_stockmeyer:article}, Paterson and Stockmeyer discuss a technique that requires fewer matrix-matrix multiplications; which still underlies all methods that try to improve on the method that carries their name. 
 
-Research on faster algorithms for evaluating matrix polynomials is still very active at the time of writing. Although the topic is interesting, it is not central to this thesis. Therefore, we limit ourselves to a simple introduction of the general idea. The reader is referred to the cited literature for further details.
+Research on faster algorithms for evaluating matrix polynomials is still very active at the time of writing. Although the topic is interesting, it is not central to this thesis. Therefore, we limit ourselves to a simple introduction of the general idea, the reader is referred to the cited literature for further details.
 \smallskip
 
 Let us fix a number $C\in\mathbb{N}\setminus\{0\}$ of matrix-matrix multiplications, and consider the recursive scheme 
@@ -622,7 +622,7 @@ Let us fix a number $C\in\mathbb{N}\setminus\{0\}$ of matrix-matrix multiplicati
 	\begin{dcases}
 		\mu_{-1}=I\\ \mu_0=A
 	\end{dcases}, \qquad
-	\mu_r= \qty(\sum_{i=-1}^{r-1}m_{a,r,i}\mu_i)\qty(\sum_{i=-1}^{r-1}m_{b,r,i}\mu_i)\label{eqn:degopt_poly:intermediates}\\
+	\mu_r= \qty(\sum_{i=-1}^{r-1}m_{a,r,i}\,\mu_i)\qty(\sum_{i=-1}^{r-1}m_{b,r,i}\,\mu_i)\label{eqn:degopt_poly:intermediates}\\
 \intertext{so that} 
 	Y=\sum_{i=1}^C y_i\mu_i. \label{eqn:degopt_poly:final}
 \end{gather}	
@@ -633,9 +633,9 @@ $Y$ as in~\eqref{eqn:degopt_poly:final} is a polynomial in $A$ of degree at most
 	The procedure described in~\eqref{eqn:degopt_poly:scheme} proceeds in $C$ steps. Each step forms the product of two linear combinations of the quantities produced at the previous steps. Then, a final linear combination is performed.
 \end{oss*}
 
-It can be proven that in~\eqref{eqn:degopt_poly:scheme} the number of parameters $m_{a,\_,\_}$, $m_{b,\_,\_}$, $y_{\_}$ that appear is $O(C^2)$. It follows that not all polynomials of degree at most $2^C$ can be evaluated using that scheme, especially if $C$ is large. In fact, to evaluate a matrix polynomial $p(A)=\sum_{i=0}^{2^C}a_iA^i$ using~\eqref{eqn:degopt_poly:scheme}, the parameters must be obtained from the coefficients of the polynomial. In general, this yields a system of up to $2^C$ nonlinear equations in $O(C^2)$ unknowns. 
+It can be proven that in~\eqref{eqn:degopt_poly:scheme} the number of parameters $m_{a,\_,\_}$, $m_{b,\_,\_}$, $y_{\_}$ that appear is $O(C^2)$. It follows that not all polynomials of degree at most $2^C$ can be evaluated using that scheme, especially if $C$ is large. In fact, to evaluate a matrix polynomial $p(A)=\sum_{i=0}^{2^C}a_iA^i$ using~\eqref{eqn:degopt_poly:scheme}, the parameters must be obtained from the coefficients of the polynomial $p$. In general, this yields a system of up to $2^C$ nonlinear equations in $O(C^2)$ unknowns. 
 
-In some cases, the system can be solved and may even admit more than one solution; see~\cite[§~2]{sastre:siad25_beyond}. A solution can be obtained using different techniques, such as symbolic arithmetic~\cite{sastre:si21_efficient, sastre:boosting_19:expm}. Another possibility is to formulate the general scheme in~\eqref{eqn:degopt_poly:scheme} is formulated as a computational graph, so that the choice of the parameters is interpreted as an optimization problem. See~\cite{fasi:jfr23_compgraphs} for further details.
+In some cases, the system can be solved and may even admit more than one solution; see~\cite[§~2]{sastre:siad25_beyond}. A solution can be obtained using different techniques, such as symbolic arithmetic~\cite{sastre:si21_efficient, sastre:boosting_19:expm}. Another possibility is to formulate the general scheme in~\eqref{eqn:degopt_poly:scheme} as a computational graph, then the choice of the parameters can be interpreted as an optimization problem. This approach is described in~\cite{fasi:jfr23_compgraphs} in greater detail.
 \bigskip
 
 \noindent We conclude this section on the evaluation of matrix polynomials by mentioning the \emph{binary powering algorithm}, because the scaling and squaring algorithm uses a special case of it. The binary powering algorithm efficiently computes $A^m$ (i.e. it evaluates the monomial $x^m$ at $A$) by using the binary representation of $m$ instead of explicitly forming all of the previous powers of the matrix. More details can be found in~\cite[§~4.1]{higham:matfun_book}.

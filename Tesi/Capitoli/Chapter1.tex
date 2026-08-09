@@ -31,7 +31,7 @@ The \emph{normalized} floating point numbers are those for which $d_1\ne 0$, thu
 	Since $d_1\ne 0$ we have that $m\ge\beta^{-1}$. The claim immediately follows.
 \end{proof}
 Lemma~\ref{lemma:float_range} shows that there is a gap between $0$ and the smallest normalized number $\beta^{e_{\min}-1}$. This gap is filled by the \emph{denormalized} (or \emph{subnormal}) numbers, which are of the form $\pm\beta^{e_{\min}}\cdot m$ with $0<m<\beta^{-1}$, i.e. the most significant digit $d_1$ can be zero. %Denormal numbers are quite controversial and can be troublesome, therefore we will not treat them any further and focus solely on normalized number systems.
-Denormal numbers can cause troubles if one is unaware. They are outside the scope of this document, thus they will not be treated any further, the focus will be on normalized number systems.
+Denormal numbers can cause troubles if one is unaware. They are outside the scope of this essay, thus they will not be treated any further, the focus will be on normalized number systems.
 \smallskip 
 
 \noindent An important thing to point out is that the floating point numbers are not uniformly spaced. Let us fix an exponent $e_{\min}\le e<e_{\max}$ and let $x\in\mathcal{F}$ such that $\beta^e\le x<\beta^{e+1}$. Then $x$ can assume $\beta^t$ possible values. In other words, there are $\beta^t$ floating point numbers between $\beta^e$ and $\beta^{e+1}$, each corresponding to a value that the significand can assume in the expression $\beta^{e+1}\cdot m$. 
@@ -41,7 +41,7 @@ These numbers are evenly spaced, the spacing between them being $\abs{\beta^{e+1
 \begin{oss*}
 	Intuitively, this behavior is natural: every floating-point number in $\mathcal{F}$ is represented using the same finite number of significant digits. When representing larger numbers, more digits are required for the integer part, leaving fewer significant digits available for the fractional part. Consequently, adjacent floating point numbers become farther apart as their magnitude increases, because the least significant digit is bigger.
 	
-	This intuitive explanation can be made more rigorous with the notion of \emph{ulp} (unit in last place). For $x\in\mathcal{F}$ as in~\eqref{eqn:float_pt_number}, $\mathtt{ulp}(x)=\beta^e\cdot m_0$ where where $m_0$ is the significand whose digits are all zero except for the least significant one, which equals 1, i.e. $\mathtt{ulp}(x)=\beta^{e-t}$.
+	This intuitive explanation can be made more rigorous with the notion of \emph{ulp} (unit in last place). For $x\in\mathcal{F}$ as in~\eqref{eqn:float_pt_number}, $\mathtt{ulp}(x)=\beta^e\cdot m_0$ where $m_0$ is the significand whose digits are all zero except for the least significant one, which equals 1, i.e. $\mathtt{ulp}(x)=\beta^{e-t}$.
 \end{oss*}
 
 The following definition is arguably the most important one in all numerical analysis.
